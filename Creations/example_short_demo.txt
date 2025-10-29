@@ -1,0 +1,12 @@
+# Quick Demo - 30 Second Test
+
+[MUSIC: upbeat intro]
+
+Hello! This is a quick 30-second demo of the AI Podcast Creator.
+
+Perfect for testing your installation and seeing results fast.
+
+[MUSIC: fade out]
+
+Thanks for watching!
+

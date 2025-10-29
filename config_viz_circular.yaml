@@ -1,0 +1,44 @@
+# Circular/Radial Visualization
+# Use with: --visualize flag
+
+character:
+  name: "Sophia Sterling"
+  voice_type: "British Female"
+
+tts:
+  engine: "gtts"
+  gtts_tld: "co.uk"
+
+music:
+  generator: "file"
+  ducking:
+    enabled: true
+    music_volume_during_speech: 0.3
+    music_volume_no_speech: 0.7
+
+video:
+  resolution: [1920, 1080]
+  fps: 30
+  codec: "h264"
+  profile: "baseline"
+
+# Circular Radial Visualization
+visualization:
+  style: "circular"  # Radial/circular
+  primary_color: [138, 43, 226]  # Purple
+  secondary_color: [255, 0, 255]  # Magenta
+  background_color: [0, 0, 0]  # Black
+  blur: 5
+  sensitivity: 1.5
+
+storage:
+  base_dir: "./data"
+  outputs_dir: "./data/outputs"
+  cache_dir: "./data/cache"
+
+processing:
+  use_gpu: true
+
+
+
+

@@ -1,0 +1,45 @@
+# Irish Female Voice Configuration (gTTS)
+# Warm, engaging, storyteller
+
+character:
+  name: "Siobhan O'Connor"
+  voice_type: "Irish Female"
+  accent: "Irish"
+  personality: "Warm, engaging, storyteller"
+
+tts:
+  engine: "gtts"
+  gtts_tld: "ie"  # Irish accent
+
+music:
+  generator: "file"
+  ducking:
+    enabled: true
+    music_volume_during_speech: 0.3
+    music_volume_no_speech: 0.7
+
+video:
+  resolution: "1920x1080"
+  fps: 30
+  codec: "h264"
+  profile: "baseline"
+  level: "3.0"
+  pix_fmt: "yuv420p"
+  audio_codec: "aac"
+  audio_bitrate: "128k"
+
+output:
+  directory: "data/outputs"
+  format: "mp4"
+
+storage:
+  base_dir: "./data"
+  scripts_dir: "./data/scripts"
+  outputs_dir: "./data/outputs"
+  cache_dir: "./data/cache"
+  models_dir: "./data/models"
+
+processing:
+  use_gpu: true
+  enable_fp16: true
+

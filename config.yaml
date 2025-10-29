@@ -1,0 +1,201 @@
+# AI Podcast Creator Configuration
+
+# Application Settings
+app:
+  name: "AI Podcast Creator"
+  version: "1.0.0"
+  debug: false
+
+# Character Settings
+character:
+  name: "Vivienne Sterling"
+  voice_type: "British Female"
+  accent: "Received Pronunciation"
+  personality: "Professional, warm, engaging"
+
+# TTS Configuration
+tts:
+  engine: "gtts"  # Options: gtts (basic/free), coqui, elevenlabs, azure, piper
+  
+  # Coqui TTS Settings (default)
+  coqui:
+    model: "tts_models/multilingual/multi-dataset/xtts_v2"
+    language: "en"
+    speaker_wav: null  # Path to reference voice (optional)
+    temperature: 0.7
+    
+  # ElevenLabs Settings (if using)
+  elevenlabs:
+    api_key: "${ELEVENLABS_API_KEY}"
+    voice_id: "EXAVITQu4vr4xnSDxMaL"  # Sarah (British)
+    model: "eleven_multilingual_v2"
+    stability: 0.5
+    similarity_boost: 0.75
+    
+  # Azure Speech Settings (if using)
+  azure:
+    api_key: "${AZURE_SPEECH_KEY}"
+    region: "${AZURE_REGION}"
+    voice_name: "en-GB-SoniaNeural"
+    
+  # Common TTS Settings
+  sample_rate: 24000
+  output_format: "wav"
+
+# Music Generation
+music:
+  engine: "musicgen"  # Options: musicgen, mubert, library
+  
+  musicgen:
+    model: "facebook/musicgen-medium"  # Options: small, medium, large
+    duration: 10  # seconds per generation
+    temperature: 1.0
+    top_k: 250
+    top_p: 0.0
+    
+  # Auto-ducking (lower music volume when voice plays)
+  ducking:
+    enabled: true
+    voice_volume: 1.0
+    music_volume_during_speech: 0.2
+    music_volume_no_speech: 0.5
+    fade_duration: 0.5  # seconds
+
+# Avatar/Talking Head
+avatar:
+  engine: "sadtalker"  # Options: sadtalker, wav2lip, did
+  
+  sadtalker:
+    checkpoint_dir: "./data/models/sadtalker"
+    config_dir: "./data/models/sadtalker/config"
+    enhancer: "gfpgan"  # Options: gfpgan, none
+    still_mode: false
+    expression_scale: 1.0
+    
+  wav2lip:
+    checkpoint_path: "./data/models/wav2lip/wav2lip_gan.pth"
+    face_detect_model: "s3fd"
+    
+  # D-ID API Settings (if using)
+  did:
+    api_key: "${DID_API_KEY}"
+    presenter_id: "amy-jcwCkr1grs"
+    
+  # Avatar Image
+  source_image: "./src/assets/avatars/vivienne_sterling.png"
+  
+# Video Settings
+video:
+  resolution: [1920, 1080]  # Width x Height
+  fps: 30
+  codec: "libx264"
+  profile: "baseline"  # baseline = max compatibility, main/high = better quality
+  level: "3.0"  # Compatibility level
+  pix_fmt: "yuv420p"  # Standard pixel format
+  bitrate: "2000k"  # Reasonable bitrate
+  preset: "medium"  # Options: ultrafast, fast, medium, slow
+  audio_codec: "aac"  # AAC for compatibility
+  audio_bitrate: "128k"
+  
+  # Background
+  background_type: "image"  # Options: image, video, generated
+  background_path: "./src/assets/backgrounds/studio_01.jpg"
+  
+  # Composition
+  avatar_position: [640, 140]  # X, Y offset
+  avatar_scale: 1.0
+  
+  # Effects
+  add_subtitles: false
+  add_watermark: false
+  watermark_text: "Created with AI Podcast Creator"
+
+# Audio Visualization (use --visualize flag)
+visualization:
+  style: "waveform"  # Options: waveform, spectrum, circular, particles
+  primary_color: [0, 150, 255]  # RGB - Blue
+  secondary_color: [255, 100, 200]  # RGB - Pink
+  background_color: [10, 10, 20]  # RGB - Dark blue/black
+  blur: 3  # Glow effect intensity (0-10)
+  sensitivity: 1.0  # Audio reactivity (0.5-2.0) - Waveform uses 3x internal multiplier
+
+# Avatar / Talking Head (use --avatar flag)
+avatar:
+  engine: "sadtalker"  # Options: sadtalker (FREE), wav2lip, did (PREMIUM)
+  source_image: "src/assets/avatars/default_female.jpg"  # Path to avatar face image
+  wav2lip:
+    model: "wav2lip_gan"  # Model type
+    quality: "high"  # Options: high, fast
+    face_detection: "blazeface"  # Face detector
+  sadtalker:
+    checkpoint_dir: "models/sadtalker"
+    config_dir: "models/sadtalker/config"
+    enhancer: "gfpgan"  # Face enhancer
+    still_mode: false  # True = less head movement
+    expression_scale: 1.0  # Expression intensity
+  did:
+    api_key: ""  # D-ID API key (commercial)
+
+# Storage
+storage:
+  base_dir: "./data"
+  scripts_dir: "./data/scripts"
+  outputs_dir: "./data/outputs"
+  cache_dir: "./data/cache"
+  models_dir: "./data/models"
+  
+  # Cleanup old cache files
+  auto_cleanup: true
+  cache_retention_days: 7
+
+# Processing
+processing:
+  # Use GPU if available (automatically detected)
+  use_gpu: true
+  gpu_device: 0  # GPU index (0 for first GPU, 1 for second, etc.)
+  
+  # GPU Optimizations (auto-enabled based on GPU capability)
+  enable_fp16: true  # Mixed precision (requires Tensor Cores - RTX/V100+)
+  enable_tf32: true  # TF32 acceleration (Ampere GPUs - RTX 30/40 series)
+  enable_cudnn_benchmark: true  # cuDNN auto-tuning for optimal performance
+  enable_torch_compile: true  # PyTorch 2.0+ compilation (significant speedup)
+  
+  # Memory Management
+  clear_cache_between_steps: true  # Clear GPU cache between operations
+  max_memory_allocated: 0.9  # Use up to 90% of available VRAM
+  
+  # Async processing
+  async_mode: false  # Enable for Celery task queue
+  
+  # Performance
+  batch_size: 1  # Auto-adjusted based on available VRAM
+  num_workers: 4  # Auto-adjusted based on CPU cores
+  
+# Database
+database:
+  url: "sqlite:///./data/podcasts.db"
+  echo: false  # SQL logging
+
+# Logging
+logging:
+  level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR
+  format: "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>"
+  file: "./logs/app.log"
+  rotation: "10 MB"
+  retention: "1 week"
+
+# API (Optional Web Interface)
+api:
+  enabled: false
+  host: "0.0.0.0"
+  port: 8000
+  cors_origins: ["*"]
+
+# Celery (Optional Task Queue)
+celery:
+  broker_url: "redis://localhost:6379/0"
+  result_backend: "redis://localhost:6379/0"
+  task_serializer: "json"
+  result_serializer: "json"
+  accept_content: ["json"]
+

@@ -1,0 +1,53 @@
+# ElevenLabs - Antoni (British Male, Warm, Well-rounded)
+# Premium quality, natural male voice
+
+character:
+  name: "Antoni"
+  voice_type: "British Male"
+  accent: "UK English"
+  personality: "Warm, well-rounded, friendly, engaging"
+
+tts:
+  engine: "elevenlabs"
+  elevenlabs:
+    api_key: "${ELEVENLABS_API_KEY}"
+    voice_id: "ErXwobaYiN019PkySvjV"  # Antoni
+    model: "eleven_turbo_v2_5"
+    stability: 0.5
+    similarity_boost: 0.75
+
+music:
+  generator: "file"
+  ducking:
+    enabled: true
+    music_volume_during_speech: 0.3
+    music_volume_no_speech: 0.7
+
+video:
+  resolution: "1920x1080"
+  fps: 30
+  codec: "h264"
+  profile: "baseline"
+  level: "3.0"
+  pix_fmt: "yuv420p"
+  audio_codec: "aac"
+  audio_bitrate: "128k"
+
+output:
+  directory: "data/outputs"
+  format: "mp4"
+
+storage:
+  base_dir: "./data"
+  scripts_dir: "./data/scripts"
+  outputs_dir: "./data/outputs"
+  cache_dir: "./data/cache"
+  models_dir: "./data/models"
+
+processing:
+  use_gpu: true
+  enable_fp16: true
+
+
+
+

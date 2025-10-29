@@ -1,0 +1,84 @@
+# British Female Voice Configuration (gTTS)
+# Natural, professional, clear - Your original voice!
+
+# Character Profile
+character:
+  name: "Sophia Sterling"
+  voice_type: "British Female"
+  accent: "Received Pronunciation (RP)"
+  personality: "Professional, articulate, trustworthy"
+  background: "Professional recording studio"
+  description: "A polished British broadcaster with clear diction"
+
+# TTS Configuration
+tts:
+  engine: "gtts"  # Google Text-to-Speech
+  
+  # gTTS Settings
+  gtts_tld: "co.uk"  # British accent (UK)
+  
+# Music Configuration
+music:
+  generator: "file"  # Use provided file
+  
+  # Audio ducking (lower music during speech)
+  ducking:
+    enabled: true
+    music_volume_during_speech: 0.3  # 30% volume during speech
+    music_volume_no_speech: 0.7      # 70% volume when no speech
+    fade_duration: 0.5               # Smooth transitions
+
+# Video Configuration
+video:
+  resolution: "1920x1080"  # Full HD
+  fps: 30
+  codec: "h264"
+  profile: "baseline"  # Maximum Windows compatibility
+  level: "3.0"
+  pix_fmt: "yuv420p"
+  audio_codec: "aac"
+  audio_bitrate: "128k"
+  
+  # Avatar settings
+  avatar:
+    enabled: false  # Static image for now
+    type: "static"
+    image: "src/assets/avatars/sophia_sterling.png"
+  
+  # Background
+  background:
+    type: "image"
+    path: "src/assets/backgrounds/studio_professional.jpg"
+    blur: 0
+
+# Output Configuration
+output:
+  directory: "data/outputs"
+  format: "mp4"
+  audio_format: "mp3"
+  audio_bitrate: "192k"
+
+# Storage Configuration
+storage:
+  base_dir: "./data"
+  scripts_dir: "./data/scripts"
+  outputs_dir: "./data/outputs"
+  cache_dir: "./data/cache"
+  models_dir: "./data/models"
+  auto_cleanup: true
+  cache_retention_days: 7
+
+# Processing Configuration
+processing:
+  use_gpu: true
+  gpu_device: 0
+  enable_fp16: true
+  enable_tf32: true
+  enable_cudnn_benchmark: true
+  enable_torch_compile: true
+  clear_cache_between_steps: true
+  max_memory_allocated: 0.9
+  async_mode: false
+  batch_size: 1
+  num_workers: 4
+

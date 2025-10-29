@@ -1,0 +1,58 @@
+# ElevenLabs - Adam (American Male, Deep, Mature)
+# Premium quality, natural male voice
+# Free tier: 10,000 characters/month (~7 minutes)
+
+character:
+  name: "Adam"
+  voice_type: "American Male"
+  accent: "US English"
+  personality: "Deep, mature, authoritative, professional"
+
+tts:
+  engine: "elevenlabs"
+  
+  # ElevenLabs Settings
+  elevenlabs:
+    # Get your API key from: https://elevenlabs.io/app/settings/api-keys
+    # Add to .env: ELEVENLABS_API_KEY=your_key_here
+    api_key: "${ELEVENLABS_API_KEY}"  # Will read from .env
+    voice_id: "pNInz6obpgDQGcFmaJgB"  # Adam
+    model: "eleven_turbo_v2_5"  # Fastest, cheapest (less tokens)
+    stability: 0.5  # 0-1, higher = more consistent
+    similarity_boost: 0.75  # 0-1, higher = more like original voice
+
+music:
+  generator: "file"
+  ducking:
+    enabled: true
+    music_volume_during_speech: 0.3
+    music_volume_no_speech: 0.7
+
+video:
+  resolution: "1920x1080"
+  fps: 30
+  codec: "h264"
+  profile: "baseline"
+  level: "3.0"
+  pix_fmt: "yuv420p"
+  audio_codec: "aac"
+  audio_bitrate: "128k"
+
+output:
+  directory: "data/outputs"
+  format: "mp4"
+
+storage:
+  base_dir: "./data"
+  scripts_dir: "./data/scripts"
+  outputs_dir: "./data/outputs"
+  cache_dir: "./data/cache"
+  models_dir: "./data/models"
+
+processing:
+  use_gpu: true
+  enable_fp16: true
+
+
+
+

@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  podcast-creator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_podcast_creator
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+      - ./.env:/app/.env
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: python -m src.cli.main status
+    
+  redis:
+    image: redis:7-alpine
+    container_name: podcast_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: podcast_celery
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+      - ./.env:/app/.env
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: celery -A src.worker worker --loglevel=info
+    depends_on:
+      - redis
+
+volumes:
+  redis_data:
+

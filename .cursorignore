@@ -1,0 +1,58 @@
+# Cursor-specific ignore file
+# These directories are excluded from Cursor's indexer to improve performance
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# External libraries (SadTalker is large and already analyzed)
+external/
+
+# Cache and temporary files
+data/cache/
+data/outputs/
+data/models/
+
+# Node modules (if any)
+node_modules/
+
+# Python bytecode and builds
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+logs/
+
+# Media files
+*.mp4
+*.mp3
+*.wav
+*.mp4.tmp
+*.mp3.tmp
+
+# Large model files
+*.pth
+*.onnx
+*.pb
+*.pt
+*.safetensors
+*.bin
+
+# Git
+.git/
+
+# IDE
+.vscode/
+.idea/
+
+
+

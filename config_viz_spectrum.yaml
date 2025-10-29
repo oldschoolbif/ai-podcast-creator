@@ -1,0 +1,51 @@
+# Spectrum Analyzer Visualization (Frequency Bars)
+# Use with: --visualize flag
+
+# Inherit from main config
+character:
+  name: "Sophia Sterling"
+  voice_type: "British Female"
+  accent: "Received Pronunciation (RP)"
+
+tts:
+  engine: "gtts"
+  gtts_tld: "co.uk"
+
+music:
+  generator: "file"
+  ducking:
+    enabled: true
+    music_volume_during_speech: 0.3
+    music_volume_no_speech: 0.7
+
+video:
+  resolution: [1920, 1080]
+  fps: 30
+  codec: "h264"
+  profile: "baseline"
+  level: "3.0"
+  pix_fmt: "yuv420p"
+
+# Spectrum Analyzer Visualization
+visualization:
+  style: "spectrum"  # Frequency bars
+  primary_color: [0, 255, 150]  # Green
+  secondary_color: [255, 200, 0]  # Yellow
+  background_color: [5, 5, 15]  # Very dark
+  blur: 4
+  sensitivity: 1.2
+
+storage:
+  base_dir: "./data"
+  scripts_dir: "./data/scripts"
+  outputs_dir: "./data/outputs"
+  cache_dir: "./data/cache"
+  models_dir: "./data/models"
+
+processing:
+  use_gpu: true
+  enable_fp16: true
+
+
+
+

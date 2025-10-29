@@ -1,0 +1,71 @@
+# American Female Voice Configuration (gTTS)
+# Clear, neutral, professional
+
+# Character Profile
+character:
+  name: "Madison Taylor"
+  voice_type: "American Female"
+  accent: "General American"
+  personality: "Clear, neutral, professional"
+  background: "Modern recording studio"
+  description: "A standard American broadcaster with neutral accent"
+
+# TTS Configuration
+tts:
+  engine: "gtts"
+  gtts_tld: "com"  # American accent (US)
+  
+# Music Configuration
+music:
+  generator: "file"
+  ducking:
+    enabled: true
+    music_volume_during_speech: 0.3
+    music_volume_no_speech: 0.7
+    fade_duration: 0.5
+
+# Video Configuration
+video:
+  resolution: "1920x1080"
+  fps: 30
+  codec: "h264"
+  profile: "baseline"  # Maximum Windows compatibility
+  level: "3.0"
+  pix_fmt: "yuv420p"
+  audio_codec: "aac"
+  audio_bitrate: "128k"
+  avatar:
+    enabled: false
+    type: "static"
+  background:
+    type: "image"
+    blur: 0
+
+# Output Configuration
+output:
+  directory: "data/outputs"
+  format: "mp4"
+  audio_format: "mp3"
+  audio_bitrate: "192k"
+
+# Storage Configuration
+storage:
+  base_dir: "./data"
+  scripts_dir: "./data/scripts"
+  outputs_dir: "./data/outputs"
+  cache_dir: "./data/cache"
+  models_dir: "./data/models"
+  auto_cleanup: true
+  cache_retention_days: 7
+
+# Processing Configuration
+processing:
+  use_gpu: true
+  gpu_device: 0
+  enable_fp16: true
+  enable_tf32: true
+  enable_cudnn_benchmark: true
+  enable_torch_compile: true
+  clear_cache_between_steps: true
+  max_memory_allocated: 0.9
+
