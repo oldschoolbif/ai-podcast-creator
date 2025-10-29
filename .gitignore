@@ -96,3 +96,4 @@ temp/
 celerybeat-schedule
 celerybeat.pid
 
+external/SadTalker/
