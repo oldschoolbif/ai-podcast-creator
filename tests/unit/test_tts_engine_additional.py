@@ -142,6 +142,7 @@ class TestTTSEngineCacheKeyEdgeCases:
             assert isinstance(key, str)
             assert len(key) == 32  # MD5 hex digest length
 
+    @pytest.mark.skip(reason="pyttsx3 requires system TTS engine")
     def test_cache_key_with_engine_type(self, test_config, temp_dir):
         """Test that cache key includes engine type."""
         test_config["storage"]["cache_dir"] = str(temp_dir)
@@ -215,6 +216,7 @@ class TestTTSEngineConfigurationVariants:
             # Verify Australian TLD was used
             assert mock_gtts.call_args[1]["tld"] == "com.au"
 
+    @pytest.mark.skip(reason="pyttsx3 requires system TTS engine")
     def test_pyttsx3_with_custom_rate(self, test_config, temp_dir):
         """Test pyttsx3 with custom speaking rate."""
         test_config["tts"] = {"engine": "pyttsx3", "pyttsx3_rate": 200}  # Fast speaking
