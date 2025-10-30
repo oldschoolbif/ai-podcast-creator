@@ -2,9 +2,7 @@
 Audio Visualizer - Generate vibrant backgrounds that react to voice
 """
 
-import colorsys
 from pathlib import Path
-from typing import Optional, Tuple
 
 import librosa
 import librosa.display
@@ -328,7 +326,7 @@ class AudioVisualizer:
 
     def _frames_to_video(self, frames: list, audio_path: Path, output_path: Path) -> Path:
         """Convert frames to video with audio"""
-        from moviepy.editor import AudioFileClip, CompositeVideoClip, ImageSequenceClip
+        from moviepy.editor import AudioFileClip, ImageSequenceClip
 
         # Create video from frames
         video_clip = ImageSequenceClip(frames, fps=self.fps)

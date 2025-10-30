@@ -3,7 +3,6 @@ Video Composer Module
 Composes final video with background and effects
 """
 
-import shutil
 import subprocess
 from datetime import datetime
 from pathlib import Path

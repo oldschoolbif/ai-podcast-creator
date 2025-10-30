@@ -4,12 +4,10 @@ Generates animated talking head videos synced to audio
 Supports multiple engines: Wav2Lip, SadTalker, D-ID
 """
 
-import hashlib
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 # Add parent directory to path for GPU utils
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

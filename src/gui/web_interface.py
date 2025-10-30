@@ -355,16 +355,16 @@ Thank you for listening!""",
                             - Test with short scripts first
                             - GPU significantly speeds up processing
                             - Basic version (gTTS) works without GPU
-                            
+
                             ### System Info:
-                            
+
                             - Python: 3.10+
                             - FFmpeg: Required
                             - GPU: Optional but recommended
                             - Storage: ~1GB per 5-minute video
-                            
+
                             ### Need Help?
-                            
+
                             Check the documentation files:
                             - README.md
                             - QUICK_START.md
@@ -375,7 +375,7 @@ Thank you for listening!""",
         gr.Markdown(
             """
             ---
-            
+
             Made with ❤️ by AI Podcast Creator | [Documentation](../README.md) | [GitHub](https://github.com)
             """
         )

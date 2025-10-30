@@ -4,8 +4,7 @@ Handles GPU detection and configuration for maximum performance
 """
 
 import os
-from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 
 class GPUManager:

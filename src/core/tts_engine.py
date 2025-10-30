@@ -4,7 +4,6 @@ Handles speech generation using various TTS providers
 """
 
 import hashlib
-import os
 import sys
 from datetime import datetime
 from pathlib import Path

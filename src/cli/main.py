@@ -16,7 +16,6 @@ from rich.table import Table
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.core.audio_mixer import AudioMixer
-from src.core.avatar_generator import AvatarGenerator
 from src.core.music_generator import MusicGenerator
 from src.core.script_parser import ScriptParser
 from src.core.tts_engine import TTSEngine
