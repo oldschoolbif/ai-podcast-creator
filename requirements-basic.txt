@@ -17,7 +17,7 @@ scipy==1.11.4
 numpy==1.24.3
 
 # Video Processing
-moviepy==1.0.3
+moviepy==2.2.1
 pillow==10.1.0
 
 # Database
