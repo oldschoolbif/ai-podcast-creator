@@ -1,0 +1,66 @@
+[1m============================= test session starts =============================[0m
+platform win32 -- Python 3.13.9, pytest-7.4.3, pluggy-1.6.0 -- D:\dev\AI_Podcast_Creator\venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default' -> database=DirectoryBasedExampleDatabase(WindowsPath('D:/dev/AI_Podcast_Creator/.hypothesis/examples'))
+benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: D:\dev\AI_Podcast_Creator
+configfile: pytest.ini
+plugins: Faker-22.0.0, hypothesis-6.96.0, asyncio-0.21.1, benchmark-4.0.0, cov-4.1.0, factoryboy-2.6.0, mock-3.12.0, timeout-2.2.0, xdist-3.5.0
+asyncio: mode=Mode.STRICT
+[1mcollecting ... [0mcollected 29 items / 1 error / 26 deselected / 3 selected
+
+=================================== ERRORS ====================================
+[31m[1m______________ ERROR collecting tests/unit/test_script_parser.py ______________[0m
+[31mImportError while importing test module 'D:\dev\AI_Podcast_Creator\tests\unit\test_script_parser.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+venv\Lib\site-packages\_pytest\python.py:617: in _importtestmodule
+    mod = import_path(self.path, mode=importmode, root=self.config.rootpath)
+venv\Lib\site-packages\_pytest\pathlib.py:567: in import_path
+    importlib.import_module(module_name)
+C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:935: in _load_unlocked
+    ???
+venv\Lib\site-packages\_pytest\assertion\rewrite.py:186: in exec_module
+    exec(co, module.__dict__)
+tests\unit\test_script_parser.py:13: in <module>
+    from src.core.script_parser import ScriptParser, ScriptSegment
+E   ImportError: cannot import name 'ScriptSegment' from 'src.core.script_parser' (D:\dev\AI_Podcast_Creator\src\core\script_parser.py)[0m
+
+---------- coverage: platform win32, python 3.13.9-final-0 -----------
+Name                           Stmts   Miss  Cover   Missing
+------------------------------------------------------------
+src\cli\__init__.py                0      0   100%
+src\cli\main.py                  320    320     0%   6-559
+src\core\__init__.py               0      0   100%
+src\core\audio_mixer.py           47     47     0%   6-115
+src\core\audio_visualizer.py     184    184     0%   5-352
+src\core\avatar_generator.py     280    280     0%   7-533
+src\core\music_generator.py      108    108     0%   6-202
+src\core\script_parser.py         40     32    20%   21-22, 37-71, 91-94, 106-117
+src\core\tts_engine.py           234    234     0%   6-420
+src\core\video_composer.py       139    139     0%   6-334
+src\gui\__init__.py                0      0   100%
+src\gui\desktop_gui.py           184    184     0%   6-460
+src\gui\web_interface.py         108    108     0%   6-433
+src\models\__init__.py             0      0   100%
+src\models\database.py            42     42     0%   5-81
+src\utils\__init__.py              0      0   100%
+src\utils\config.py               44     44     0%   5-113
+src\utils\gpu_utils.py           145    125    14%   15-22, 26-56, 60, 64-68, 72-88, 92-114, 118-148, 152-158, 162-178, 182-189, 199-202, 207, 212, 217, 222-246
+------------------------------------------------------------
+TOTAL                           1875   1847     1%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+
+[36m[1m=========================== short test summary info ===========================[0m
+[31mERROR[0m tests/unit/test_script_parser.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+[31m======================= [33m26 deselected[0m, [31m[1m1 error[0m[31m in 1.40s[0m[31m =======================[0m

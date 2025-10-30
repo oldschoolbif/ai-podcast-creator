@@ -13,18 +13,16 @@ from src.gui.web_interface import launch_web_interface
 
 if __name__ == "__main__":
     print("""
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║       🎙️  AI PODCAST CREATOR - WEB INTERFACE  🎙️        ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
+============================================================
+       AI PODCAST CREATOR - WEB INTERFACE
+============================================================
 
 Starting web interface...
 
-📍 Local URL: http://localhost:7860
-🌐 To access from other devices: Use --share flag
-⚡ GPU Status: Checking...
-🛑 Press Ctrl+C to stop
+Local URL: http://localhost:7860
+To access from other devices: Use --share flag
+GPU Status: Checking...
+Press Ctrl+C to stop
 
 """)
     

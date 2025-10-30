@@ -12,16 +12,40 @@ AI Podcast Creator is an automated video podcast generation system featuring:
 - **🏢 Professional Setting**: Recording studio background with customizable scenes
 - **⚡ CLI Interface**: Easy-to-use command-line tools
 - **🔧 Modular Design**: Swap TTS engines, avatar systems, and music generators
+- **🚀 GPU Acceleration**: 10-12x faster generation with NVIDIA GPU support
 
 ## 🎨 GUI Interface Available!
 
 **No command line needed!** We now have beautiful graphical interfaces:
 
-### 🌐 Web Interface (Recommended):
+### 🌐 Web Interface (Recommended) ⭐ **EASY LAUNCH!**
+
+**Quick Start - Just double-click:**
+```
+start_web_ui.bat          # Minimized window (easy troubleshooting)
+start_web_ui_hidden.vbs   # Completely hidden (no window)
+```
+
+**Or manually:**
 ```bash
-pip install gradio
-python launch_web_gui.py
-# Opens at http://localhost:7860
+python launch_web_gui.py --port 7861
+```
+
+**✅ Access at:** **http://localhost:7861**
+
+**Features:**
+- ✅ **Responsive Design** - No scrolling, works on any screen size
+- ✅ **TTS Voice Selection** - Choose from 4 engines (gTTS/Coqui/ElevenLabs/Azure)
+- ✅ **Voice Speed Control** - Adjust narration speed (0.5x - 2.0x)
+- ✅ **Avatar Style Options** - Multiple visual themes
+- ✅ Drag & drop file upload
+- ✅ Video quality settings (480p/720p/1080p)
+- ✅ Real-time processing feedback
+- ✅ Example scripts included
+
+**Stop Server:**
+```
+stop_web_ui.bat           # Stop the web server
 ```
 
 ### 💻 Desktop GUI:
@@ -30,14 +54,61 @@ python launch_desktop_gui.py
 # Native desktop application
 ```
 
-**Features:**
-- ✅ Drag & drop file selection
-- ✅ Live progress tracking
-- ✅ Settings configuration
-- ✅ Example scripts
-- ✅ Video preview
+**See [WEB_INTERFACE_READY.md](WEB_INTERFACE_READY.md), [LAUNCH_GUI.md](LAUNCH_GUI.md) and [GUI_GUIDE.md](GUI_GUIDE.md) for details!**
 
-**See [LAUNCH_GUI.md](LAUNCH_GUI.md) and [GUI_GUIDE.md](GUI_GUIDE.md) for details!**
+---
+
+## 🚀 GPU Acceleration (10x Faster!)
+
+AI Podcast Creator supports **NVIDIA GPU acceleration** for dramatically faster generation:
+
+### Performance Comparison (2-minute podcast):
+- **CPU**: 60-80 minutes
+- **GPU (RTX 4060)**: 5-8 minutes
+- **Speedup**: **10-12x faster!** 🚀
+
+### GPU-Accelerated Features:
+- ✅ **TTS (Coqui XTTS)** - Natural voices, 5x faster
+- ✅ **Music (MusicGen)** - AI-generated music, 10x faster
+- ✅ **Avatar (SadTalker)** - Animated talking heads, 12x faster
+
+### Requirements:
+- NVIDIA GPU with 6GB+ VRAM (RTX 3060/4060 or better)
+- CUDA-enabled PyTorch (included in requirements.txt)
+
+### Quick GPU Setup (5 minutes):
+
+```bash
+# 1. Check GPU
+python check_gpu.py
+
+# 2. Install GPU packages
+pip install TTS audiocraft
+
+# 3. Update config.yaml (change engines to GPU versions)
+# See QUICK_GPU_SETUP.md for details
+
+# 4. Generate at GPU speed!
+python -m src.cli.main create Creations/example_welcome.txt
+```
+
+**📚 Documentation:**
+- **Quick Start**: [QUICK_GPU_SETUP.md](QUICK_GPU_SETUP.md) - 5-minute setup
+- **Complete Guide**: [GPU_SETUP_COMPLETE.md](GPU_SETUP_COMPLETE.md) - Detailed setup & optimization
+
+### 📊 GPU Monitoring
+
+Monitor real-time GPU usage with accurate metrics:
+
+```powershell
+# Windows - Real-time monitoring
+.\monitor_gpu.ps1
+
+# Or use nvidia-smi directly
+nvidia-smi
+```
+
+**Note:** Windows Task Manager and Xbox Game Bar may show **VRAM allocation** as "GPU usage" which can be misleading. Use `nvidia-smi` or `monitor_gpu.ps1` for accurate **compute utilization**.
 
 ---
 
@@ -47,8 +118,10 @@ python launch_desktop_gui.py
 
 - Python 3.10 or higher
 - FFmpeg 5.0+ installed and in PATH
-- NVIDIA GPU with 6GB+ VRAM (recommended) or CPU fallback
+- NVIDIA GPU with 6GB+ VRAM (recommended for GPU features, optional)
 - 50GB free disk space for models
+
+**Note:** GPU is optional but provides 10x faster generation. CPU works but is much slower.
 
 ### Installation
 
@@ -461,10 +534,25 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 - Use CPU fallback (set use_gpu: false in config)
 
 ### Slow generation
+- **Check GPU usage**: Run `python check_gpu.py` to verify GPU detection
 - Ensure GPU is being used (check with `nvidia-smi`)
+- Enable GPU acceleration (see QUICK_GPU_SETUP.md)
 - Use smaller, faster models
 - Consider cloud-based APIs (ElevenLabs, D-ID)
 - Enable caching (default)
+
+### GPU not detected
+- Run `python check_gpu.py` for detailed diagnostics
+- Check NVIDIA drivers are installed: `nvidia-smi`
+- Reinstall PyTorch with CUDA:
+  ```bash
+  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+  ```
+- See [GPU_SETUP_COMPLETE.md](GPU_SETUP_COMPLETE.md) troubleshooting section
+
+### Known bugs
+- Run `python fix_bugs.py` to apply automated fixes
+- See [BUGS_FOUND_AND_FIXED.md](BUGS_FOUND_AND_FIXED.md) for details
 
 ## Advanced Features
 
@@ -526,6 +614,132 @@ uvicorn src.api.main:app --reload
 
 Access at http://localhost:8000
 
+## 📚 Documentation
+
+### Getting Started
+- [README.md](README.md) - Main documentation (this file)
+- [QUICK_START.md](QUICK_START.md) - Basic setup guide
+- [INSTALLATION.md](INSTALLATION.md) - Detailed installation
+- [LAUNCH_GUI.md](LAUNCH_GUI.md) - GUI launch instructions
+
+### GPU & Performance
+- ⚡ [QUICK_GPU_SETUP.md](QUICK_GPU_SETUP.md) - **5-minute GPU setup** _(Start here for GPU!)_
+- [GPU_SETUP_COMPLETE.md](GPU_SETUP_COMPLETE.md) - Complete GPU guide with troubleshooting
+- [GPU_OPTIMIZATION_GUIDE.md](GPU_OPTIMIZATION_GUIDE.md) - Performance tuning
+- [check_gpu.py](check_gpu.py) - GPU detection utility
+
+### Features & Configuration
+- [VOICE_OPTIONS_GUIDE.md](VOICE_OPTIONS_GUIDE.md) - TTS voice configuration
+- [VOICE_QUICK_REF.md](VOICE_QUICK_REF.md) - Voice reference
+- [VISUALIZATION_GUIDE.md](VISUALIZATION_GUIDE.md) - Audio visualization
+- [AVATAR_GUIDE.md](AVATAR_GUIDE.md) - Avatar setup
+- [FEATURES.md](FEATURES.md) - All features overview
+
+### Troubleshooting
+- 🐛 [BUGS_FOUND_AND_FIXED.md](BUGS_FOUND_AND_FIXED.md) - Known issues and fixes
+- [fix_bugs.py](fix_bugs.py) - Automated bug fix script
+- [GPU_SETUP_COMPLETE.md](GPU_SETUP_COMPLETE.md) - GPU troubleshooting section
+
+### Advanced
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
+- [REQUIREMENTS.md](REQUIREMENTS.md) - Technical requirements
+- [GUI_GUIDE.md](GUI_GUIDE.md) - GUI usage guide
+
+## 🚀 CI/CD & Quality Automation
+
+**Professional-grade automated testing pipeline!**
+
+### Quick Start for Developers
+
+```powershell
+# One-time setup (5 minutes)
+.\scripts\setup_dev_tools.ps1
+
+# Daily workflow
+git add .
+git commit -m "message"    # Auto-formatting, linting, tests
+.\scripts\pre-push.ps1     # Verify before pushing
+git push                   # GitHub Actions runs automatically
+```
+
+### What's Automated ✅
+- ✅ **Code formatting** (Black) on every commit
+- ✅ **Linting** (Flake8) on every commit  
+- ✅ **Security scanning** (Bandit) on every push
+- ✅ **Full test suite** (286 tests) on every push
+- ✅ **Multi-platform testing** (Ubuntu + Windows)
+- ✅ **Multi-version testing** (Python 3.10, 3.11, 3.12)
+- ✅ **Coverage tracking** (30% minimum enforced)
+- ✅ **Weekly deep scans** (mutation testing, type checking, security audits)
+
+### Documentation
+- **Quick Start:** [QUICK_START_CI_CD.md](QUICK_START_CI_CD.md) (5 minutes)
+- **Full Guide:** [CI_CD_SETUP_GUIDE.md](CI_CD_SETUP_GUIDE.md) (comprehensive)
+- **Future Plans:** [QA_EXCELLENCE_ROADMAP.md](QA_EXCELLENCE_ROADMAP.md)
+
+### Helper Scripts
+```powershell
+.\scripts\test.ps1          # Run all tests with coverage
+.\scripts\test-fast.ps1     # Run fast tests only
+.\scripts\coverage.ps1      # Generate coverage report (opens in browser)
+.\scripts\lint.ps1          # Run linting checks
+.\scripts\security.ps1      # Run security scans
+.\scripts\pre-push.ps1      # Validate before pushing
+```
+
+---
+
+## Testing
+
+### Test Coverage
+
+**Current Status:** 31% overall coverage (48% on core modules, 100% pass rate)
+
+| Module | Coverage | Status |
+|--------|----------|--------|
+| audio_mixer.py | 100% | ✅ Perfect |
+| script_parser.py | 100% | ✅ Perfect |
+| config.py | 100% | ✅ Perfect |
+| gpu_utils.py | 99% | 🏆 Excellent |
+| video_composer.py | 72% | ✅ Very Good |
+| avatar_generator.py | 63% | ✅ Good |
+| tts_engine.py | 52% | 📈 Fair |
+| music_generator.py | 31% | 📊 Moderate |
+
+**Test Suite:** 286 passing tests, 18 skipped (optional dependencies), 0 failures
+
+### Running Tests
+
+```bash
+# Activate virtual environment
+.\venv\Scripts\Activate.ps1
+
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage report
+pytest --cov=src --cov-report=term-missing --cov-report=html tests/
+
+# View HTML coverage report
+start htmlcov\index.html
+```
+
+### Test Documentation
+
+See detailed testing reports:
+- `TEST_COVERAGE_COMPLETE_REPORT.md` - Comprehensive coverage analysis
+- `COVERAGE_FINAL_STATUS.md` - Current status and metrics
+- `COVERAGE_PROGRESS_REPORT.md` - Progress tracking
+
+### Key Testing Features
+
+- ✅ 192 comprehensive tests
+- ✅ Pytest framework with fixtures
+- ✅ Mocking for external dependencies
+- ✅ Skip markers for optional features
+- ✅ Real functional tests (not over-mocked)
+- ✅ CI/CD ready
+
 ## Contributing
 
 This is an open-source project. Contributions welcome:
@@ -534,6 +748,7 @@ This is an open-source project. Contributions welcome:
 - Submit pull requests for improvements
 - Share your generated content (with AI disclosure)
 - Improve documentation
+- Write additional tests (see testing section above)
 
 ## License
 

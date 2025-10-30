@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/YOUR_USERNAME/AI_Podcast_Creator/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 📚 Documentation
+    url: https://github.com/YOUR_USERNAME/AI_Podcast_Creator#documentation
+    about: Check our comprehensive documentation
+  - name: 🔒 Security Issue
+    url: https://github.com/YOUR_USERNAME/AI_Podcast_Creator/security/advisories/new
+    about: Report a security vulnerability privately
+

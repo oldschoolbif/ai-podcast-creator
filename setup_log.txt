@@ -1,0 +1,245 @@
+======================================================================
+  COMPLETE SETUP AND TEST - 10/29/2025 10:29:40
+======================================================================
+
+STEP 1: Checking Python...
+  Python version: Python 3.13.9
+  Python path: C:\Users\dpipe\AppData\Local\Microsoft\WindowsApps\python.exe
+
+STEP 2: Creating virtual environment...
+  Removing existing venv...
+  ✓ Virtual environment created
+
+STEP 3: Upgrading pip...
+Requirement already satisfied: pip in d:\dev\ai_podcast_creator\venv\lib\site-packages (25.2)
+Collecting pip
+  Using cached pip-25.3-py3-none-any.whl.metadata (4.7 kB)
+Using cached pip-25.3-py3-none-any.whl (1.8 MB)
+Installing collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 25.2
+    Uninstalling pip-25.2:
+      Successfully uninstalled pip-25.2
+Successfully installed pip-25.3
+  pip version: pip 25.3 from D:\dev\AI_Podcast_Creator\venv\Lib\site-packages\pip (python 3.13) 
+
+STEP 4: Installing test dependencies (this takes 2-3 minutes)...
+  Please wait...
+Collecting pytest==7.4.3 (from -r requirements-test.txt (line 4))
+  Using cached pytest-7.4.3-py3-none-any.whl.metadata (7.9 kB)
+Collecting pytest-cov==4.1.0 (from -r requirements-test.txt (line 5))
+  Using cached pytest_cov-4.1.0-py3-none-any.whl.metadata (26 kB)
+Collecting pytest-mock==3.12.0 (from -r requirements-test.txt (line 6))
+  Using cached pytest_mock-3.12.0-py3-none-any.whl.metadata (3.8 kB)
+Collecting pytest-asyncio==0.21.1 (from -r requirements-test.txt (line 7))
+  Using cached pytest_asyncio-0.21.1-py3-none-any.whl.metadata (4.0 kB)
+Collecting pytest-timeout==2.2.0 (from -r requirements-test.txt (line 8))
+  Using cached pytest_timeout-2.2.0-py3-none-any.whl.metadata (17 kB)
+Collecting pytest-xdist==3.5.0 (from -r requirements-test.txt (line 9))
+  Using cached pytest_xdist-3.5.0-py3-none-any.whl.metadata (3.1 kB)
+Collecting coverage==7.4.0 (from coverage[toml]==7.4.0->-r requirements-test.txt (line 12))
+  Using cached coverage-7.4.0-py3-none-any.whl
+Collecting faker==22.0.0 (from -r requirements-test.txt (line 15))
+  Using cached Faker-22.0.0-py3-none-any.whl.metadata (15 kB)
+Collecting freezegun==1.4.0 (from -r requirements-test.txt (line 16))
+  Using cached freezegun-1.4.0-py3-none-any.whl.metadata (11 kB)
+Collecting responses==0.24.1 (from -r requirements-test.txt (line 17))
+  Using cached responses-0.24.1-py3-none-any.whl.metadata (46 kB)
+Collecting pytest-benchmark==4.0.0 (from -r requirements-test.txt (line 18))
+  Using cached pytest_benchmark-4.0.0-py3-none-any.whl.metadata (23 kB)
+Collecting factory-boy==3.3.0 (from -r requirements-test.txt (line 21))
+  Using cached factory_boy-3.3.0-py2.py3-none-any.whl.metadata (15 kB)
+Collecting pytest-factoryboy==2.6.0 (from -r requirements-test.txt (line 22))
+  Using cached pytest_factoryboy-2.6.0-py3-none-any.whl.metadata (13 kB)
+Collecting soundfile==0.12.1 (from -r requirements-test.txt (line 25))
+  Using cached soundfile-0.12.1-py2.py3-none-win_amd64.whl.metadata (14 kB)
+Collecting hypothesis==6.96.0 (from -r requirements-test.txt (line 28))
+  Using cached hypothesis-6.96.0-py3-none-any.whl.metadata (6.0 kB)
+Collecting iniconfig (from pytest==7.4.3->-r requirements-test.txt (line 4))
+  Using cached iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting packaging (from pytest==7.4.3->-r requirements-test.txt (line 4))
+  Using cached packaging-25.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting pluggy<2.0,>=0.12 (from pytest==7.4.3->-r requirements-test.txt (line 4))
+  Using cached pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Collecting colorama (from pytest==7.4.3->-r requirements-test.txt (line 4))
+  Using cached colorama-0.4.6-py2.py3-none-any.whl.metadata (17 kB)
+Collecting execnet>=1.1 (from pytest-xdist==3.5.0->-r requirements-test.txt (line 9))
+  Using cached execnet-2.1.1-py3-none-any.whl.metadata (2.9 kB)
+Collecting python-dateutil>=2.4 (from faker==22.0.0->-r requirements-test.txt (line 15))
+  Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting requests<3.0,>=2.30.0 (from responses==0.24.1->-r requirements-test.txt (line 17))
+  Using cached requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+Collecting urllib3<3.0,>=1.25.10 (from responses==0.24.1->-r requirements-test.txt (line 17))
+  Using cached urllib3-2.5.0-py3-none-any.whl.metadata (6.5 kB)
+Collecting pyyaml (from responses==0.24.1->-r requirements-test.txt (line 17))
+  Using cached pyyaml-6.0.3-cp313-cp313-win_amd64.whl.metadata (2.4 kB)
+Collecting py-cpuinfo (from pytest-benchmark==4.0.0->-r requirements-test.txt (line 18))
+  Using cached py_cpuinfo-9.0.0-py3-none-any.whl.metadata (794 bytes)
+Collecting inflection (from pytest-factoryboy==2.6.0->-r requirements-test.txt (line 22))
+  Using cached inflection-0.5.1-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting typing_extensions (from pytest-factoryboy==2.6.0->-r requirements-test.txt (line 22))
+  Using cached typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting cffi>=1.0 (from soundfile==0.12.1->-r requirements-test.txt (line 25))
+  Using cached cffi-2.0.0-cp313-cp313-win_amd64.whl.metadata (2.6 kB)
+Collecting attrs>=22.2.0 (from hypothesis==6.96.0->-r requirements-test.txt (line 28))
+  Using cached attrs-25.4.0-py3-none-any.whl.metadata (10 kB)
+Collecting sortedcontainers<3.0.0,>=2.1.0 (from hypothesis==6.96.0->-r requirements-test.txt (line 28))
+  Using cached sortedcontainers-2.4.0-py2.py3-none-any.whl.metadata (10 kB)
+Collecting charset_normalizer<4,>=2 (from requests<3.0,>=2.30.0->responses==0.24.1->-r requirements-test.txt (line 17))
+  Using cached charset_normalizer-3.4.4-cp313-cp313-win_amd64.whl.metadata (38 kB)
+Collecting idna<4,>=2.5 (from requests<3.0,>=2.30.0->responses==0.24.1->-r requirements-test.txt (line 17))
+  Using cached idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+Collecting certifi>=2017.4.17 (from requests<3.0,>=2.30.0->responses==0.24.1->-r requirements-test.txt (line 17))
+  Using cached certifi-2025.10.5-py3-none-any.whl.metadata (2.5 kB)
+Collecting pycparser (from cffi>=1.0->soundfile==0.12.1->-r requirements-test.txt (line 25))
+  Using cached pycparser-2.23-py3-none-any.whl.metadata (993 bytes)
+Collecting six>=1.5 (from python-dateutil>=2.4->faker==22.0.0->-r requirements-test.txt (line 15))
+  Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Using cached pytest-7.4.3-py3-none-any.whl (325 kB)
+Using cached pytest_cov-4.1.0-py3-none-any.whl (21 kB)
+Using cached pytest_mock-3.12.0-py3-none-any.whl (9.8 kB)
+Using cached pytest_asyncio-0.21.1-py3-none-any.whl (13 kB)
+Using cached pytest_timeout-2.2.0-py3-none-any.whl (13 kB)
+Using cached pytest_xdist-3.5.0-py3-none-any.whl (42 kB)
+Using cached Faker-22.0.0-py3-none-any.whl (1.7 MB)
+Using cached freezegun-1.4.0-py3-none-any.whl (17 kB)
+Using cached responses-0.24.1-py3-none-any.whl (55 kB)
+Using cached pytest_benchmark-4.0.0-py3-none-any.whl (43 kB)
+Using cached factory_boy-3.3.0-py2.py3-none-any.whl (36 kB)
+Using cached pytest_factoryboy-2.6.0-py3-none-any.whl (15 kB)
+Using cached soundfile-0.12.1-py2.py3-none-win_amd64.whl (1.0 MB)
+Using cached hypothesis-6.96.0-py3-none-any.whl (435 kB)
+Using cached pluggy-1.6.0-py3-none-any.whl (20 kB)
+Using cached requests-2.32.5-py3-none-any.whl (64 kB)
+Using cached charset_normalizer-3.4.4-cp313-cp313-win_amd64.whl (107 kB)
+Using cached idna-3.11-py3-none-any.whl (71 kB)
+Using cached sortedcontainers-2.4.0-py2.py3-none-any.whl (29 kB)
+Using cached urllib3-2.5.0-py3-none-any.whl (129 kB)
+Using cached attrs-25.4.0-py3-none-any.whl (67 kB)
+Using cached certifi-2025.10.5-py3-none-any.whl (163 kB)
+Using cached cffi-2.0.0-cp313-cp313-win_amd64.whl (183 kB)
+Using cached execnet-2.1.1-py3-none-any.whl (40 kB)
+Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+Using cached colorama-0.4.6-py2.py3-none-any.whl (25 kB)
+Using cached inflection-0.5.1-py2.py3-none-any.whl (9.5 kB)
+Using cached iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+Using cached packaging-25.0-py3-none-any.whl (66 kB)
+Using cached py_cpuinfo-9.0.0-py3-none-any.whl (22 kB)
+Using cached pycparser-2.23-py3-none-any.whl (118 kB)
+Using cached pyyaml-6.0.3-cp313-cp313-win_amd64.whl (154 kB)
+Using cached typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Installing collected packages: sortedcontainers, py-cpuinfo, urllib3, typing_extensions, six, pyyaml, pycparser, pluggy, packaging, iniconfig, inflection, idna, execnet, coverage, colorama, charset_normalizer, certifi, attrs, requests, python-dateutil, pytest, hypothesis, cffi, soundfile, responses, pytest-xdist, pytest-timeout, pytest-mock, pytest-cov, pytest-benchmark, pytest-asyncio, freezegun, faker, factory-boy, pytest-factoryboy
+
+Successfully installed attrs-25.4.0 certifi-2025.10.5 cffi-2.0.0 charset_normalizer-3.4.4 colorama-0.4.6 coverage-7.4.0 execnet-2.1.1 factory-boy-3.3.0 faker-22.0.0 freezegun-1.4.0 hypothesis-6.96.0 idna-3.11 inflection-0.5.1 iniconfig-2.3.0 packaging-25.0 pluggy-1.6.0 py-cpuinfo-9.0.0 pycparser-2.23 pytest-7.4.3 pytest-asyncio-0.21.1 pytest-benchmark-4.0.0 pytest-cov-4.1.0 pytest-factoryboy-2.6.0 pytest-mock-3.12.0 pytest-timeout-2.2.0 pytest-xdist-3.5.0 python-dateutil-2.9.0.post0 pyyaml-6.0.3 requests-2.32.5 responses-0.24.1 six-1.17.0 sortedcontainers-2.4.0 soundfile-0.12.1 typing_extensions-4.15.0 urllib3-2.5.0
+  ✓ Test dependencies installed
+
+STEP 5: Verifying pytest...
+  pytest version: pytest 7.4.3
+
+STEP 6: Running smoke tests...
+  This may take 30-60 seconds...
+
+[1m============================= test session starts =============================[0m
+platform win32 -- Python 3.13.9, pytest-7.4.3, pluggy-1.6.0 -- D:\dev\AI_Podcast_Creator\venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default' -> database=DirectoryBasedExampleDatabase(WindowsPath('D:/dev/AI_Podcast_Creator/.hypothesis/examples'))
+benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: D:\dev\AI_Podcast_Creator
+configfile: pytest.ini
+plugins: Faker-22.0.0, hypothesis-6.96.0, asyncio-0.21.1, benchmark-4.0.0, cov-4.1.0, factoryboy-2.6.0, mock-3.12.0, timeout-2.2.0, xdist-3.5.0
+asyncio: mode=Mode.STRICT
+[1mcollecting ... [0mcollected 29 items / 1 error / 26 deselected / 3 selected
+
+=================================== ERRORS ====================================
+[31m[1m______________ ERROR collecting tests/unit/test_script_parser.py ______________[0m
+[31mImportError while importing test module 'D:\dev\AI_Podcast_Creator\tests\unit\test_script_parser.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+venv\Lib\site-packages\_pytest\python.py:617: in _importtestmodule
+    mod = import_path(self.path, mode=importmode, root=self.config.rootpath)
+venv\Lib\site-packages\_pytest\pathlib.py:567: in import_path
+    importlib.import_module(module_name)
+C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:935: in _load_unlocked
+    ???
+venv\Lib\site-packages\_pytest\assertion\rewrite.py:186: in exec_module
+    exec(co, module.__dict__)
+tests\unit\test_script_parser.py:13: in <module>
+    from src.core.script_parser import ScriptParser, ScriptSegment
+E   ImportError: cannot import name 'ScriptSegment' from 'src.core.script_parser' (D:\dev\AI_Podcast_Creator\src\core\script_parser.py)[0m
+
+---------- coverage: platform win32, python 3.13.9-final-0 -----------
+Name                           Stmts   Miss  Cover   Missing
+------------------------------------------------------------
+src\cli\__init__.py                0      0   100%
+src\cli\main.py                  320    320     0%   6-559
+src\core\__init__.py               0      0   100%
+src\core\audio_mixer.py           47     47     0%   6-115
+src\core\audio_visualizer.py     184    184     0%   5-352
+src\core\avatar_generator.py     280    280     0%   7-533
+src\core\music_generator.py      108    108     0%   6-202
+src\core\script_parser.py         40     32    20%   21-22, 37-71, 91-94, 106-117
+src\core\tts_engine.py           234    234     0%   6-420
+src\core\video_composer.py       139    139     0%   6-334
+src\gui\__init__.py                0      0   100%
+src\gui\desktop_gui.py           184    184     0%   6-460
+src\gui\web_interface.py         108    108     0%   6-433
+src\models\__init__.py             0      0   100%
+src\models\database.py            42     42     0%   5-81
+src\utils\__init__.py              0      0   100%
+src\utils\config.py               44     44     0%   5-113
+src\utils\gpu_utils.py           145    125    14%   15-22, 26-56, 60, 64-68, 72-88, 92-114, 118-148, 152-158, 162-178, 182-189, 199-202, 207, 212, 217, 222-246
+------------------------------------------------------------
+TOTAL                           1875   1847     1%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+
+[36m[1m=========================== short test summary info ===========================[0m
+[31mERROR[0m tests/unit/test_script_parser.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+[31m======================= [33m26 deselected[0m, [31m[1m1 error[0m[31m in 1.40s[0m[31m =======================[0m
+
+======================================================================
+  SETUP COMPLETE!
+======================================================================
+
+Test results saved to: test_results.txt
+
+Last 20 lines of test output:
+  src\core\script_parser.py         40     32    20%   21-22, 37-71, 91-94, 106-117
+  src\core\tts_engine.py           234    234     0%   6-420
+  src\core\video_composer.py       139    139     0%   6-334
+  src\gui\__init__.py                0      0   100%
+  src\gui\desktop_gui.py           184    184     0%   6-460
+  src\gui\web_interface.py         108    108     0%   6-433
+  src\models\__init__.py             0      0   100%
+  src\models\database.py            42     42     0%   5-81
+  src\utils\__init__.py              0      0   100%
+  src\utils\config.py               44     44     0%   5-113
+  src\utils\gpu_utils.py           145    125    14%   15-22, 26-56, 60, 64-68, 72-88, 92-114, 118-148, 152-158, 162-178, 182-189, 199-202, 207, 212, 217, 222-246
+  ------------------------------------------------------------
+  TOTAL                           1875   1847     1%
+  Coverage HTML written to dir htmlcov
+  Coverage XML written to file coverage.xml
+  
+  [36m[1m=========================== short test summary info ===========================[0m
+  [31mERROR[0m tests/unit/test_script_parser.py
+  !!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+  [31m======================= [33m26 deselected[0m, [31m[1m1 error[0m[31m in 1.40s[0m[31m =======================[0m
+
+Full log saved to: setup_log.txt
+
+Next steps:
+  1. Check test_results.txt for full test output
+  2. Check setup_log.txt for full installation log
+  3. Run: .\venv\Scripts\Activate.ps1 to activate venv
+  4. Run: python -m pytest tests/ to run all tests
+

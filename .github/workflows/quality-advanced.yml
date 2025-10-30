@@ -1,0 +1,165 @@
+name: Advanced Quality Checks
+
+on:
+  schedule:
+    # Run weekly on Monday at 3am UTC
+    - cron: '0 3 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  mutation-testing:
+    name: Mutation Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install mutmut pytest
+    
+    - name: Run mutation tests (sample)
+      run: |
+        # Run mutation testing on core modules only (full run takes hours)
+        mutmut run --paths-to-mutate=src/core/audio_mixer.py --tests-dir=tests/unit
+        mutmut run --paths-to-mutate=src/core/script_parser.py --tests-dir=tests/unit
+      continue-on-error: true
+    
+    - name: Generate mutation report
+      if: always()
+      run: |
+        mutmut html || true
+        mutmut show all || true
+    
+    - name: Upload mutation report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: mutation-report
+        path: html/
+        retention-days: 30
+
+  type-checking:
+    name: Type Checking with MyPy
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install mypy
+    
+    - name: Run MyPy
+      run: |
+        mypy src/ --config-file=pyproject.toml || true
+      continue-on-error: true
+
+  performance-tests:
+    name: Performance Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+        pip install -r requirements.txt
+        pip install pytest pytest-benchmark
+    
+    - name: Run performance tests
+      run: |
+        pytest tests/unit -m performance --benchmark-only || echo "No performance tests found"
+      continue-on-error: true
+
+  dependency-audit:
+    name: Dependency Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install pip-audit
+      run: pip install pip-audit
+    
+    - name: Audit dependencies
+      run: |
+        pip-audit --desc || true
+      continue-on-error: true
+    
+    - name: Check for outdated packages
+      run: |
+        pip install -r requirements.txt
+        pip list --outdated
+      continue-on-error: true
+
+  test-coverage-trend:
+    name: Coverage Trend Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for trend analysis
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+    
+    - name: Generate coverage report
+      run: |
+        pytest --cov=src --cov-report=json --cov-report=term
+    
+    - name: Coverage summary
+      run: |
+        echo "📊 Coverage Summary:"
+        python -c "
+import json
+with open('coverage.json') as f:
+    data = json.load(f)
+    total = data['totals']['percent_covered']
+    print(f'Total Coverage: {total:.2f}%')
+    
+    print('\n📈 Module Coverage:')
+    for file, stats in sorted(data['files'].items()):
+        if 'src/' in file:
+            name = file.split('src/')[-1]
+            cov = stats['summary']['percent_covered']
+            print(f'  {name}: {cov:.1f}%')
+        "
+
