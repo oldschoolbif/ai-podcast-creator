@@ -34,6 +34,7 @@
 - ✅ Property-Based Tests: Hypothesis-driven edge case discovery (10+)
 - ✅ Performance Benchmarks: pytest-benchmark suite on parser, mixer, cache key
 - ✅ Mutation Testing: mutmut config + helper script (TTS Engine, VideoComposer, AudioMixer, ScriptParser, utils.config)
+  - `scripts/run_mutmut_docker.ps1` spins up a Linux container locally; GitHub Actions job `mutmut` is available and toggled via `RUN_MUTMUT` repo variable.
 - ✅ Error Handling: Graceful failure paths
 - ✅ Edge Cases: Unicode, special characters, boundary conditions
 

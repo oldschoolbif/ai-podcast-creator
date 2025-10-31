@@ -122,6 +122,7 @@
 - **Property-Based Tests**: Hypothesis-driven edge case discovery
 - **Performance Benchmarks**: `pytest-benchmark` on hot paths
 - **Mutation Testing**: mutmut configuration & helper script (coverage for TTS Engine, VideoComposer, AudioMixer, ScriptParser, utils.config)
+- `scripts/run_mutmut_docker.ps1` allows one-shot Linux runs via Docker; GitHub Actions has a guarded `mutmut` job (`RUN_MUTMUT` repo var) ready for CI enablement.
 - **Error Handling Tests**: Graceful failure paths
 - **Edge Case Tests**: Unicode, special chars, boundary conditions
 
