@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: Test Python ${{ matrix.python-version }}
+    name: Test Python ${{ matrix.python-version }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     
     strategy:
@@ -149,6 +149,20 @@ jobs:
         # Fail if any function has complexity > 15 (warning threshold)
         radon cc src/ -n C || echo "⚠️ Warning: High complexity functions found"
       continue-on-error: true
+
+  test-aggregate:
+    name: Test Python 3.11
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Check test results
+      run: |
+        if [ "${{ needs.test.result }}" != "success" ]; then
+          echo "One or more test jobs failed"
+          exit 1
+        fi
+        echo "All test jobs passed ✅"
 
   coverage-gate:
     name: Coverage Gate
