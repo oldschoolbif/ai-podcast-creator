@@ -125,3 +125,9 @@ exclude = [
     "dist",
 ]
 
+[tool.mutmut]
+paths_to_mutate = ["src/core/tts_engine.py", "src/core/video_composer.py"]
+tests_dir = "tests"
+runner = "python -m pytest"
+backup = false
+

@@ -80,10 +80,13 @@ class TestTTSEnginePropertyBased:
         """Property: Cache key is consistent for same input."""
         from src.core.tts_engine import TTSEngine
 
-        engine = TTSEngine(test_config)
+        with patch("src.core.tts_engine.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+            engine = TTSEngine(test_config)
 
-        key1 = engine._get_cache_key(text)
-        key2 = engine._get_cache_key(text)
+            key1 = engine._get_cache_key(text)
+            key2 = engine._get_cache_key(text)
 
         assert key1 == key2
         assert len(key1) == 32  # MD5 hex
@@ -94,10 +97,13 @@ class TestTTSEnginePropertyBased:
         """Property: Different texts produce different cache keys."""
         from src.core.tts_engine import TTSEngine
 
-        engine = TTSEngine(test_config)
+        with patch("src.core.tts_engine.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+            engine = TTSEngine(test_config)
 
-        key1 = engine._get_cache_key(text1)
-        key2 = engine._get_cache_key(text2)
+            key1 = engine._get_cache_key(text1)
+            key2 = engine._get_cache_key(text2)
 
         # Keys should be different if texts are different
         if text1 != text2:
@@ -121,7 +127,7 @@ class TestAudioMixerPropertyBased:
         music_path.write_bytes(b"music")
 
         # Mock pydub to return audio with specified duration
-        with patch("src.core.audio_mixer.AudioSegment") as mock_audio:
+        with patch("pydub.AudioSegment") as mock_audio:
             mock_audio_segment = MagicMock()
             mock_audio_segment.duration_seconds = duration
             mock_audio_segment.__len__ = MagicMock(return_value=int(duration * 1000))
@@ -143,9 +149,12 @@ class TestMusicGeneratorPropertyBased:
         """Property: Cache key generation for music descriptions."""
         from src.core.music_generator import MusicGenerator
 
-        gen = MusicGenerator(test_config)
+        with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+            gen = MusicGenerator(test_config)
 
-        key = gen._get_cache_key(description)
+            key = gen._get_cache_key(description)
 
         assert isinstance(key, str)
         assert len(key) == 32  # MD5 hex
@@ -156,13 +165,16 @@ class TestMusicGeneratorPropertyBased:
         """Property: Generate handles various description formats."""
         from src.core.music_generator import MusicGenerator
 
-        gen = MusicGenerator(test_config)
+        with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+            gen = MusicGenerator(test_config)
 
-        # Should handle empty or very long descriptions
-        if description:
-            result = gen.generate(description)
-            # May be None or Path depending on engine
-            assert result is None or isinstance(result, Path)
+            # Should handle empty or very long descriptions
+            if description:
+                result = gen.generate(description)
+                # May be None or Path depending on engine
+                assert result is None or isinstance(result, Path)
 
 
 class TestVideoComposerPropertyBased:

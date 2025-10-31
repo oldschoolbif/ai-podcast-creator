@@ -4,6 +4,7 @@ End-to-End tests - Test complete user workflows from script to video
 
 import sys
 from pathlib import Path
+from types import ModuleType
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -234,6 +235,61 @@ class TestErrorRecoveryWorkflows:
         # Should raise appropriate error
         with pytest.raises((FileNotFoundError, Exception)):
             composer.compose(missing_file)
+
+    def test_audio_mixer_fallback_when_processing_fails(self, test_config, temp_dir):
+        """Inject failure into pydub path and ensure voice audio is returned."""
+        from src.core.audio_mixer import AudioMixer
+
+        voice_path = temp_dir / "voice.wav"
+        music_path = temp_dir / "music.mp3"
+        voice_path.write_bytes(b"voice-bytes")
+        music_path.write_bytes(b"music-bytes")
+
+        test_config["storage"]["cache_dir"] = str(temp_dir / "cache")
+
+        mixer = AudioMixer(test_config)
+
+        fake_pydub = ModuleType("pydub")
+
+        class FailingAudioSegment:
+            @staticmethod
+            def from_file(path):
+                raise RuntimeError("decode error")
+
+        fake_pydub.AudioSegment = FailingAudioSegment
+
+        with patch.dict("sys.modules", {"pydub": fake_pydub}):
+            mixed_path = mixer.mix(voice_path, music_path)
+
+        assert mixed_path.exists()
+        assert mixed_path.read_bytes() == voice_path.read_bytes()
+
+    def test_video_composer_fallback_when_moviepy_missing(self, test_config, temp_dir):
+        """Inject ImportError for moviepy and ensure FFmpeg fallback path executes."""
+
+        audio_path = temp_dir / "audio.mp3"
+        audio_path.write_bytes(b"audio")
+
+        test_config["storage"]["outputs_dir"] = str(temp_dir)
+
+        with patch("src.core.video_composer.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+
+            import builtins
+
+            original_import = builtins.__import__
+
+            def fake_import(name, *args, **kwargs):
+                if name.startswith("moviepy"):
+                    raise ImportError("moviepy missing")
+                return original_import(name, *args, **kwargs)
+
+            with patch("builtins.__import__", side_effect=fake_import):
+                composer = VideoComposer(test_config)
+                output = composer.compose(audio_path, output_name="ffmpeg_fallback_test")
+
+        mock_run.assert_called()
+        assert "ffmpeg_fallback_test" in str(output)
 
 
 @pytest.mark.e2e
