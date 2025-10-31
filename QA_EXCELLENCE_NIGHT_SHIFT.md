@@ -121,7 +121,7 @@
 - **Integration Tests**: Cross-module workflows
 - **Property-Based Tests**: Hypothesis-driven edge case discovery
 - **Performance Benchmarks**: `pytest-benchmark` on hot paths
-- **Mutation Testing**: mutmut configuration & helper script
+- **Mutation Testing**: mutmut configuration & helper script (coverage for TTS Engine, VideoComposer, AudioMixer, ScriptParser, utils.config)
 - **Error Handling Tests**: Graceful failure paths
 - **Edge Case Tests**: Unicode, special chars, boundary conditions
 

@@ -33,7 +33,7 @@
 - ✅ Integration Tests: Cross-module workflows (7 new)
 - ✅ Property-Based Tests: Hypothesis-driven edge case discovery (10+)
 - ✅ Performance Benchmarks: pytest-benchmark suite on parser, mixer, cache key
-- ✅ Mutation Testing: mutmut config + helper script
+- ✅ Mutation Testing: mutmut config + helper script (TTS Engine, VideoComposer, AudioMixer, ScriptParser, utils.config)
 - ✅ Error Handling: Graceful failure paths
 - ✅ Edge Cases: Unicode, special characters, boundary conditions
 
