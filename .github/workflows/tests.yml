@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: Test Python ${{ matrix.python-version }}
+    name: Test Suite
     runs-on: ${{ matrix.os }}
     
     strategy:
