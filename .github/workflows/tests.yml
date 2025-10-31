@@ -150,6 +150,20 @@ jobs:
         radon cc src/ -n C || echo "⚠️ Warning: High complexity functions found"
       continue-on-error: true
 
+  test-aggregate:
+    name: Test Suite
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Check test results
+      run: |
+        if [ "${{ needs.test.result }}" != "success" ]; then
+          echo "One or more test jobs failed"
+          exit 1
+        fi
+        echo "All test jobs passed ✅"
+
   coverage-gate:
     name: Coverage Gate
     needs: test
