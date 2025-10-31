@@ -6,7 +6,8 @@ omit =
     */__pycache__/*
     */external/*
 parallel = false
-branch = false
+branch = true
+relative_files = true
 
 [report]
 precision = 2
