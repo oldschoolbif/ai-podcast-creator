@@ -151,7 +151,7 @@ jobs:
       continue-on-error: true
 
   test-aggregate:
-    name: Test Suite
+    name: Test Python 3.11
     needs: test
     runs-on: ubuntu-latest
     if: always()
