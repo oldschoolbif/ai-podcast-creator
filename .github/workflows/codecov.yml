@@ -28,6 +28,7 @@ jobs:
     
     - name: Install Python dependencies
       run: |
+        pip install pyyaml  # Install yaml early for conftest.py
         pip install -r requirements.txt
         pip install pytest pytest-cov pytest-xdist
     
