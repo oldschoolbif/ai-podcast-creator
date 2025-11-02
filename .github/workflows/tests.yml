@@ -45,8 +45,8 @@ jobs:
         pip install pyyaml  # Install yaml early for conftest.py
         # Install core test dependencies first
         pip install numpy typer hypothesis sortedcontainers pytest pytest-cov pytest-xdist pytest-timeout mypy types-PyYAML types-requests
-        # Install requirements (may fail on optional packages like av/audiocraft)
-        pip install -r requirements.txt || pip install -r requirements.txt --no-deps || true
+        # Install requirements - continue even if optional packages like av/audiocraft fail
+        pip install -r requirements.txt || echo "Some packages failed to install (expected for optional dependencies)"
     
     - name: Run linting
       run: |
