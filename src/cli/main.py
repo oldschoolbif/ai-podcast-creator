@@ -32,8 +32,8 @@ except ImportError:
     # Database is optional - CLI works without it
     DATABASE_AVAILABLE = False
     # Create dummy objects for type checking when database is unavailable
-    Podcast = type("Podcast", (), {})  # type: ignore[assignment,misc]
-    init_db = lambda *args, **kwargs: None  # type: ignore[assignment,misc]
+    Podcast = type("Podcast", (), {})  # type: ignore[assignment]
+    init_db = lambda *args, **kwargs: None  # type: ignore[assignment]
 
 app = typer.Typer(
     name="podcast-creator",
