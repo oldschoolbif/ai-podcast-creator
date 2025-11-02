@@ -5,7 +5,7 @@ Main entry point for the command-line interface
 
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import typer
 from rich.console import Console
@@ -24,16 +24,17 @@ from src.utils.config import load_config
 from src.utils.gpu_utils import get_gpu_manager, print_gpu_info
 
 # Optional database support (sqlalchemy may not be installed)
+DATABASE_AVAILABLE = False
+Podcast: Any = None
+init_db: Any = None
+
 try:
-    from src.models.database import Podcast, init_db
+    from src.models.database import Podcast, init_db  # noqa: F401
 
     DATABASE_AVAILABLE = True
 except ImportError:
     # Database is optional - CLI works without it
-    DATABASE_AVAILABLE = False
-    # Create dummy objects for type checking when database is unavailable
-    Podcast = type("Podcast", (), {})  # type: ignore[assignment]
-    init_db = lambda *args, **kwargs: None  # type: ignore[assignment]
+    pass
 
 app = typer.Typer(
     name="podcast-creator",
