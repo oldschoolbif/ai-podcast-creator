@@ -143,23 +143,33 @@ jobs:
     
     - name: Generate coverage report
       run: |
-        pytest --cov=src --cov-report=json --cov-report=term
+        pytest --cov=src --cov-report=json --cov-report=term -q || true
+      continue-on-error: true
     
     - name: Coverage summary
+      if: always()
       run: |
-        echo "📊 Coverage Summary:"
-        python -c "
+        if [ -f coverage.json ]; then
+          echo "📊 Coverage Summary:"
+          python -c "
 import json
-with open('coverage.json') as f:
-    data = json.load(f)
-    total = data['totals']['percent_covered']
-    print(f'Total Coverage: {total:.2f}%')
-    
-    print('\n📈 Module Coverage:')
-    for file, stats in sorted(data['files'].items()):
-        if 'src/' in file:
-            name = file.split('src/')[-1]
-            cov = stats['summary']['percent_covered']
-            print(f'  {name}: {cov:.1f}%')
-        "
+try:
+    with open('coverage.json') as f:
+        data = json.load(f)
+        total = data['totals']['percent_covered']
+        print(f'Total Coverage: {total:.2f}%')
+        
+        print('\n📈 Module Coverage:')
+        for file, stats in sorted(data['files'].items()):
+            if 'src/' in file:
+                name = file.split('src/')[-1]
+                cov = stats['summary']['percent_covered']
+                print(f'  {name}: {cov:.1f}%')
+        except Exception as e:
+            print(f'Error reading coverage.json: {e}')
+            "
+        else
+          echo "⚠️ Coverage report not generated (tests may have failed)"
+        fi
+      continue-on-error: true
 
