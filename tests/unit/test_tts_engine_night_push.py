@@ -385,10 +385,14 @@ class TestTTSEngineCacheKeys:
         "TTS": create_mock_tts_module()[0],
         "TTS.api": create_mock_tts_module()[1],
     })
-    def test_get_cache_key_coqui_with_speaker(self, tmp_path):
+    @patch("src.core.tts_engine.get_gpu_manager")
+    def test_get_cache_key_coqui_with_speaker(self, mock_gpu, tmp_path):
         """Test cache key with Coqui speaker (lines 393-396)."""
         cfg = make_config(tmp_path, engine="coqui")
-        cfg["tts"]["coqui"] = {"speaker": "TestSpeaker"}
+        cfg["tts"]["coqui"] = {"model": "test_model", "speaker": "TestSpeaker", "language": "en"}
+        
+        mock_gpu.return_value.gpu_available = False
+        mock_gpu.return_value.get_device.return_value = "cpu"
 
         engine = TTSEngine(cfg)
         key = engine._get_cache_key("test text")
