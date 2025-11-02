@@ -30,9 +30,9 @@ jobs:
       run: |
         pip install pyyaml  # Install yaml early for conftest.py
         # Install core test dependencies first
-        pip install numpy pytest pytest-cov pytest-xdist
-        # Install requirements (may fail on optional packages like av/audiocraft)
-        pip install -r requirements.txt || pip install -r requirements.txt --no-deps || true
+        pip install numpy hypothesis sortedcontainers pytest pytest-cov pytest-xdist
+        # Install requirements - continue even if optional packages like av/audiocraft fail
+        pip install -r requirements.txt || echo "Some packages failed to install (expected for optional dependencies)"
     
     - name: Run tests with coverage
       run: |
