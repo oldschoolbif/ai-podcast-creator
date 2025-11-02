@@ -90,25 +90,17 @@ def test_sadtalker_subprocess_command_built_correctly(tmp_path):
             cmd = [
                 "python",
                 "inference.py",
-                "--driven_audio",
-                str(audio_path),
-                "--source_image",
-                str(self.source_image),
-                "--result_dir",
-                str(tmp_path / "results"),
-                "--checkpoint_dir",
-                "checkpoints",
-                "--expression_scale",
-                "1.5",
-                "--enhancer",
-                "gfpgan",
-                "--preprocess",
-                "full",
+                "--driven_audio", str(audio_path),
+                "--source_image", str(self.source_image),
+                "--result_dir", str(tmp_path / "results"),
+                "--checkpoint_dir", "checkpoints",
+                "--expression_scale", "1.5",
+                "--enhancer", "gfpgan",
+                "--preprocess", "full",
                 "--still_mode",
-                "--device",
-                "cpu",
+                "--device", "cpu"
             ]
-
+            
             # Call subprocess.run (this is what we're testing)
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(tmp_path))
 
