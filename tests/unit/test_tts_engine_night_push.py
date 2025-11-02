@@ -11,6 +11,25 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+# Check for optional dependencies
+try:
+    from TTS.api import TTS
+    TTS_AVAILABLE = True
+except ImportError:
+    TTS_AVAILABLE = False
+
+try:
+    import pyttsx3
+    PYTTSX3_AVAILABLE = True
+except ImportError:
+    PYTTSX3_AVAILABLE = False
+
+try:
+    from pydub import AudioSegment
+    PYDUB_AVAILABLE = True
+except ImportError:
+    PYDUB_AVAILABLE = False
+
 from src.core.tts_engine import TTSEngine
 
 
@@ -28,6 +47,7 @@ def make_config(tmp_path, engine="gtts"):
 class TestCoquiTTSEdgeCases:
     """Test Coqui TTS edge cases and missing paths."""
 
+    @pytest.mark.skipif(not TTS_AVAILABLE, reason="TTS library not installed")
     @patch("TTS.api.TTS")
     @patch("src.core.tts_engine.get_gpu_manager")
     @patch("builtins.print")
@@ -52,6 +72,7 @@ class TestCoquiTTSEdgeCases:
         assert engine.tts is not None
         assert mock_model.half.called
 
+    @pytest.mark.skipif(not TTS_AVAILABLE, reason="TTS library not installed")
     @patch("TTS.api.TTS")
     @patch("src.core.tts_engine.get_gpu_manager")
     @patch("builtins.print")
@@ -75,6 +96,7 @@ class TestCoquiTTSEdgeCases:
         # Verify CPU warning print (line 98)
         assert any("Initializing Coqui TTS on CPU" in str(call) for call in mock_print.call_args_list)
 
+    @pytest.mark.skipif(not TTS_AVAILABLE, reason="TTS library not installed")
     @patch("TTS.api.TTS")
     @patch("src.core.tts_engine.get_gpu_manager")
     def test_init_coqui_xtts_skips_fp16(self, mock_gpu, mock_tts, tmp_path):
@@ -96,6 +118,7 @@ class TestCoquiTTSEdgeCases:
         # XTTS models should skip FP16
         assert mock_model.half.call_count == 0  # Not called for XTTS
 
+    @pytest.mark.skipif(not TTS_AVAILABLE, reason="TTS library not installed")
     @patch("TTS.api.TTS")
     @patch("src.core.tts_engine.get_gpu_manager")
     def test_init_coqui_exception_handling(self, mock_gpu, mock_tts, tmp_path):
@@ -114,6 +137,7 @@ class TestCoquiTTSEdgeCases:
 class TestPyTTSX3EdgeCases:
     """Test pyttsx3 edge cases and missing paths."""
 
+    @pytest.mark.skipif(not PYTTSX3_AVAILABLE, reason="pyttsx3 library not installed")
     @patch("pyttsx3.init")
     @patch("src.core.tts_engine.get_gpu_manager")
     @patch("builtins.print")
@@ -136,6 +160,7 @@ class TestPyTTSX3EdgeCases:
         # Verify fallback print (line 158)
         assert any("fallback" in str(call).lower() for call in mock_print.call_args_list)
 
+    @pytest.mark.skipif(not PYTTSX3_AVAILABLE, reason="pyttsx3 library not installed")
     @patch("pyttsx3.init")
     @patch("src.core.tts_engine.get_gpu_manager")
     @patch("builtins.print")
@@ -158,6 +183,7 @@ class TestPyTTSX3EdgeCases:
 class TestCoquiGenerationEdgeCases:
     """Test Coqui generation edge cases."""
 
+    @pytest.mark.skipif(not TTS_AVAILABLE, reason="TTS library not installed")
     @patch("TTS.api.TTS")
     @patch("src.core.tts_engine.get_gpu_manager")
     @patch("builtins.print")
@@ -187,6 +213,7 @@ class TestCoquiGenerationEdgeCases:
 class TestPyTTSX3GenerationEdgeCases:
     """Test pyttsx3 generation edge cases."""
 
+    @pytest.mark.skipif(not PYTTSX3_AVAILABLE or not PYDUB_AVAILABLE, reason="pyttsx3 or pydub library not installed")
     @patch("pyttsx3.init")
     @patch("src.core.tts_engine.get_gpu_manager")
     @patch("pydub.AudioSegment")
@@ -220,6 +247,7 @@ class TestPyTTSX3GenerationEdgeCases:
 class TestCoquiGenerationDetailed:
     """Test Coqui generation detailed paths."""
 
+    @pytest.mark.skipif(not TTS_AVAILABLE, reason="TTS library not installed")
     @patch("TTS.api.TTS")
     @patch("src.core.tts_engine.get_gpu_manager")
     @patch("builtins.print")
@@ -252,6 +280,7 @@ class TestCoquiGenerationDetailed:
         call_kwargs = mock_tts_instance.tts_to_file.call_args[1]
         assert "speaker_wav" in call_kwargs or call_kwargs.get("speaker") is not None
 
+    @pytest.mark.skipif(not TTS_AVAILABLE, reason="TTS library not installed")
     @patch("TTS.api.TTS")
     @patch("src.core.tts_engine.get_gpu_manager")
     def test_generate_coqui_xtts_with_speaker_from_config(self, mock_gpu, mock_tts, tmp_path):
@@ -281,6 +310,7 @@ class TestCoquiGenerationDetailed:
         call_kwargs = mock_tts_instance.tts_to_file.call_args[1]
         assert call_kwargs.get("speaker") == "Andrew Chipper"
 
+    @pytest.mark.skipif(not TTS_AVAILABLE, reason="TTS library not installed")
     @patch("TTS.api.TTS")
     @patch("src.core.tts_engine.get_gpu_manager")
     def test_generate_coqui_single_speaker_model(self, mock_gpu, mock_tts, tmp_path):
