@@ -1114,18 +1114,36 @@ class TestAvatarGeneratorEdgeCases:
             output_path = temp_dir / "output.mp4"
             audio_path.write_bytes(b"fake audio")
 
-            # Ensure script path doesn't exist
-            script_path = temp_dir / "models" / "wav2lip" / "inference.py"
-            if script_path.exists():
-                script_path.unlink()
-            script_path.parent.mkdir(parents=True, exist_ok=True)
+            # The actual script path used by the code: scripts/wav2lip_inference.py
+            # Need to mock Path.exists() for this specific path to return False
+            from pathlib import Path as PathClass
+            
+            original_exists = PathClass.exists
+            
+            def mock_exists(self):
+                # Return False for the wav2lip script path to trigger creation
+                if "wav2lip_inference.py" in str(self):
+                    return False
+                return original_exists(self)
 
             with patch.object(generator, "_create_wav2lip_inference_script") as mock_create_script:
                 with patch("subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
-                    generator._generate_wav2lip(audio_path, output_path)
-                    # Should create script when it doesn't exist
-                    mock_create_script.assert_called()
+                    
+                    # Mock Path.exists() for the script path check
+                    with patch.object(PathClass, "exists", mock_exists):
+                        # Mock the result file that would be created
+                        result_dir = Path(temp_dir) / "results"
+                        result_dir.mkdir(exist_ok=True)
+                        result_file = result_dir / "result.mp4"
+                        result_file.write_bytes(b"fake video")
+                        
+                        with patch("pathlib.Path.glob") as mock_glob:
+                            mock_glob.return_value = [result_file]
+                            with patch("shutil.copy"):
+                                generator._generate_wav2lip(audio_path, output_path)
+                                # Should create script when it doesn't exist
+                                mock_create_script.assert_called()
 
     @patch("urllib.request.urlretrieve")
     def test_download_wav2lip_model_success(self, mock_urlretrieve, test_config, temp_dir):
