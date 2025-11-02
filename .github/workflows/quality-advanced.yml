@@ -151,7 +151,7 @@ jobs:
       run: |
         if [ -f coverage.json ]; then
           echo "📊 Coverage Summary:"
-          python -c "
+          python3 << 'PYEOF'
 import json
 try:
     with open('coverage.json') as f:
@@ -165,9 +165,9 @@ try:
                 name = file.split('src/')[-1]
                 cov = stats['summary']['percent_covered']
                 print(f'  {name}: {cov:.1f}%')
-        except Exception as e:
-            print(f'Error reading coverage.json: {e}')
-            "
+except Exception as e:
+    print(f'Error reading coverage.json: {e}')
+PYEOF
         else
           echo "⚠️ Coverage report not generated (tests may have failed)"
         fi
