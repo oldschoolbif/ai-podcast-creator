@@ -43,8 +43,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pyyaml  # Install yaml early for conftest.py
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-xdist pytest-timeout mypy types-PyYAML types-requests
+        # Install core test dependencies first
+        pip install numpy typer hypothesis pytest pytest-cov pytest-xdist pytest-timeout mypy types-PyYAML types-requests
+        # Install requirements (may fail on optional packages like av/audiocraft)
+        pip install -r requirements.txt || pip install -r requirements.txt --no-deps || true
     
     - name: Run linting
       run: |

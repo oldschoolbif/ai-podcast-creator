@@ -29,8 +29,10 @@ jobs:
     - name: Install Python dependencies
       run: |
         pip install pyyaml  # Install yaml early for conftest.py
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-xdist
+        # Install core test dependencies first
+        pip install numpy pytest pytest-cov pytest-xdist
+        # Install requirements (may fail on optional packages like av/audiocraft)
+        pip install -r requirements.txt || pip install -r requirements.txt --no-deps || true
     
     - name: Run tests with coverage
       run: |
