@@ -6,19 +6,27 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: ai_podcast_creator
+    runtime: nvidia
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml
       - ./.env:/app/.env
     environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
     deploy:
       resources:
+        limits:
+          memory: 16G  # System RAM limit for full GPU utilization
         reservations:
+          memory: 8G
           devices:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+    shm_size: 2gb
     command: python -m src.cli.main status
     
   redis:
@@ -34,19 +42,27 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: podcast_celery
+    runtime: nvidia
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml
       - ./.env:/app/.env
     environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
     deploy:
       resources:
+        limits:
+          memory: 16G  # System RAM limit for GPU-accelerated tasks
         reservations:
+          memory: 8G
           devices:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+    shm_size: 2gb
     command: celery -A src.worker worker --loglevel=info
     depends_on:
       - redis

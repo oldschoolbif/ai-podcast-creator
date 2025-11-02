@@ -567,4 +567,3 @@ class TestVideoQualitySettings:
         )
 
         assert mock_config["video"]["resolution"] == [854, 480]
-

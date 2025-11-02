@@ -525,7 +525,7 @@ Wav2Lip Inference Script
 Simplified inference for AI Podcast Creator
 """
 import sys
-print("⚠ Wav2Lip full installation required")
+print("Wav2Lip full installation required")
 print("  Please install Wav2Lip from: https://github.com/Rudrabha/Wav2Lip")
 sys.exit(1)
 '''

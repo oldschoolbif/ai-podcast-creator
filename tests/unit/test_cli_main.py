@@ -2,7 +2,6 @@
 
 import sys
 from pathlib import Path
-from types import ModuleType
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,13 +9,7 @@ from typer.testing import CliRunner
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-# Stub database module to avoid heavy SQLAlchemy dependency in CLI tests
-if "src.models.database" not in sys.modules:
-    fake_database = ModuleType("src.models.database")
-    fake_database.Podcast = MagicMock
-    fake_database.init_db = MagicMock()
-    sys.modules["src.models.database"] = fake_database
-
+# Import app - main.py now handles missing sqlalchemy gracefully
 from src.cli.main import app
 
 runner = CliRunner()
@@ -65,12 +58,14 @@ def test_cli_create_audio_only_success(tmp_path):
         Path(cmd[-2]).write_bytes(b"mp3")
         return MagicMock(returncode=0, stdout="", stderr="")
 
-    with patch("src.cli.main.load_config", return_value=config), \
-        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu), \
-        patch("src.cli.main.ScriptParser") as mock_parser, \
-        patch("src.cli.main.TTSEngine") as mock_tts, \
-        patch("src.cli.main.AudioMixer") as mock_mixer, \
-        patch("subprocess.run", side_effect=ffmpeg_side_effect):
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("src.cli.main.ScriptParser") as mock_parser,
+        patch("src.cli.main.TTSEngine") as mock_tts,
+        patch("src.cli.main.AudioMixer") as mock_mixer,
+        patch("subprocess.run", side_effect=ffmpeg_side_effect),
+    ):
 
         mock_parser.return_value.parse.return_value = {"text": "Hello world", "music_cues": []}
         mock_tts_instance = MagicMock(generate=MagicMock(return_value=voice_path))
@@ -104,11 +99,13 @@ def test_cli_create_handles_mixer_failure(tmp_path):
     fake_gpu.gpu_name = "CPU"
     fake_gpu.gpu_memory = 0
 
-    with patch("src.cli.main.load_config", return_value=config), \
-        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu), \
-        patch("src.cli.main.ScriptParser") as mock_parser, \
-        patch("src.cli.main.TTSEngine") as mock_tts, \
-        patch("src.cli.main.AudioMixer") as mock_mixer:
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("src.cli.main.ScriptParser") as mock_parser,
+        patch("src.cli.main.TTSEngine") as mock_tts,
+        patch("src.cli.main.AudioMixer") as mock_mixer,
+    ):
 
         mock_parser.return_value.parse.return_value = {"text": "hello", "music_cues": []}
         mock_tts.return_value.generate.return_value = tmp_path / "voice.mp3"

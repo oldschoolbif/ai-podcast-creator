@@ -12,6 +12,7 @@ import pytest
 # Check if tkinter is available
 try:
     import tkinter
+
     TKINTER_AVAILABLE = True
 except ImportError:
     TKINTER_AVAILABLE = False
@@ -212,13 +213,15 @@ class TestPodcastCreatorGUICreatePodcast:
 
         root, gui = self._build_gui(tmp_path)
 
-        with patch("src.gui.desktop_gui.ScriptParser") as mock_parser, \
-            patch("src.gui.desktop_gui.TTSEngine") as mock_tts, \
-            patch("src.gui.desktop_gui.AudioMixer") as mock_mixer, \
-            patch("src.gui.desktop_gui.VideoComposer") as mock_composer, \
-            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread), \
-            patch("tkinter.messagebox.askyesno", return_value=False), \
-            patch.object(PodcastCreatorGUI, "open_output_folder"):
+        with (
+            patch("src.gui.desktop_gui.ScriptParser") as mock_parser,
+            patch("src.gui.desktop_gui.TTSEngine") as mock_tts,
+            patch("src.gui.desktop_gui.AudioMixer") as mock_mixer,
+            patch("src.gui.desktop_gui.VideoComposer") as mock_composer,
+            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
+            patch("tkinter.messagebox.askyesno", return_value=False),
+            patch.object(PodcastCreatorGUI, "open_output_folder"),
+        ):
 
             mock_parser_instance = MagicMock()
             mock_parser_instance.parse.return_value = {"text": "Hello world", "music_cues": []}
@@ -270,12 +273,14 @@ class TestPodcastCreatorGUICreatePodcast:
 
         root, gui = self._build_gui(tmp_path)
 
-        with patch("src.gui.desktop_gui.ScriptParser") as mock_parser, \
-            patch("src.gui.desktop_gui.TTSEngine") as mock_tts, \
-            patch("src.gui.desktop_gui.AudioMixer") as mock_mixer, \
-            patch("src.gui.desktop_gui.VideoComposer") as mock_composer, \
-            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread), \
-            patch("tkinter.messagebox.askyesno", return_value=False):
+        with (
+            patch("src.gui.desktop_gui.ScriptParser") as mock_parser,
+            patch("src.gui.desktop_gui.TTSEngine") as mock_tts,
+            patch("src.gui.desktop_gui.AudioMixer") as mock_mixer,
+            patch("src.gui.desktop_gui.VideoComposer") as mock_composer,
+            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
+            patch("tkinter.messagebox.askyesno", return_value=False),
+        ):
 
             mock_parser.return_value.parse.return_value = {"text": "hello", "music_cues": []}
             mock_tts.return_value.generate.return_value = tmp_path / "audio.mp3"
@@ -296,13 +301,15 @@ class TestPodcastCreatorGUICreatePodcast:
 
         root, gui = self._build_gui(tmp_path)
 
-        with patch("src.gui.desktop_gui.ScriptParser") as mock_parser, \
-            patch("src.gui.desktop_gui.TTSEngine") as mock_tts, \
-            patch("src.gui.desktop_gui.MusicGenerator") as mock_music, \
-            patch("src.gui.desktop_gui.AudioMixer") as mock_mixer, \
-            patch("src.gui.desktop_gui.VideoComposer") as mock_composer, \
-            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread), \
-            patch("tkinter.messagebox.askyesno", return_value=False):
+        with (
+            patch("src.gui.desktop_gui.ScriptParser") as mock_parser,
+            patch("src.gui.desktop_gui.TTSEngine") as mock_tts,
+            patch("src.gui.desktop_gui.MusicGenerator") as mock_music,
+            patch("src.gui.desktop_gui.AudioMixer") as mock_mixer,
+            patch("src.gui.desktop_gui.VideoComposer") as mock_composer,
+            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
+            patch("tkinter.messagebox.askyesno", return_value=False),
+        ):
 
             mock_parser.return_value.parse.return_value = {"text": "hello", "music_cues": []}
             mock_tts.return_value.generate.return_value = tmp_path / "audio.mp3"
@@ -338,12 +345,14 @@ class TestPodcastCreatorGUIErrorHandling:
 
         gui.script_file.set(str(script_path))
 
-        with patch("src.gui.desktop_gui.ScriptParser") as mock_parser, \
-            patch("src.gui.desktop_gui.TTSEngine") as mock_tts, \
-            patch("src.gui.desktop_gui.AudioMixer") as mock_mixer, \
-            patch("src.gui.desktop_gui.VideoComposer") as mock_composer, \
-            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread), \
-            patch("tkinter.messagebox.showerror") as mock_error:
+        with (
+            patch("src.gui.desktop_gui.ScriptParser") as mock_parser,
+            patch("src.gui.desktop_gui.TTSEngine") as mock_tts,
+            patch("src.gui.desktop_gui.AudioMixer") as mock_mixer,
+            patch("src.gui.desktop_gui.VideoComposer") as mock_composer,
+            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
+            patch("tkinter.messagebox.showerror") as mock_error,
+        ):
 
             mock_parser.return_value.parse.return_value = {"text": "hello", "music_cues": []}
             mock_tts.return_value.generate.return_value = tmp_path / "audio.mp3"
@@ -366,4 +375,3 @@ class TestPodcastCreatorGUITkinterUnavailable:
         """Test that GUI cannot be imported without tkinter."""
         # This test only runs if tkinter is NOT available
         assert PodcastCreatorGUI is None or not TKINTER_AVAILABLE
-

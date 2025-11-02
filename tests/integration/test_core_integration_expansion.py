@@ -213,4 +213,3 @@ class TestErrorPropagationIntegration:
 
             # Should return None on failure
             assert result is None
-

@@ -76,6 +76,41 @@ def test_config(temp_dir):
 
 
 @pytest.fixture
+def test_config_visualization(temp_dir):
+    """Create a configuration tailored for visualization tests."""
+    config = {
+        "visualization": {
+            "style": "waveform",
+            "resolution": [1280, 720],
+            "fps": 30,
+            "color_primary": [255, 255, 255],
+            "color_secondary": [0, 0, 0],
+            "background_color": [0, 0, 0],
+            "blur": 2,
+            "sensitivity": 1.0,
+        },
+        "video": {
+            "resolution": [1280, 720],
+            "fps": 30,
+        },
+        "storage": {
+            "output_dir": str(temp_dir / "output"),
+            "cache_dir": str(temp_dir / "cache"),
+            "outputs_dir": str(temp_dir / "output"),
+        },
+        "audio": {
+            "sample_rate": 24000,
+            "duration": 1.0,
+        },
+    }
+
+    for path_key in ["output_dir", "cache_dir", "outputs_dir"]:
+        Path(config["storage"][path_key]).mkdir(parents=True, exist_ok=True)
+
+    return config
+
+
+@pytest.fixture
 def test_config_file(test_config, temp_dir):
     """Create a temporary config file."""
     config_path = temp_dir / "test_config.yaml"
@@ -123,6 +158,20 @@ def mock_audio_file(temp_dir):
     sf.write(str(audio_path), audio_data, sample_rate)
 
     return audio_path
+
+
+@pytest.fixture
+def mock_audio_data():
+    """Return synthetic audio data (y, sample_rate, duration)."""
+    import numpy as np
+
+    sample_rate = 24000
+    duration = 1.0
+    samples = int(sample_rate * duration)
+    t = np.linspace(0, duration, samples, endpoint=False)
+    y = 0.5 * np.sin(2 * np.pi * 440 * t)
+
+    return y.astype(np.float32), sample_rate, duration
 
 
 @pytest.fixture

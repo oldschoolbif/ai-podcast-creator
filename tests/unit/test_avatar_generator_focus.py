@@ -63,8 +63,9 @@ def test_sadtalker_not_present_uses_fallback(tmp_path):
 @pytest.mark.unit
 def test_sadtalker_subprocess_command_built_correctly(tmp_path):
     """Verify SadTalker command construction when external dir exists."""
-    from src.core.avatar_generator import AvatarGenerator
     import subprocess
+
+    from src.core.avatar_generator import AvatarGenerator
 
     cfg = make_cfg(tmp_path, engine="sadtalker")
     cfg["avatar"]["sadtalker"] = {"enhancer": "gfpgan", "expression_scale": 1.5, "still_mode": True}
@@ -89,20 +90,28 @@ def test_sadtalker_subprocess_command_built_correctly(tmp_path):
             cmd = [
                 "python",
                 "inference.py",
-                "--driven_audio", str(audio_path),
-                "--source_image", str(self.source_image),
-                "--result_dir", str(tmp_path / "results"),
-                "--checkpoint_dir", "checkpoints",
-                "--expression_scale", "1.5",
-                "--enhancer", "gfpgan",
-                "--preprocess", "full",
+                "--driven_audio",
+                str(audio_path),
+                "--source_image",
+                str(self.source_image),
+                "--result_dir",
+                str(tmp_path / "results"),
+                "--checkpoint_dir",
+                "checkpoints",
+                "--expression_scale",
+                "1.5",
+                "--enhancer",
+                "gfpgan",
+                "--preprocess",
+                "full",
                 "--still_mode",
-                "--device", "cpu"
+                "--device",
+                "cpu",
             ]
-            
+
             # Call subprocess.run (this is what we're testing)
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(tmp_path))
-            
+
             # Return fallback on failure (simulating actual behavior)
             if result.returncode != 0:
                 return self._create_fallback_video(audio_path, output_path)
@@ -154,5 +163,3 @@ def test_wav2lip_fallback_video_creation(tmp_path):
         # Ensure fallback path is tested
         out = gen._create_fallback_video(audio, tmp_path / "fallback.mp4")
         assert out.name.endswith(".mp4")
-
-

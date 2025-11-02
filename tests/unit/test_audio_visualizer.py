@@ -294,3 +294,221 @@ class TestEdgeCases:
 
         assert viz.fps == 24
 
+    def test_default_style_fallback(self, temp_dir):
+        """Test that unknown style is set but defaults during generate."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        config = {
+            "video": {"resolution": [1280, 720], "fps": 30},
+            "visualization": {"style": "unknown_style"},
+        }
+        viz = AudioVisualizer(config)
+
+        # Style is set to what was configured
+        assert viz.style == "unknown_style"
+        # But will fallback to waveform during generate() call
+
+    @patch("src.core.audio_visualizer.librosa.load")
+    @patch("src.core.audio_visualizer.librosa")
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_waveform_frames")
+    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
+    def test_generate_visualization_calls_load_and_duration(self, mock_video, mock_waveform, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+        """Test that generate_visualization loads audio and gets duration (lines 44-45)."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        import numpy as np
+
+        y_data = np.random.randn(1000).astype(np.float32)
+        mock_load.return_value = (y_data, 22050)
+        mock_get_duration.get_duration.return_value = 2.0
+        mock_waveform.return_value = [np.zeros((720, 1280, 3), dtype=np.uint8)]
+        mock_video.return_value = temp_dir / "output.mp4"
+
+        viz = AudioVisualizer(test_config_visualization)
+        audio_path = temp_dir / "test.wav"
+        output_path = temp_dir / "output.mp4"
+        audio_path.write_bytes(b"fake audio")
+
+        result = viz.generate_visualization(audio_path, output_path)
+
+        # Verify librosa was called (lines 44-45)
+        mock_load.assert_called_once_with(str(audio_path), sr=None)
+        # get_duration called with y and sr (line 45)
+        assert mock_get_duration.get_duration.called
+        assert result == mock_video.return_value
+
+    @patch("src.core.audio_visualizer.librosa.load")
+    @patch("src.core.audio_visualizer.librosa")
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_spectrum_frames")
+    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
+    def test_generate_visualization_spectrum_style(self, mock_video, mock_spectrum, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+        """Test generate_visualization with spectrum style (lines 50-51)."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        import numpy as np
+
+        test_config_visualization["visualization"]["style"] = "spectrum"
+        y_data = np.random.randn(1000).astype(np.float32)
+        mock_load.return_value = (y_data, 22050)
+        mock_get_duration.get_duration.return_value = 2.0
+        mock_spectrum.return_value = [np.zeros((720, 1280, 3), dtype=np.uint8)]
+        mock_video.return_value = temp_dir / "output.mp4"
+
+        viz = AudioVisualizer(test_config_visualization)
+        audio_path = temp_dir / "test.wav"
+        output_path = temp_dir / "output.mp4"
+        audio_path.write_bytes(b"fake audio")
+
+        result = viz.generate_visualization(audio_path, output_path)
+
+        assert mock_spectrum.called
+        assert result == mock_video.return_value
+
+    @patch("src.core.audio_visualizer.librosa.load")
+    @patch("src.core.audio_visualizer.librosa")
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_particle_frames")
+    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
+    def test_generate_visualization_particles_style(self, mock_video, mock_particles, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+        """Test generate_visualization with particles style (lines 54-55)."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        import numpy as np
+
+        test_config_visualization["visualization"]["style"] = "particles"
+        y_data = np.random.randn(1000).astype(np.float32)
+        mock_load.return_value = (y_data, 22050)
+        mock_get_duration.get_duration.return_value = 2.0
+        mock_particles.return_value = [np.zeros((720, 1280, 3), dtype=np.uint8)]
+        mock_video.return_value = temp_dir / "output.mp4"
+
+        viz = AudioVisualizer(test_config_visualization)
+        audio_path = temp_dir / "test.wav"
+        output_path = temp_dir / "output.mp4"
+        audio_path.write_bytes(b"fake audio")
+
+        result = viz.generate_visualization(audio_path, output_path)
+
+        assert mock_particles.called
+        assert result == mock_video.return_value
+
+    @patch("src.core.audio_visualizer.librosa.load")
+    @patch("src.core.audio_visualizer.librosa")
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_waveform_frames")
+    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
+    def test_generate_visualization_default_fallback(self, mock_video, mock_waveform, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+        """Test generate_visualization defaults to waveform for unknown style (lines 56-58)."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        import numpy as np
+
+        test_config_visualization["visualization"]["style"] = "unknown_style_xyz"
+        y_data = np.random.randn(1000).astype(np.float32)
+        mock_load.return_value = (y_data, 22050)
+        mock_get_duration.get_duration.return_value = 2.0
+        mock_waveform.return_value = [np.zeros((720, 1280, 3), dtype=np.uint8)]
+        mock_video.return_value = temp_dir / "output.mp4"
+
+        viz = AudioVisualizer(test_config_visualization)
+        audio_path = temp_dir / "test.wav"
+        output_path = temp_dir / "output.mp4"
+        audio_path.write_bytes(b"fake audio")
+
+        result = viz.generate_visualization(audio_path, output_path)
+
+        # Should fallback to waveform
+        assert mock_waveform.called
+        assert result == mock_video.return_value
+
+    @patch("src.core.audio_visualizer.librosa.load")
+    @patch("src.core.audio_visualizer.librosa")
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_circular_frames")
+    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
+    def test_generate_visualization_circular_style(self, mock_video, mock_circular, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+        """Test generate_visualization with circular style (lines 52-53)."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        import numpy as np
+
+        test_config_visualization["visualization"]["style"] = "circular"
+        y_data = np.random.randn(1000).astype(np.float32)
+        mock_load.return_value = (y_data, 22050)
+        mock_get_duration.get_duration.return_value = 2.0
+        mock_circular.return_value = [np.zeros((720, 1280, 3), dtype=np.uint8)]
+        mock_video.return_value = temp_dir / "output.mp4"
+
+        viz = AudioVisualizer(test_config_visualization)
+        audio_path = temp_dir / "test.wav"
+        output_path = temp_dir / "output.mp4"
+        audio_path.write_bytes(b"fake audio")
+
+        result = viz.generate_visualization(audio_path, output_path)
+
+        assert mock_circular.called
+        assert result == mock_video.return_value
+
+    @patch("src.core.audio_visualizer.librosa.load")
+    @patch("src.core.audio_visualizer.librosa")
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_waveform_frames")
+    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
+    @patch("builtins.print")
+    def test_generate_visualization_print_statements(self, mock_print, mock_video, mock_waveform, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+        """Test generate_visualization print statements (lines 41, 63)."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        import numpy as np
+
+        y_data = np.random.randn(1000).astype(np.float32)
+        mock_load.return_value = (y_data, 22050)
+        mock_get_duration.get_duration.return_value = 2.0
+        mock_waveform.return_value = [np.zeros((720, 1280, 3), dtype=np.uint8)]
+        mock_video.return_value = temp_dir / "output.mp4"
+
+        viz = AudioVisualizer(test_config_visualization)
+        audio_path = temp_dir / "test.wav"
+        output_path = temp_dir / "output.mp4"
+        audio_path.write_bytes(b"fake audio")
+
+        result = viz.generate_visualization(audio_path, output_path)
+
+        # Verify print statements were called (lines 41, 63)
+        print_calls = [str(call) for call in mock_print.call_args_list]
+        assert any("Generating" in call for call in print_calls) or any("visualization" in call.lower() for call in print_calls)
+        assert any("Visualization generated" in call for call in print_calls) or any("generated" in call.lower() for call in print_calls)
+
+    # Note: Spectrum generation internal tests removed due to librosa.stft lazy loading
+    # These methods (lines 137-179) require integration tests with real librosa
+
+    def test_waveform_sample_index_boundary(self, test_config_visualization, mock_audio_data):
+        """Test waveform generation handles sample index boundary (line 101)."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        viz = AudioVisualizer(test_config_visualization)
+        
+        # Test with audio that triggers boundary condition
+        y, sr, duration = mock_audio_data
+        # Use very small chunk to trigger boundary
+        y_small = y[:100]  # Very small audio
+        
+        frames = viz._generate_waveform_frames(y_small, sr, 0.1)
+
+        assert isinstance(frames, list)
+        assert len(frames) > 0
+
+    def test_circular_line_amplitude_zero(self, test_config_visualization):
+        """Test circular generation handles zero amplitude fallback (line 229)."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        import numpy as np
+
+        viz = AudioVisualizer(test_config_visualization)
+        # Use audio that might trigger the boundary condition
+        y = np.zeros(1000, dtype=np.float32)  # Silent audio
+        sr = 22050
+        duration = 0.1
+
+        frames = viz._generate_circular_frames(y, sr, duration)
+
+        assert isinstance(frames, list)
+
+    # Note: _frames_to_video test removed due to complex moviepy mocking requirements
+    # This method (lines 329-349) can be tested via integration tests with real moviepy

@@ -20,9 +20,19 @@ from src.core.music_generator import MusicGenerator
 from src.core.script_parser import ScriptParser
 from src.core.tts_engine import TTSEngine
 from src.core.video_composer import VideoComposer
-from src.models.database import Podcast, init_db
 from src.utils.config import load_config
 from src.utils.gpu_utils import get_gpu_manager, print_gpu_info
+
+# Optional database support (sqlalchemy may not be installed)
+try:
+    from src.models.database import Podcast, init_db
+
+    DATABASE_AVAILABLE = True
+except ImportError:
+    # Database is optional - CLI works without it
+    DATABASE_AVAILABLE = False
+    Podcast = None  # type: ignore
+    init_db = None  # type: ignore
 
 app = typer.Typer(
     name="podcast-creator",
@@ -248,6 +258,10 @@ def list():
     """List all generated podcasts."""
     console.print("[bold blue]Generated Podcasts[/bold blue]\n")
 
+    if not DATABASE_AVAILABLE:
+        console.print("[yellow]⚠️  Database not available. Install sqlalchemy to enable podcast tracking.[/yellow]")
+        return
+
     # TODO: Query database for podcasts
     table = Table(show_header=True, header_style="bold cyan")
     table.add_column("ID", style="dim")
@@ -309,11 +323,14 @@ def init():
         progress.update(task, completed=True)
         console.print("✅ Directories created")
 
-        # Initialize database
-        task = progress.add_task("Initializing database...", total=None)
-        init_db()
-        progress.update(task, completed=True)
-        console.print("✅ Database initialized")
+        # Initialize database (if available)
+        if DATABASE_AVAILABLE:
+            task = progress.add_task("Initializing database...", total=None)
+            init_db()  # type: ignore
+            progress.update(task, completed=True)
+            console.print("✅ Database initialized")
+        else:
+            console.print("⚠️  Database not available (sqlalchemy not installed)")
 
         # Check dependencies
         task = progress.add_task("Checking dependencies...", total=None)

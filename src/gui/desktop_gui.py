@@ -264,6 +264,7 @@ class PodcastCreatorGUI:
 
     def log(self, message, color="black"):
         """Add message to log."""
+
         def append():
             self.log_text.insert(tk.END, f"{message}\n")
             self.log_text.see(tk.END)
@@ -390,7 +391,9 @@ class PodcastCreatorGUI:
         except Exception as e:
             self.log(f"❌ Error: {str(e)}", "red")
             self.update_status("❌ Error", "red")
-            self._run_on_ui_thread(lambda: messagebox.showerror("Error", f"Failed to create podcast:\n\n{str(e)}"), wait=True)
+            self._run_on_ui_thread(
+                lambda: messagebox.showerror("Error", f"Failed to create podcast:\n\n{str(e)}"), wait=True
+            )
 
         finally:
             # Re-enable button

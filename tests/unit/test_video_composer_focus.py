@@ -373,8 +373,9 @@ def test_overlay_visualization_last_resort_copies_avatar(tmp_path):
 
 @pytest.mark.unit
 def test_create_text_image_font_fallback(tmp_path):
-    from src.core.video_composer import VideoComposer
     from PIL import ImageFont
+
+    from src.core.video_composer import VideoComposer
 
     cfg = make_cfg(tmp_path)
     comp = VideoComposer(cfg)
@@ -384,5 +385,3 @@ def test_create_text_image_font_fallback(tmp_path):
             path = comp._create_text_image("Test", (640, 480))
             assert Path(path).exists()
             load_default.assert_called_once()
-
-

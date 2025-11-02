@@ -1,0 +1,4 @@
+# file: /workspace/src/utils/gpu_utils.py
+# hypothesis_version: 6.142.5
+
+[1024, '\nMemory Usage:', '=', 'GPU CONFIGURATION', 'allocated', 'allocated_gb', 'avatar', 'batch_size', 'cpu', 'cuda', 'device', 'free', 'free_gb', 'gpu_available', 'gpu_memory_gb', 'gpu_name', 'music', 'num_workers', 'reserved', 'reserved_gb', 'total_gb', 'tts', 'use_fp16', 'use_tf32']

@@ -13,6 +13,7 @@ import pytest
 # Check if sqlalchemy is available
 try:
     import sqlalchemy
+
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
@@ -408,4 +409,3 @@ class TestDatabaseEdgeCases:
         assert found.completed_at == completed
 
         session.close()
-

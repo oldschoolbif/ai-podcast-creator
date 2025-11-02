@@ -1,0 +1,4 @@
+# file: /workspace/src/core/tts_engine.py
+# hypothesis_version: 6.142.5
+
+[0.0, 0.5, 0.75, 0.9, 165, '+0%', '+0Hz', '.wav', '1', 'Andrew Chipper', 'COQUI_TOS_AGREED', 'ELEVENLABS_API_KEY', 'XXpiperXX', 'api_key', 'azure', 'cache_dir', 'co.uk', 'coqui', 'default', 'edge', 'edge_pitch', 'edge_rate', 'edge_voice', 'eleven_turbo_v2_5', 'elevenlabs', 'en', 'en-US-GuyNeural', 'engine', 'gtts', 'gtts_tld', 'language', 'model', 'mp3', 'pNInz6obpgDQGcFmaJgB', 'piper', 'pyttsx3', 'pyttsx3_rate', 'pyttsx3_voice_id', 'rate', 'region', 'similarity_boost', 'speaker', 'speaker_wav', 'stability', 'storage', 'synthesizer', 'to', 'tts', 'tts_model', 'use_fp16', 'voice', 'voice_id', 'voices', 'volume', 'wb', 'xtts']

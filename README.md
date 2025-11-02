@@ -14,6 +14,8 @@ AI Podcast Creator is an automated video podcast generation system featuring:
 - **🔧 Modular Design**: Swap TTS engines, avatar systems, and music generators
 - **🚀 GPU Acceleration**: 10-12x faster generation with NVIDIA GPU support
 
+> **📊 Quick Access Dashboard:** Open [`ALL_Product_Run_Info.html`](../ALL_Product_Run_Info.html) for clickable links to all services and run information!
+
 ## 🎨 GUI Interface Available!
 
 **No command line needed!** We now have beautiful graphical interfaces:

@@ -135,6 +135,75 @@ class TestVideoComposerCompose:
 
             mock_overlay.assert_called_once()
 
+    def test_compose_default_use_visualization_false(self, test_config, temp_dir):
+        """Test that compose defaults to use_visualization=False (no visualization by default)."""
+        audio_path = temp_dir / "test_audio.wav"
+        audio_path.touch()
+
+        composer = VideoComposer(test_config)
+
+        # Mock moviepy to verify default path (no visualization)
+        mock_audio = MagicMock()
+        mock_audio.duration = 5.0
+        mock_audio.close = MagicMock()
+
+        mock_color_clip = MagicMock()
+        mock_color_clip.set_duration = MagicMock(return_value=mock_color_clip)
+        mock_color_clip.set_audio = MagicMock(return_value=mock_color_clip)
+        mock_color_clip.write_videofile = MagicMock()
+        mock_color_clip.close = MagicMock()
+
+        mock_moviepy = MagicMock()
+        mock_moviepy.editor = MagicMock()
+        mock_moviepy.editor.AudioFileClip = MagicMock(return_value=mock_audio)
+        mock_moviepy.editor.ColorClip = MagicMock(return_value=mock_color_clip)
+        mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_color_clip)
+
+        with (
+            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+            patch("src.core.audio_visualizer.AudioVisualizer") as mock_visualizer_class,
+        ):
+
+            result = composer.compose(audio_path, output_name="test_default_no_viz")
+
+            # Default should be False - visualization should NOT be called
+            mock_visualizer_class.assert_not_called()
+            assert result is not None
+
+    def test_compose_explicitly_use_visualization_false(self, test_config, temp_dir):
+        """Test compose with use_visualization=False explicitly."""
+        audio_path = temp_dir / "test_audio.wav"
+        audio_path.touch()
+
+        composer = VideoComposer(test_config)
+
+        mock_audio = MagicMock()
+        mock_audio.duration = 5.0
+        mock_audio.close = MagicMock()
+
+        mock_color_clip = MagicMock()
+        mock_color_clip.set_duration = MagicMock(return_value=mock_color_clip)
+        mock_color_clip.set_audio = MagicMock(return_value=mock_color_clip)
+        mock_color_clip.write_videofile = MagicMock()
+        mock_color_clip.close = MagicMock()
+
+        mock_moviepy = MagicMock()
+        mock_moviepy.editor = MagicMock()
+        mock_moviepy.editor.AudioFileClip = MagicMock(return_value=mock_audio)
+        mock_moviepy.editor.ColorClip = MagicMock(return_value=mock_color_clip)
+        mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_color_clip)
+
+        with (
+            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+            patch("src.core.audio_visualizer.AudioVisualizer") as mock_visualizer_class,
+        ):
+
+            result = composer.compose(audio_path, output_name="test_explicit_false", use_visualization=False)
+
+            # Visualization should NOT be called when explicitly False
+            mock_visualizer_class.assert_not_called()
+            assert result is not None
+
     def test_compose_fallback_to_ffmpeg(self, test_config, temp_dir):
         """Test fallback to FFmpeg when moviepy fails."""
         audio_path = temp_dir / "test_audio.wav"

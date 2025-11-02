@@ -40,8 +40,8 @@ def test_tts_cache_key_generation_speed(benchmark, test_config, tmp_path):
 
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir(parents=True, exist_ok=True)
-        test_config["storage"]["cache_dir"] = str(tmp_path / "cache" )
-        test_config["storage"]["outputs_dir"] = str(tmp_path / "out" )
+        test_config["storage"]["cache_dir"] = str(tmp_path / "cache")
+        test_config["storage"]["outputs_dir"] = str(tmp_path / "out")
 
         with patch.dict("sys.modules", {"gtts": MagicMock(gTTS=MagicMock())}):
             engine = TTSEngine(test_config)

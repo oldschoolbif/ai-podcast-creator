@@ -307,7 +307,9 @@ class TestAvatarGeneratorSadTalkerPaths:
             with patch("subprocess.run") as mock_run:
                 mock_run.return_value = MagicMock(returncode=1, stderr="Error")
 
-                with patch.object(gen, "_create_fallback_video", return_value=tmp_path / "fallback.mp4") as mock_fallback:
+                with patch.object(
+                    gen, "_create_fallback_video", return_value=tmp_path / "fallback.mp4"
+                ) as mock_fallback:
                     result = gen._generate_sadtalker(audio_path, tmp_path / "out.mp4")
 
                     assert result is not None
@@ -399,4 +401,3 @@ class TestAvatarGeneratorDIDPaths:
             gen = AvatarGenerator(cfg)
 
             assert gen.did_api_key is None
-

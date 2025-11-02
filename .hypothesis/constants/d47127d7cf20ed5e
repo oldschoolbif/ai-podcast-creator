@@ -1,0 +1,4 @@
+# file: /workspace/src/core/video_composer.py
+# hypothesis_version: 6.142.5
+
+[180, 255, 1080, 1920, '%Y%m%d_%H%M%S', '+faststart', '-ac', '-ar', '-b:a', '-b:v', '-bufsize', '-c:a', '-c:v', '-cq', '-crf', '-encoders', '-filter_complex', '-hide_banner', '-hwaccel', '-i', '-level', '-loop', '-maxrate', '-movflags', '-pix_fmt', '-preset', '-profile:v', '-rc', '-shortest', '-tune', '-y', '.png', '1', '12M', '192k', '2', '23', '3.0', '44100', '5M', '6M', 'FFmpeg failed', 'NVENC not available', 'RGB', 'RGBA', 'Vivienne Sterling', 'aac', 'arial.ttf', 'background_path', 'baseline', 'cache_dir', 'center', 'character', 'codec', 'copy', 'cuda', 'faster', 'ffmpeg', 'fps', 'h264_nvenc', 'hq', 'libx264', 'medium', 'name', 'outputs_dir', 'p7', 'resolution', 'stillimage', 'storage', 'vbr', 'video', 'yuv420p']

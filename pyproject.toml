@@ -134,6 +134,9 @@ paths_to_mutate = [
     "src/utils/config.py",
 ]
 tests_dir = "tests"
-runner = "python -m pytest"
+runner = "python scripts/mutmut_pytest_wrapper.py"
 backup = false
+# Optimize for speed
+# Only mutate fast-to-test files, skip slow modules during mutation
+use_coverage = true  # Skip mutations on uncovered lines (faster)
 

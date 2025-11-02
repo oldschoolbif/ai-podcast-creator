@@ -1,0 +1,4 @@
+# file: /workspace/src/core/music_generator.py
+# hypothesis_version: 6.142.5
+
+[0.0, 1.0, 3.0, 250, '2.0', 'cache_dir', 'compile', 'cpu', 'description', 'duration', 'engine', 'library', 'model', 'mubert', 'music', 'musicgen', 'reduce-overhead', 'storage', 'temperature', 'top_k', 'top_p', 'use_fp16']

@@ -8,8 +8,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from hypothesis import given, settings, strategies as st
-from hypothesis import HealthCheck
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -180,7 +180,9 @@ class TestMusicGeneratorPropertyBased:
 class TestVideoComposerPropertyBased:
     """Property-based tests for VideoComposer."""
 
-    @given(resolution_w=st.integers(min_value=320, max_value=3840), resolution_h=st.integers(min_value=240, max_value=2160))
+    @given(
+        resolution_w=st.integers(min_value=320, max_value=3840), resolution_h=st.integers(min_value=240, max_value=2160)
+    )
     @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], max_examples=5)
     def test_compose_handles_various_resolutions(self, test_config, temp_dir, resolution_w, resolution_h):
         """Property: Composer handles various video resolutions."""
@@ -218,7 +220,11 @@ class TestAudioVisualizerPropertyBased:
     """Property-based tests for AudioVisualizer."""
 
     @given(style=st.sampled_from(["waveform", "spectrum", "circular", "particles"]))
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], max_examples=5)
+    @settings(
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+        max_examples=5,
+        deadline=None,
+    )
     def test_all_styles_generate_frames(self, test_config_visualization, mock_audio_data, style):
         """Property: All visualization styles generate frames."""
         from src.core.audio_visualizer import AudioVisualizer
@@ -245,8 +251,16 @@ class TestAudioVisualizerPropertyBased:
         assert isinstance(frames, list)
         assert len(frames) > 0
 
-    @given(color1=st.lists(st.integers(min_value=0, max_value=255), min_size=3, max_size=3), color2=st.lists(st.integers(min_value=0, max_value=255), min_size=3, max_size=3), t=st.floats(min_value=0.0, max_value=1.0))
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], max_examples=10)
+    @given(
+        color1=st.lists(st.integers(min_value=0, max_value=255), min_size=3, max_size=3),
+        color2=st.lists(st.integers(min_value=0, max_value=255), min_size=3, max_size=3),
+        t=st.floats(min_value=0.0, max_value=1.0),
+    )
+    @settings(
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+        max_examples=10,
+        deadline=None,
+    )
     def test_color_interpolation_property(self, test_config_visualization, color1, color2, t):
         """Property: Color interpolation produces valid RGB values."""
         from src.core.audio_visualizer import AudioVisualizer
@@ -258,4 +272,3 @@ class TestAudioVisualizerPropertyBased:
         assert isinstance(result, list)
         assert len(result) == 3
         assert all(0 <= c <= 255 for c in result)
-

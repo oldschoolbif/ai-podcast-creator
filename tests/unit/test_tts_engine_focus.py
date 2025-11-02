@@ -170,7 +170,9 @@ def test_pyttsx3_conversion_fallback(tmp_path):
             fake_audio = MagicMock()
             fake_audio.export.side_effect = raise_convert
 
-            with patch.dict(sys.modules, {"pydub": MagicMock(AudioSegment=MagicMock(from_wav=MagicMock(return_value=fake_audio))) }):
+            with patch.dict(
+                sys.modules, {"pydub": MagicMock(AudioSegment=MagicMock(from_wav=MagicMock(return_value=fake_audio)))}
+            ):
                 out = engine.generate("hello")
                 assert out.exists()
 
@@ -251,5 +253,3 @@ def test_azure_speak_text_call_verified(tmp_path):
                 assert fake_synthesizer.speak_text.called
                 assert fake_synthesizer.speak_text.call_args[0][0] == "test text"
                 assert out == tmp_path / "out.mp3"
-
-

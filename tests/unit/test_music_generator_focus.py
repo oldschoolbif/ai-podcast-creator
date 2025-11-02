@@ -362,4 +362,3 @@ class TestMusicGeneratorEdgeCases:
         # Both should use same cache dir
         assert gen1.cache_dir == gen2.cache_dir
         assert cache_dir.exists()
-

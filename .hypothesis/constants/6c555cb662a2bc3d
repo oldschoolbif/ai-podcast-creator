@@ -1,0 +1,4 @@
+# file: /workspace/src/gui/web_interface.py
+# hypothesis_version: 6.142.5
+
+[0.1, 0.2, 0.3, 0.5, 0.6, 0.8, 1.0, 2.0, 300, 480, 720, 854, 1080, 1280, 1920, 7860, '### 🎭 Voice & Avatar', '### 📄 Script & Audio', '### 📹 Output', '---', '.m4a', '.md', '.mp3', '.txt', '.wav', '127.0.0.1', 'AI Podcast Creator', 'Avatar Style', 'Complete!', 'Create Podcast', 'Creating video...', 'Examples', 'Generated Video', 'Generating speech...', 'Gradient Background', 'High (1080p)', 'Low (480p)', 'Medium (720p)', 'Minimal', 'Mixing audio...', 'News Desk', 'Output Video Name', 'Parsing script...', 'Processing music...', 'Reading script...', 'Settings & Help', 'Status', 'Tech Theme', 'Video Quality', 'Voice Engine', 'Voice Speed', '__main__', 'engine', 'filepath', 'lg', 'music_cues', 'primary', 'r', 'resolution', 'text', 'tts', 'utf-8', 'video', '🚀 Create Podcast']

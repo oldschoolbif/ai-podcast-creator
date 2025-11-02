@@ -163,7 +163,7 @@ class TestMusicGeneratorMusicGen:
             assert result is not None
 
     def test_generate_with_empty_input(self, test_config):
-        """Test generation with empty input."""
+        """Test generation with empty input (line 114)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "test"}
 
@@ -175,6 +175,360 @@ class TestMusicGeneratorMusicGen:
             result = generator.generate(None)
 
             assert result is None
+
+    def test_generate_with_empty_list(self, test_config):
+        """Test generation with empty list (line 114)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {"model": "test"}
+
+        with patch("audiocraft.models.MusicGen"), patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+
+            mock_gpu.return_value.gpu_available = False
+
+            generator = MusicGenerator(test_config)
+            result = generator.generate([])
+
+            assert result is None
+
+    @patch("torch.__version__", "2.1.0")
+    @patch("torch.compile")
+    @patch("audiocraft.models.MusicGen")
+    @patch("builtins.print")  # Capture print statements for coverage
+    def test_init_musicgen_gpu_with_torch_compile(self, mock_print, mock_gen, mock_compile, test_config, temp_dir):
+        """Test MusicGen initialization with GPU and torch.compile (lines 49-75)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.get_device.return_value = "cuda"
+            mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": False}
+
+            mock_model = MagicMock()
+            mock_model.lm = MagicMock()
+            mock_gen.get_pretrained.return_value = mock_model
+
+            generator = MusicGenerator(test_config)
+
+            assert generator.engine_type == "musicgen"
+            # torch.compile should be called if available
+            mock_compile.assert_called()
+            # Verify GPU initialization print (line 52)
+            assert any("Initializing MusicGen on GPU" in str(call) for call in mock_print.call_args_list)
+
+    @patch("torch.__version__", "1.9.0")  # Old version without compile
+    @patch("audiocraft.models.MusicGen")
+    def test_init_musicgen_gpu_no_torch_compile(self, mock_gen, test_config, temp_dir):
+        """Test MusicGen initialization when torch.compile not available (line 59)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.get_device.return_value = "cuda"
+            mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": False}
+
+            mock_model = MagicMock()
+            mock_gen.get_pretrained.return_value = mock_model
+
+            generator = MusicGenerator(test_config)
+
+            assert generator.engine_type == "musicgen"
+            # Should not fail even without torch.compile
+
+    @patch("torch.compile")
+    @patch("audiocraft.models.MusicGen")
+    def test_init_musicgen_gpu_torch_compile_exception(self, mock_gen, mock_compile, test_config, temp_dir):
+        """Test MusicGen when torch.compile fails (lines 63-64)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("torch.__version__", "2.1.0"), patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.get_device.return_value = "cuda"
+            mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": False}
+
+            mock_model = MagicMock()
+            mock_model.lm = MagicMock()
+            mock_gen.get_pretrained.return_value = mock_model
+            mock_compile.side_effect = Exception("Compile failed")
+
+            generator = MusicGenerator(test_config)
+
+            # Should handle exception gracefully
+            assert generator.engine_type == "musicgen"
+
+    @patch("audiocraft.models.MusicGen")
+    def test_init_musicgen_gpu_with_fp16(self, mock_gen, test_config, temp_dir):
+        """Test MusicGen initialization with GPU and FP16 (lines 67-72)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.get_device.return_value = "cuda"
+            mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": True}
+
+            mock_model = MagicMock()
+            mock_model.lm = MagicMock()
+            mock_gen.get_pretrained.return_value = mock_model
+
+            generator = MusicGenerator(test_config)
+
+            assert generator.engine_type == "musicgen"
+            # FP16 should be enabled
+            mock_model.lm.half.assert_called()
+
+    @patch("audiocraft.models.MusicGen")
+    def test_init_musicgen_gpu_fp16_exception(self, mock_gen, test_config, temp_dir):
+        """Test MusicGen when FP16 fails (lines 71-72)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.get_device.return_value = "cuda"
+            mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": True}
+
+            mock_model = MagicMock()
+            mock_model.lm = MagicMock()
+            mock_model.lm.half.side_effect = Exception("FP16 failed")
+            mock_gen.get_pretrained.return_value = mock_model
+
+            generator = MusicGenerator(test_config)
+
+            # Should handle exception gracefully
+            assert generator.engine_type == "musicgen"
+
+    @patch("audiocraft.models.MusicGen")
+    @patch("builtins.print")
+    def test_init_musicgen_cpu(self, mock_print, mock_gen, test_config, temp_dir):
+        """Test MusicGen initialization on CPU (lines 73-75)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+
+            mock_model = MagicMock()
+            mock_gen.get_pretrained.return_value = mock_model
+
+            generator = MusicGenerator(test_config)
+
+            assert generator.engine_type == "musicgen"
+            # Should use CPU device
+            mock_gen.get_pretrained.assert_called_with("facebook/musicgen-small", device="cpu")
+            # Verify CPU warning print (line 74)
+            assert any("Initializing MusicGen on CPU" in str(call) for call in mock_print.call_args_list)
+
+    @patch("torchaudio.save")
+    @patch("torch.inference_mode")
+    @patch("torch.cuda.amp.autocast")
+    @patch("builtins.print")
+    def test_generate_musicgen_gpu_autocast(self, mock_print, mock_autocast, mock_inference, mock_save, test_config, temp_dir):
+        """Test MusicGen generation with GPU autocast (lines 164-165)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {
+            "model": "facebook/musicgen-small",
+            "duration": 5,
+        }
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with (
+            patch("audiocraft.models.MusicGen") as mock_gen,
+            patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
+        ):
+
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.get_device.return_value = "cuda"
+            mock_gpu.return_value.clear_cache = MagicMock()
+
+            mock_model = MagicMock()
+            mock_model.generate.return_value = [MagicMock()]
+            mock_model.sample_rate = 32000
+            mock_gen.get_pretrained.return_value = mock_model
+
+            generator = MusicGenerator(test_config)
+            generator.generate("test music")
+
+            # Should use autocast for GPU
+            mock_autocast.assert_called()
+            # Should save audio (line 170)
+            mock_save.assert_called()
+            # Should clear cache (line 174)
+            mock_gpu.return_value.clear_cache.assert_called()
+            # Verify generation print (line 159)
+            assert any("Generating music" in str(call) for call in mock_print.call_args_list)
+
+    @patch("torchaudio.save")
+    @patch("torch.inference_mode")
+    @patch("torch.cuda.amp.autocast")
+    def test_generate_musicgen_gpu_cache_clearing(self, mock_autocast, mock_inference, mock_save, test_config, temp_dir):
+        """Test MusicGen GPU cache clearing at start (line 141)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {
+            "model": "facebook/musicgen-small",
+            "duration": 5,
+        }
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with (
+            patch("audiocraft.models.MusicGen") as mock_gen,
+            patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
+        ):
+
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.get_device.return_value = "cuda"
+            mock_gpu.return_value.clear_cache = MagicMock()
+
+            mock_model = MagicMock()
+            mock_model.generate.return_value = [MagicMock()]
+            mock_model.sample_rate = 32000
+            mock_gen.get_pretrained.return_value = mock_model
+
+            generator = MusicGenerator(test_config)
+            generator.generate("test music")
+
+            # Should clear cache at start (line 141)
+            assert mock_gpu.return_value.clear_cache.call_count >= 1  # Called at start and end
+
+    @patch("torchaudio.save")
+    @patch("torch.inference_mode")
+    def test_generate_musicgen_parameters_from_config(self, mock_inference, mock_save, test_config, temp_dir):
+        """Test MusicGen uses config parameters (lines 144-157)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {
+            "model": "facebook/musicgen-small",
+            "duration": 15,
+            "temperature": 0.8,
+            "top_k": 200,
+            "top_p": 0.5
+        }
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with (
+            patch("audiocraft.models.MusicGen") as mock_gen,
+            patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
+        ):
+
+            mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+
+            mock_model = MagicMock()
+            mock_model.generate.return_value = [MagicMock()]
+            mock_model.sample_rate = 32000
+            mock_model.set_generation_params = MagicMock()
+            mock_gen.get_pretrained.return_value = mock_model
+
+            generator = MusicGenerator(test_config)
+            generator.generate("test music")
+
+            # Verify set_generation_params was called with config values
+            mock_model.set_generation_params.assert_called_once()
+            call_kwargs = mock_model.set_generation_params.call_args[1]
+            assert call_kwargs["duration"] == 15
+            assert call_kwargs["temperature"] == 0.8
+            assert call_kwargs["top_k"] == 200
+            assert call_kwargs["top_p"] == 0.5
+
+    @patch("torchaudio.save")
+    @patch("torch.inference_mode")
+    @patch("builtins.print")
+    def test_generate_musicgen_cpu_no_autocast(self, mock_print, mock_inference, mock_save, test_config, temp_dir):
+        """Test MusicGen generation with CPU (no autocast, lines 166-167)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {
+            "model": "facebook/musicgen-small",
+            "duration": 5,
+        }
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with (
+            patch("audiocraft.models.MusicGen") as mock_gen,
+            patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
+        ):
+
+            mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+
+            mock_model = MagicMock()
+            mock_model.generate.return_value = [MagicMock()]
+            mock_model.sample_rate = 32000
+            mock_gen.get_pretrained.return_value = mock_model
+
+            generator = MusicGenerator(test_config)
+            generator.generate("test music")
+
+            # Should save audio (line 170)
+            mock_save.assert_called()
+            # Verify success print (line 176)
+            assert any("Music generated" in str(call) for call in mock_print.call_args_list)
+
+    @patch("torchaudio.save")
+    @patch("torch.inference_mode")
+    @patch("builtins.print")
+    def test_generate_musicgen_exception_handling(self, mock_print, mock_inference, mock_save, test_config, temp_dir):
+        """Test MusicGen generation exception handling (lines 179-181)."""
+        test_config["music"]["engine"] = "musicgen"
+        test_config["music"]["musicgen"] = {
+            "model": "facebook/musicgen-small",
+            "duration": 5,
+        }
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with (
+            patch("audiocraft.models.MusicGen") as mock_gen,
+            patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
+        ):
+
+            mock_gpu.return_value.gpu_available = False
+
+            mock_model = MagicMock()
+            mock_model.generate.side_effect = Exception("Generation failed")
+            mock_gen.get_pretrained.return_value = mock_model
+
+            generator = MusicGenerator(test_config)
+            result = generator.generate("test music")
+
+            # Should return None on exception
+            assert result is None
+            # Verify exception print (line 180)
+            assert any("Music generation failed" in str(call) for call in mock_print.call_args_list)
+
+    def test_generate_mubert(self, test_config, temp_dir):
+        """Test Mubert generation (lines 183-187)."""
+        test_config["music"]["engine"] = "mubert"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            generator = MusicGenerator(test_config)
+            result = generator.generate("test music")
+
+            # Mubert returns touched file path
+            assert result is not None
+
+    def test_select_from_library(self, test_config, temp_dir):
+        """Test library selection (lines 189-193)."""
+        test_config["music"]["engine"] = "library"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            generator = MusicGenerator(test_config)
+            result = generator.generate("test music")
+
+            # Library returns touched file path
+            assert result is not None
 
     def test_generate_musicgen_model_not_available(self, test_config, temp_dir):
         """Test when MusicGen model is not available."""
@@ -193,35 +547,6 @@ class TestMusicGeneratorMusicGen:
             result = generator.generate("test music")
 
             assert result is None  # Should handle gracefully
-
-
-class TestMusicGeneratorMubert:
-    """Test Mubert API generation."""
-
-    def test_generate_mubert(self, test_config, temp_dir):
-        """Test Mubert generation."""
-        test_config["music"]["engine"] = "mubert"
-        test_config["storage"]["cache_dir"] = str(temp_dir)
-
-        generator = MusicGenerator(test_config)
-        # Mubert not implemented yet, should return placeholder
-        result = generator._generate_mubert("test", temp_dir / "output.wav")
-
-        assert result is not None
-
-
-class TestMusicGeneratorLibrary:
-    """Test music library selection."""
-
-    def test_select_from_library(self, test_config, temp_dir):
-        """Test selecting music from library."""
-        test_config["music"]["engine"] = "library"
-        test_config["storage"]["cache_dir"] = str(temp_dir)
-
-        generator = MusicGenerator(test_config)
-        result = generator._select_from_library("test", temp_dir / "output.wav")
-
-        assert result is not None
 
 
 @pytest.mark.skipif("audiocraft" not in sys.modules, reason="audiocraft not installed")
