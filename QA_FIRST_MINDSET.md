@@ -49,8 +49,26 @@ When making any code change, ensure:
 
 **Always suggest QA coverage updates as part of feature development, bug fixes, and code modifications.**
 
+## 🎯 Test Quality Principles
+
+### Fix Root Causes, Not Symptoms
+
+**When fixing test failures, address the root-cause, do not just work around it and skip past it. Make it better, not non-existent.**
+
+**Key Principles:**
+- Don't skip tests to make CI pass - mock dependencies instead
+- Don't work around problems - fix them properly  
+- Every fix should improve test robustness
+- Tests should work in all environments (local, CI, etc.)
+
+**Example:**
+- ❌ Wrong: `@pytest.mark.skipif(not LIB_AVAILABLE)` → loses coverage
+- ✅ Right: `@patch.dict(sys.modules, {"LIB": mock_module()})` → maintains coverage
+
+See also: `TEST_QUALITY_PRINCIPLES.md`
+
 ---
 
 *Last Updated: Night Shift Coverage Push Session*  
-*Current Coverage: 78.91%*
+*Current Coverage: 79.86%*
 
