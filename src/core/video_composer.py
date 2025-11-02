@@ -304,10 +304,11 @@ class VideoComposer:
         draw = ImageDraw.Draw(img)
 
         # Try to use a nice font, fallback to default
+        from PIL.ImageFont import ImageFont as PILImageFont
         try:
-            font = ImageFont.truetype("arial.ttf", 60)
+            font: PILImageFont = ImageFont.truetype("arial.ttf", 60)
         except Exception:
-            font = ImageFont.load_default()
+            font = ImageFont.load_default()  # type: ignore[assignment]
 
         # Get text size
         bbox = draw.textbbox((0, 0), text, font=font)
