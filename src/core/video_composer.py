@@ -307,7 +307,7 @@ class VideoComposer:
         try:
             font = ImageFont.truetype("arial.ttf", 60)
         except Exception:
-            font = ImageFont.load_default()
+            font = ImageFont.load_default()  # type: ignore[assignment]
 
         # Get text size
         bbox = draw.textbbox((0, 0), text, font=font)

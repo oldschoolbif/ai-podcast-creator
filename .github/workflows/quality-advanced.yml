@@ -62,7 +62,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
-        pip install mypy
+        pip install mypy types-PyYAML types-requests
     
     - name: Run MyPy
       run: |

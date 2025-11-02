@@ -12,8 +12,8 @@ class GPUManager:
 
     def __init__(self):
         self.gpu_available = False
-        self.gpu_name = None
-        self.gpu_memory = 0
+        self.gpu_name: str | None = None
+        self.gpu_memory: float = 0.0
         self.device = "cpu"
         self.cuda_available = False
         self.device_id = 0

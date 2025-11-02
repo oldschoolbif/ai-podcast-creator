@@ -11,7 +11,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 Base = declarative_base()
 
 
-class Podcast(Base):
+class Podcast(Base):  # type: ignore[valid-type,misc]
     """Podcast episode model."""
 
     __tablename__ = "podcasts"
@@ -42,7 +42,7 @@ class Podcast(Base):
         return f"<Podcast(id={self.id}, title='{self.title}', status='{self.status}')>"
 
 
-class MusicCue(Base):
+class MusicCue(Base):  # type: ignore[valid-type,misc]
     """Music cue model."""
 
     __tablename__ = "music_cues"

@@ -35,7 +35,7 @@ def load_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
     # Replace environment variable placeholders
     config = _replace_env_vars(config)
 
-    return config
+    return config  # type: ignore[no-any-return]
 
 
 def _replace_env_vars(config: Any) -> Any:

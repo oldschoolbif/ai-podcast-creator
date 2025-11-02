@@ -31,8 +31,8 @@ try:
 except ImportError:
     # Database is optional - CLI works without it
     DATABASE_AVAILABLE = False
-    Podcast = None  # type: ignore
-    init_db = None  # type: ignore
+    Podcast = None  # type: ignore[assignment]
+    init_db = None  # type: ignore[assignment]
 
 app = typer.Typer(
     name="podcast-creator",
@@ -326,7 +326,7 @@ def init():
         # Initialize database (if available)
         if DATABASE_AVAILABLE:
             task = progress.add_task("Initializing database...", total=None)
-            init_db()  # type: ignore
+            init_db()
             progress.update(task, completed=True)
             console.print("✅ Database initialized")
         else:
@@ -552,7 +552,7 @@ def status():
     # Check models
     models_dir = Path("data/models")
     if models_dir.exists():
-        model_count = len(list(models_dir.rglob("*")))
+        model_count = sum(1 for _ in models_dir.rglob("*"))
         table.add_row("Models", "[green]✓[/green]", f"{model_count} files")
     else:
         table.add_row("Models", "[yellow]⚠[/yellow]", "Directory not found")

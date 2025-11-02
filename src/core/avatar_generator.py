@@ -152,6 +152,9 @@ class AvatarGenerator:
             return self._generate_wav2lip(audio_path, output_path)
         elif self.engine_type == "did":
             return self._generate_did(audio_path, output_path)
+        else:
+            # Unknown engine type, use fallback
+            return self._create_fallback_video(audio_path, output_path)
 
     def _generate_sadtalker(self, audio_path: Path, output_path: Path) -> Path:
         """Generate video using SadTalker with GPU acceleration."""

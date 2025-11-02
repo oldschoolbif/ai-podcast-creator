@@ -42,20 +42,21 @@ class AudioVisualizer:
 
         # Load audio
         y, sr = librosa.load(str(audio_path), sr=None)
-        duration = librosa.get_duration(y=y, sr=sr)
+        duration = float(librosa.get_duration(y=y, sr=sr))
+        sr_int = int(sr)  # Ensure sr is int for type checking
 
         # Generate frames based on style
         if self.style == "waveform":
-            frames = self._generate_waveform_frames(y, sr, duration)
+            frames = self._generate_waveform_frames(y, sr_int, duration)
         elif self.style == "spectrum":
-            frames = self._generate_spectrum_frames(y, sr, duration)
+            frames = self._generate_spectrum_frames(y, sr_int, duration)
         elif self.style == "circular":
-            frames = self._generate_circular_frames(y, sr, duration)
+            frames = self._generate_circular_frames(y, sr_int, duration)
         elif self.style == "particles":
-            frames = self._generate_particle_frames(y, sr, duration)
+            frames = self._generate_particle_frames(y, sr_int, duration)
         else:
             # Default to waveform
-            frames = self._generate_waveform_frames(y, sr, duration)
+            frames = self._generate_waveform_frames(y, sr_int, duration)
 
         # Save frames and create video
         video_path = self._frames_to_video(frames, audio_path, output_path)
