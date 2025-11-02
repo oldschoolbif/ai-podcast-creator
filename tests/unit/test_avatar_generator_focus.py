@@ -103,7 +103,7 @@ def test_sadtalker_subprocess_command_built_correctly(tmp_path):
             
             # Call subprocess.run (this is what we're testing)
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(tmp_path))
-
+            
             # Return fallback on failure (simulating actual behavior)
             if result.returncode != 0:
                 return self._create_fallback_video(audio_path, output_path)
