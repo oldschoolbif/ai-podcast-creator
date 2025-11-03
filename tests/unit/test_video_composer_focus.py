@@ -373,6 +373,7 @@ def test_overlay_visualization_last_resort_copies_avatar(tmp_path):
 
 @pytest.mark.unit
 def test_create_text_image_font_fallback(tmp_path):
+    """Test font fallback when truetype fails and load_default also fails."""
     from PIL import ImageFont
 
     from src.core.video_composer import VideoComposer
@@ -380,8 +381,9 @@ def test_create_text_image_font_fallback(tmp_path):
     cfg = make_cfg(tmp_path)
     comp = VideoComposer(cfg)
 
+    # Simulate both font loading methods failing (like in CI with no fonts)
     with patch("PIL.ImageFont.truetype", side_effect=OSError("no font")):
-        with patch("PIL.ImageFont.load_default", wraps=ImageFont.load_default) as load_default:
+        with patch("PIL.ImageFont.load_default", side_effect=OSError("no font")):
+            # Should still succeed with None font (PIL uses built-in)
             path = comp._create_text_image("Test", (640, 480))
             assert Path(path).exists()
-            load_default.assert_called_once()
