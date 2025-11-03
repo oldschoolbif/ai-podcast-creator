@@ -238,10 +238,12 @@ class TestAudioVisualizerPropertyBased:
         if style == "waveform":
             frames = viz._generate_waveform_frames(y, sr, duration)
         elif style == "spectrum":
-            # Skip if librosa.stft issues
+            # Skip if librosa.stft issues or librosa not available
             try:
+                import librosa
+
                 frames = viz._generate_spectrum_frames(y, sr, duration)
-            except Exception:
+            except (ImportError, AttributeError, Exception):
                 pytest.skip("Spectrum generation requires librosa")
         elif style == "circular":
             frames = viz._generate_circular_frames(y, sr, duration)
