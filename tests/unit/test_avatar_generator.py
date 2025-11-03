@@ -493,7 +493,7 @@ class TestAvatarGeneratorErrorHandling:
                 mock_fallback.assert_called_once()
 
     def test_did_with_invalid_api_key(self, test_config, temp_dir):
-        """Test D-ID with invalid API key falls back to static video."""
+        """Test D-ID with invalid API key falls back to static video (lines 378-380)."""
         test_config["avatar"]["engine"] = "did"
         test_config["avatar"]["did"] = {"api_key": "invalid_key"}
         test_config["avatar"]["source_image"] = str(temp_dir / "avatar.jpg")
@@ -505,16 +505,289 @@ class TestAvatarGeneratorErrorHandling:
             mock_gpu.return_value.get_device.return_value = "cpu"
 
             mock_response = MagicMock()
-            mock_response.status_code = 401
-            mock_response.text = "Unauthorized"
+            mock_response.status_code = 400  # Not 201
+            mock_response.text = "Bad Request"
             mock_post.return_value = mock_response
 
             generator = AvatarGenerator(test_config)
+            source_image = temp_dir / "avatar.jpg"
+            source_image.write_bytes(b"fake image")
 
             audio_path = temp_dir / "audio.wav"
             audio_path.write_bytes(b"fake audio")
 
             # Should fall back to static video on API failure
+            with patch.object(generator, "_create_fallback_video") as mock_fallback:
+                mock_fallback.return_value = temp_dir / "fallback.mp4"
+                result = generator._generate_did(audio_path, temp_dir / "output.mp4")
+                mock_fallback.assert_called_once()
+
+    @patch("requests.get")
+    @patch("requests.post")
+    @patch("time.sleep")  # Speed up test by mocking sleep
+    def test_did_successful_generation(self, mock_sleep, mock_post, mock_get, test_config, temp_dir):
+        """Test successful D-ID generation with polling (lines 359-423)."""
+        test_config["avatar"]["engine"] = "did"
+        test_config["avatar"]["did"] = {"api_key": "test_api_key"}
+        test_config["avatar"]["source_image"] = str(temp_dir / "avatar.jpg")
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        # Create source image
+        source_image = temp_dir / "avatar.jpg"
+        source_image.write_bytes(b"fake image data")
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            # Mock initial POST request (create talk)
+            mock_post_response = MagicMock()
+            mock_post_response.status_code = 201
+            mock_post_response.json.return_value = {"id": "test_talk_id"}
+            mock_post.return_value = mock_post_response
+
+            # Mock GET requests (polling)
+            mock_get_response1 = MagicMock()
+            mock_get_response1.status_code = 200
+            mock_get_response1.json.return_value = {"status": "processing"}
+
+            mock_get_response2 = MagicMock()
+            mock_get_response2.status_code = 200
+            mock_get_response2.json.return_value = {
+                "status": "done",
+                "result_url": "https://example.com/video.mp4"
+            }
+
+            # Mock video download
+            mock_video_response = MagicMock()
+            mock_video_response.status_code = 200
+            mock_video_response.content = b"fake video content"
+
+            mock_get.side_effect = [mock_get_response1, mock_get_response2, mock_video_response]
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            output_path = temp_dir / "output.mp4"
+            audio_path.write_bytes(b"fake audio data")
+
+            result = generator._generate_did(audio_path, output_path)
+
+            # Verify API calls
+            assert mock_post.called
+            assert mock_get.call_count >= 2  # Polling + video download
+            assert result == output_path
+            assert output_path.exists()
+
+    @patch("requests.get")
+    @patch("requests.post")
+    @patch("time.sleep")
+    def test_did_no_talk_id(self, mock_sleep, mock_post, mock_get, test_config, temp_dir):
+        """Test D-ID when no talk ID is received (lines 385-387)."""
+        test_config["avatar"]["engine"] = "did"
+        test_config["avatar"]["did"] = {"api_key": "test_key"}
+        test_config["avatar"]["source_image"] = str(temp_dir / "avatar.jpg")
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        source_image = temp_dir / "avatar.jpg"
+        source_image.write_bytes(b"fake image")
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            # Mock POST with no ID
+            mock_post_response = MagicMock()
+            mock_post_response.status_code = 201
+            mock_post_response.json.return_value = {}  # No ID
+            mock_post.return_value = mock_post_response
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            audio_path.write_bytes(b"fake audio")
+
+            with patch.object(generator, "_create_fallback_video") as mock_fallback:
+                mock_fallback.return_value = temp_dir / "fallback.mp4"
+                result = generator._generate_did(audio_path, temp_dir / "output.mp4")
+                mock_fallback.assert_called_once()
+
+    @patch("requests.get")
+    @patch("requests.post")
+    @patch("time.sleep")
+    def test_did_status_check_fails(self, mock_sleep, mock_post, mock_get, test_config, temp_dir):
+        """Test D-ID when status check fails (lines 403-405)."""
+        test_config["avatar"]["engine"] = "did"
+        test_config["avatar"]["did"] = {"api_key": "test_key"}
+        test_config["avatar"]["source_image"] = str(temp_dir / "avatar.jpg")
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        source_image = temp_dir / "avatar.jpg"
+        source_image.write_bytes(b"fake image")
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            # Mock POST success
+            mock_post_response = MagicMock()
+            mock_post_response.status_code = 201
+            mock_post_response.json.return_value = {"id": "test_id"}
+            mock_post.return_value = mock_post_response
+
+            # Mock GET failure
+            mock_get_response = MagicMock()
+            mock_get_response.status_code = 500
+            mock_get.return_value = mock_get_response
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            audio_path.write_bytes(b"fake audio")
+
+            with patch.object(generator, "_create_fallback_video") as mock_fallback:
+                mock_fallback.return_value = temp_dir / "fallback.mp4"
+                result = generator._generate_did(audio_path, temp_dir / "output.mp4")
+                # Should timeout after max attempts
+                mock_fallback.assert_called_once()
+
+    @patch("requests.get")
+    @patch("requests.post")
+    @patch("time.sleep")
+    def test_did_status_error(self, mock_sleep, mock_post, mock_get, test_config, temp_dir):
+        """Test D-ID when status is error/failed (lines 431-434)."""
+        test_config["avatar"]["engine"] = "did"
+        test_config["avatar"]["did"] = {"api_key": "test_key"}
+        test_config["avatar"]["source_image"] = str(temp_dir / "avatar.jpg")
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        source_image = temp_dir / "avatar.jpg"
+        source_image.write_bytes(b"fake image")
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            # Mock POST success
+            mock_post_response = MagicMock()
+            mock_post_response.status_code = 201
+            mock_post_response.json.return_value = {"id": "test_id"}
+            mock_post.return_value = mock_post_response
+
+            # Mock GET with error status
+            mock_get_response = MagicMock()
+            mock_get_response.status_code = 200
+            mock_get_response.json.return_value = {
+                "status": "error",
+                "error": {"message": "Generation failed"}
+            }
+            mock_get.return_value = mock_get_response
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            audio_path.write_bytes(b"fake audio")
+
+            with patch.object(generator, "_create_fallback_video") as mock_fallback:
+                mock_fallback.return_value = temp_dir / "fallback.mp4"
+                result = generator._generate_did(audio_path, temp_dir / "output.mp4")
+                mock_fallback.assert_called_once()
+
+    @patch("requests.get")
+    @patch("requests.post")
+    @patch("time.sleep")
+    def test_did_no_result_url(self, mock_sleep, mock_post, mock_get, test_config, temp_dir):
+        """Test D-ID when done but no result URL (lines 427-429)."""
+        test_config["avatar"]["engine"] = "did"
+        test_config["avatar"]["did"] = {"api_key": "test_key"}
+        test_config["avatar"]["source_image"] = str(temp_dir / "avatar.jpg")
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        source_image = temp_dir / "avatar.jpg"
+        source_image.write_bytes(b"fake image")
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            # Mock POST success
+            mock_post_response = MagicMock()
+            mock_post_response.status_code = 201
+            mock_post_response.json.return_value = {"id": "test_id"}
+            mock_post.return_value = mock_post_response
+
+            # Mock GET with done but no URL
+            mock_get_response = MagicMock()
+            mock_get_response.status_code = 200
+            mock_get_response.json.return_value = {"status": "done"}  # No result_url
+            mock_get.return_value = mock_get_response
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            audio_path.write_bytes(b"fake audio")
+
+            with patch.object(generator, "_create_fallback_video") as mock_fallback:
+                mock_fallback.return_value = temp_dir / "fallback.mp4"
+                result = generator._generate_did(audio_path, temp_dir / "output.mp4")
+                mock_fallback.assert_called_once()
+
+    @patch("requests.get")
+    @patch("requests.post")
+    @patch("time.sleep")
+    def test_did_video_download_fails(self, mock_sleep, mock_post, mock_get, test_config, temp_dir):
+        """Test D-ID when video download fails (lines 424-426)."""
+        test_config["avatar"]["engine"] = "did"
+        test_config["avatar"]["did"] = {"api_key": "test_key"}
+        test_config["avatar"]["source_image"] = str(temp_dir / "avatar.jpg")
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        source_image = temp_dir / "avatar.jpg"
+        source_image.write_bytes(b"fake image")
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            # Mock POST success
+            mock_post_response = MagicMock()
+            mock_post_response.status_code = 201
+            mock_post_response.json.return_value = {"id": "test_id"}
+            mock_post.return_value = mock_post_response
+
+            # Mock GET with done status and URL
+            mock_get_response1 = MagicMock()
+            mock_get_response1.status_code = 200
+            mock_get_response1.json.return_value = {
+                "status": "done",
+                "result_url": "https://example.com/video.mp4"
+            }
+
+            # Mock video download failure
+            mock_get_response2 = MagicMock()
+            mock_get_response2.status_code = 404
+
+            mock_get.side_effect = [mock_get_response1, mock_get_response2]
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            audio_path.write_bytes(b"fake audio")
+
+            with patch.object(generator, "_create_fallback_video") as mock_fallback:
+                mock_fallback.return_value = temp_dir / "fallback.mp4"
+                result = generator._generate_did(audio_path, temp_dir / "output.mp4")
+                mock_fallback.assert_called_once()
+
+    @patch("requests.post")
+    def test_did_exception_handling(self, mock_post, test_config, temp_dir):
+        """Test D-ID exception handling (lines 440-443)."""
+        test_config["avatar"]["engine"] = "did"
+        test_config["avatar"]["did"] = {"api_key": "test_key"}
+        test_config["avatar"]["source_image"] = str(temp_dir / "avatar.jpg")
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        source_image = temp_dir / "avatar.jpg"
+        source_image.write_bytes(b"fake image")
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            # Mock exception during POST
+            mock_post.side_effect = Exception("Network error")
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            audio_path.write_bytes(b"fake audio")
+
             with patch.object(generator, "_create_fallback_video") as mock_fallback:
                 mock_fallback.return_value = temp_dir / "fallback.mp4"
                 result = generator._generate_did(audio_path, temp_dir / "output.mp4")
@@ -535,3 +808,380 @@ def test_multiple_engines(test_config, temp_dir, engine):
 
         generator = AvatarGenerator(test_config)
         assert generator.engine_type == engine
+
+
+class TestAvatarGeneratorEdgeCases:
+    """Test edge cases and error handling paths."""
+
+    def test_init_sadtalker_import_error(self, test_config, temp_dir):
+        """Test SadTalker initialization with ImportError (lines 96-97)."""
+        test_config["avatar"]["engine"] = "sadtalker"
+        test_config["avatar"]["sadtalker"] = {"checkpoint_dir": str(temp_dir)}
+
+        with (
+            patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu,
+            patch("builtins.__import__", side_effect=ImportError("torch not found")),
+        ):
+            mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+
+            generator = AvatarGenerator(test_config)
+            assert generator.engine_type == "sadtalker"
+
+    def test_init_wav2lip_model_not_exists(self, test_config, temp_dir):
+        """Test Wav2Lip initialization when model doesn't exist (line 107)."""
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["avatar"]["wav2lip"] = {}
+
+        with (
+            patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu,
+            patch("pathlib.Path.exists", return_value=False),
+            patch("src.core.avatar_generator.AvatarGenerator._download_wav2lip_model") as mock_download,
+        ):
+            mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+
+            generator = AvatarGenerator(test_config)
+            # Should handle missing model
+            assert generator.engine_type == "wav2lip"
+
+    def test_init_wav2lip_model_download_fails(self, test_config, temp_dir):
+        """Test Wav2Lip when model download fails (lines 116-122)."""
+        test_config["avatar"]["engine"] = "wav2lip"
+
+        with (
+            patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu,
+            patch("pathlib.Path.exists", return_value=False),
+            patch("src.core.avatar_generator.AvatarGenerator._download_wav2lip_model"),
+        ):
+            mock_gpu.return_value.gpu_available = False
+
+            generator = AvatarGenerator(test_config)
+            # Should handle missing model gracefully
+            assert generator.engine_type == "wav2lip"
+
+    def test_init_wav2lip_import_error(self, test_config, temp_dir):
+        """Test Wav2Lip initialization with ImportError (lines 119-122)."""
+        test_config["avatar"]["engine"] = "wav2lip"
+
+        with (
+            patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu,
+            patch("builtins.__import__", side_effect=ImportError("torch not found")),
+        ):
+            mock_gpu.return_value.gpu_available = False
+
+            generator = AvatarGenerator(test_config)
+            assert generator.engine_type == "wav2lip"
+            assert generator.wav2lip_model_path is None
+
+    @patch("subprocess.run")
+    @patch("src.core.avatar_generator.Path.exists")
+    @patch("shutil.copy")
+    @patch("pathlib.Path.glob")
+    @patch("pathlib.Path.unlink")
+    @patch("pathlib.Path.rmdir")
+    def test_generate_sadtalker_no_result_files(self, mock_rmdir, mock_unlink, mock_glob, mock_copy, mock_exists, mock_run, test_config, temp_dir):
+        """Test SadTalker generation when no result files found (lines 272-275)."""
+        test_config["avatar"]["engine"] = "sadtalker"
+        test_config["avatar"]["sadtalker"] = {"checkpoint_dir": str(temp_dir)}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.device_id = 0
+            mock_gpu.return_value.get_device.return_value = "cuda"
+
+            # Mock subprocess success but no files
+            mock_run.return_value = MagicMock(returncode=0, stdout="Success", stderr="")
+            mock_exists.return_value = True
+            mock_glob.return_value = []  # No result files
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            output_path = temp_dir / "output.mp4"
+            audio_path.write_bytes(b"fake audio")
+
+            with patch.object(generator, "_create_fallback_video") as mock_fallback:
+                mock_fallback.return_value = output_path
+                result = generator._generate_sadtalker(audio_path, output_path)
+                # Should fall back when no files found
+                mock_fallback.assert_called_once()
+
+    @patch("subprocess.run")
+    @patch("src.core.avatar_generator.Path.exists")
+    @patch("shutil.copy")
+    @patch("pathlib.Path.glob")
+    @patch("pathlib.Path.unlink")
+    @patch("pathlib.Path.rmdir")
+    def test_generate_sadtalker_with_result_files(self, mock_rmdir, mock_unlink, mock_glob, mock_copy, mock_exists, mock_run, test_config, temp_dir):
+        """Test SadTalker generation with result files (lines 259-271)."""
+        test_config["avatar"]["engine"] = "sadtalker"
+        test_config["avatar"]["sadtalker"] = {"checkpoint_dir": str(temp_dir)}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.device_id = 0
+            mock_gpu.return_value.get_device.return_value = "cuda"
+            mock_gpu.return_value.clear_cache = MagicMock()
+
+            # Mock successful generation with result file
+            result_file = temp_dir / "result.mp4"
+            mock_run.return_value = MagicMock(returncode=0, stdout="Success", stderr="")
+            mock_exists.return_value = True
+            mock_glob.return_value = [result_file]  # Has result file
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            output_path = temp_dir / "output.mp4"
+            audio_path.write_bytes(b"fake audio")
+
+            result = generator._generate_sadtalker(audio_path, output_path)
+
+            # Should copy result file
+            assert mock_copy.called
+            # Should cleanup
+            assert mock_unlink.called
+            assert mock_rmdir.called
+            # Should clear GPU cache
+            mock_gpu.return_value.clear_cache.assert_called()
+
+    @patch("subprocess.run")
+    def test_generate_wav2lip_error(self, mock_run, test_config, temp_dir):
+        """Test Wav2Lip generation with subprocess error (lines 329-331)."""
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            # Mock subprocess failure
+            mock_run.return_value = MagicMock(returncode=1, stderr="Error occurred")
+
+            generator = AvatarGenerator(test_config)
+            generator.wav2lip_model_path = temp_dir / "model.pth"
+
+            audio_path = temp_dir / "audio.wav"
+            output_path = temp_dir / "output.mp4"
+            audio_path.write_bytes(b"fake audio")
+
+            with patch.object(generator, "_create_fallback_video") as mock_fallback:
+                mock_fallback.return_value = output_path
+                result = generator._generate_wav2lip(audio_path, output_path)
+                # Should fall back on error
+                mock_fallback.assert_called_once()
+
+    @patch("subprocess.run")
+    def test_generate_wav2lip_exception(self, mock_run, test_config, temp_dir):
+        """Test Wav2Lip generation with exception (lines 336-338)."""
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            # Mock exception
+            mock_run.side_effect = Exception("Subprocess error")
+
+            generator = AvatarGenerator(test_config)
+            generator.wav2lip_model_path = temp_dir / "model.pth"
+
+            audio_path = temp_dir / "audio.wav"
+            output_path = temp_dir / "output.mp4"
+            audio_path.write_bytes(b"fake audio")
+
+            with patch.object(generator, "_create_fallback_video") as mock_fallback:
+                mock_fallback.return_value = output_path
+                result = generator._generate_wav2lip(audio_path, output_path)
+                # Should fall back on exception
+                mock_fallback.assert_called_once()
+
+    @patch("subprocess.run")
+    def test_generate_sadtalker_exception(self, mock_run, test_config, temp_dir):
+        """Test SadTalker generation with exception (lines 283-287)."""
+        test_config["avatar"]["engine"] = "sadtalker"
+        test_config["avatar"]["sadtalker"] = {"checkpoint_dir": str(temp_dir)}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.device_id = 0
+            mock_gpu.return_value.get_device.return_value = "cuda"
+
+            # Mock exception during subprocess
+            mock_run.side_effect = Exception("Subprocess failed")
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            output_path = temp_dir / "output.mp4"
+            audio_path.write_bytes(b"fake audio")
+
+            with patch.object(generator, "_create_fallback_video") as mock_fallback:
+                mock_fallback.return_value = output_path
+                result = generator._generate_sadtalker(audio_path, output_path)
+                # Should fall back on exception
+                mock_fallback.assert_called_once()
+
+    def test_create_wav2lip_inference_script(self, test_config, temp_dir):
+        """Test Wav2Lip inference script creation (lines 521-534)."""
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            generator = AvatarGenerator(test_config)
+            script_path = temp_dir / "wav2lip_script.py"
+
+            generator._create_wav2lip_inference_script(script_path)
+
+            assert script_path.exists()
+            assert script_path.is_file()
+            content = script_path.read_text()
+            assert "Wav2Lip" in content
+
+    def test_generate_sadtalker_path_not_exists(self, test_config, temp_dir):
+        """Test SadTalker when path doesn't exist (lines 167-169)."""
+        test_config["avatar"]["engine"] = "sadtalker"
+        test_config["avatar"]["sadtalker"] = {"checkpoint_dir": str(temp_dir / "nonexistent")}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.device_id = 0
+            mock_gpu.return_value.get_device.return_value = "cuda"
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            output_path = temp_dir / "output.mp4"
+            audio_path.write_bytes(b"fake audio")
+
+            with patch.object(generator, "_create_fallback_video") as mock_fallback:
+                mock_fallback.return_value = output_path
+                result = generator._generate_sadtalker(audio_path, output_path)
+                # Should fall back when path doesn't exist
+                mock_fallback.assert_called_once()
+
+    @patch("subprocess.run")
+    def test_generate_sadtalker_with_still_mode(self, mock_run, test_config, temp_dir):
+        """Test SadTalker with still_mode enabled (line 222)."""
+        test_config["avatar"]["engine"] = "sadtalker"
+        test_config["avatar"]["sadtalker"] = {
+            "checkpoint_dir": str(temp_dir),
+            "still_mode": True
+        }
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.device_id = 0
+            mock_gpu.return_value.get_device.return_value = "cuda"
+
+            # Mock successful generation
+            mock_run.return_value = MagicMock(returncode=0, stdout="Success", stderr="")
+
+            generator = AvatarGenerator(test_config)
+            audio_path = temp_dir / "audio.wav"
+            output_path = temp_dir / "output.mp4"
+            audio_path.write_bytes(b"fake audio")
+
+            # Create temp dir structure
+            sadtalker_path = temp_dir / "sadtalker"
+            sadtalker_path.mkdir()
+            (sadtalker_path / "checkpoints").mkdir()
+
+            with patch("pathlib.Path.exists", return_value=True):
+                with patch("pathlib.Path.glob", return_value=[temp_dir / "result.mp4"]):
+                    with patch("shutil.copy") as mock_copy:
+                        result = generator._generate_sadtalker(audio_path, output_path)
+                        
+                        # Verify still_mode was passed
+                        call_args = mock_run.call_args[0][0]
+                        assert "--still" in call_args
+
+    def test_generate_wav2lip_creates_script(self, test_config, temp_dir):
+        """Test Wav2Lip creates inference script when needed (line 305)."""
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            generator = AvatarGenerator(test_config)
+            generator.wav2lip_model_path = temp_dir / "model.pth"
+
+            audio_path = temp_dir / "audio.wav"
+            output_path = temp_dir / "output.mp4"
+            audio_path.write_bytes(b"fake audio")
+
+            # The actual script path used by the code: scripts/wav2lip_inference.py
+            # Need to mock Path.exists() for this specific path to return False
+            from pathlib import Path as PathClass
+            
+            original_exists = PathClass.exists
+            
+            def mock_exists(self):
+                # Return False for the wav2lip script path to trigger creation
+                if "wav2lip_inference.py" in str(self):
+                    return False
+                return original_exists(self)
+
+            with patch.object(generator, "_create_wav2lip_inference_script") as mock_create_script:
+                with patch("subprocess.run") as mock_run:
+                    mock_run.return_value = MagicMock(returncode=0)
+                    
+                    # Mock Path.exists() for the script path check
+                    with patch.object(PathClass, "exists", mock_exists):
+                        # Mock the result file that would be created
+                        result_dir = Path(temp_dir) / "results"
+                        result_dir.mkdir(exist_ok=True)
+                        result_file = result_dir / "result.mp4"
+                        result_file.write_bytes(b"fake video")
+                        
+                        with patch("pathlib.Path.glob") as mock_glob:
+                            mock_glob.return_value = [result_file]
+                            with patch("shutil.copy"):
+                                generator._generate_wav2lip(audio_path, output_path)
+                                # Should create script when it doesn't exist
+                                mock_create_script.assert_called()
+
+    @patch("urllib.request.urlretrieve")
+    def test_download_wav2lip_model_success(self, mock_urlretrieve, test_config, temp_dir):
+        """Test Wav2Lip model download success (lines 462-468)."""
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            generator = AvatarGenerator(test_config)
+            model_path = temp_dir / "wav2lip_gan.pth"
+
+            # Mock successful download
+            mock_urlretrieve.return_value = None
+            generator._download_wav2lip_model(model_path)
+
+            # Should attempt download
+            assert mock_urlretrieve.called
+
+    @patch("urllib.request.urlretrieve")
+    def test_download_wav2lip_model_all_urls_fail(self, mock_urlretrieve, test_config, temp_dir):
+        """Test Wav2Lip model download when all URLs fail (lines 473-478)."""
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+
+            generator = AvatarGenerator(test_config)
+            model_path = temp_dir / "wav2lip_gan.pth"
+
+            # Mock all downloads fail
+            mock_urlretrieve.side_effect = Exception("Network error")
+            generator._download_wav2lip_model(model_path)
+
+            # Should try all URLs (3 attempts)
+            assert mock_urlretrieve.call_count == 3
+
+    # Note: _create_fallback_video tests removed due to complex moviepy mocking
+    # These methods (lines 480-517) can be tested via integration tests with real moviepy

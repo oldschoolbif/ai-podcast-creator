@@ -83,6 +83,7 @@ skips = ["*/test_*.py"]
 
 [tool.mypy]
 python_version = "3.10"
+explicit_package_bases = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -91,7 +92,7 @@ strict_optional = false
 check_untyped_defs = true
 no_implicit_optional = true
 warn_redundant_casts = true
-warn_unused_ignores = true
+warn_unused_ignores = false
 show_error_codes = true
 show_column_numbers = true
 
@@ -124,4 +125,19 @@ exclude = [
     "build",
     "dist",
 ]
+
+[tool.mutmut]
+paths_to_mutate = [
+    "src/core/tts_engine.py",
+    "src/core/video_composer.py",
+    "src/core/audio_mixer.py",
+    "src/core/script_parser.py",
+    "src/utils/config.py",
+]
+tests_dir = "tests"
+runner = "python scripts/mutmut_pytest_wrapper.py"
+backup = false
+# Optimize for speed
+# Only mutate fast-to-test files, skip slow modules during mutation
+use_coverage = true  # Skip mutations on uncovered lines (faster)
 

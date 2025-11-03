@@ -47,6 +47,27 @@ class PodcastCreatorGUI:
         # Check GPU
         self.check_gpu()
 
+    def _run_on_ui_thread(self, func, wait: bool = False):
+        """Execute a callable on the Tk main thread."""
+
+        if threading.current_thread() is threading.main_thread():
+            func()
+            return
+
+        if wait:
+            done = threading.Event()
+
+            def wrapper():
+                try:
+                    func()
+                finally:
+                    done.set()
+
+            self.root.after(0, wrapper)
+            done.wait()
+        else:
+            self.root.after(0, func)
+
     def create_widgets(self):
         """Create all GUI widgets."""
 
@@ -243,9 +264,12 @@ class PodcastCreatorGUI:
 
     def log(self, message, color="black"):
         """Add message to log."""
-        self.log_text.insert(tk.END, f"{message}\n")
-        self.log_text.see(tk.END)
-        self.root.update()
+
+        def append():
+            self.log_text.insert(tk.END, f"{message}\n")
+            self.log_text.see(tk.END)
+
+        self._run_on_ui_thread(append)
 
     def clear_log(self):
         """Clear log text."""
@@ -253,8 +277,7 @@ class PodcastCreatorGUI:
 
     def update_status(self, message, color="black"):
         """Update status label."""
-        self.status_label.config(text=message, fg=color)
-        self.root.update()
+        self._run_on_ui_thread(lambda: self.status_label.config(text=message, fg=color))
 
     def open_output_folder(self):
         """Open output folder in file explorer."""
@@ -278,7 +301,7 @@ class PodcastCreatorGUI:
             return
 
         # Disable button during processing
-        self.create_button.config(state=tk.DISABLED)
+        self._run_on_ui_thread(lambda: self.create_button.config(state=tk.DISABLED), wait=True)
 
         # Run in thread to keep GUI responsive
         thread = threading.Thread(target=self._create_podcast_thread)
@@ -353,22 +376,28 @@ class PodcastCreatorGUI:
 
             self.update_status("✅ Complete!", "green")
 
-            # Show success message
-            result = messagebox.askyesno(
-                "Success!", f"Podcast created successfully!\n\nSaved to: {final_video}\n\nOpen output folder?"
-            )
+            prompt_result = {"value": False}
 
-            if result:
-                self.open_output_folder()
+            def ask_success():
+                prompt_result["value"] = messagebox.askyesno(
+                    "Success!", f"Podcast created successfully!\n\nSaved to: {final_video}\n\nOpen output folder?"
+                )
+
+            self._run_on_ui_thread(ask_success, wait=True)
+
+            if prompt_result["value"]:
+                self._run_on_ui_thread(self.open_output_folder)
 
         except Exception as e:
             self.log(f"❌ Error: {str(e)}", "red")
             self.update_status("❌ Error", "red")
-            messagebox.showerror("Error", f"Failed to create podcast:\n\n{str(e)}")
+            self._run_on_ui_thread(
+                lambda e=e: messagebox.showerror("Error", f"Failed to create podcast:\n\n{str(e)}"), wait=True
+            )
 
         finally:
             # Re-enable button
-            self.create_button.config(state=tk.NORMAL)
+            self._run_on_ui_thread(lambda: self.create_button.config(state=tk.NORMAL), wait=True)
 
 
 def launch_desktop_gui():

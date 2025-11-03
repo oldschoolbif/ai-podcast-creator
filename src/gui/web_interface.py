@@ -7,7 +7,13 @@ import os
 import sys
 from pathlib import Path
 
-import gradio as gr
+# Optional dependency - gradio may not be installed
+try:
+    import gradio as gr
+    GRADIO_AVAILABLE = True
+except ImportError:
+    GRADIO_AVAILABLE = False
+    gr = None  # type: ignore
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -38,9 +44,20 @@ def create_podcast(
     voice_speed,
     video_quality,
     output_name,
-    progress=gr.Progress(),
+    progress=None,
 ):
     """Create podcast with progress updates."""
+    if not GRADIO_AVAILABLE:
+        raise ImportError("gradio is required for web_interface. Install with: pip install gradio")
+
+    if progress is None:
+        # Create a no-op progress function if not provided
+        if GRADIO_AVAILABLE:
+            progress = gr.Progress()
+        else:
+            # Fallback no-op progress
+            def progress(*args, **kwargs):
+                pass
 
     try:
         # Load configuration
@@ -116,6 +133,8 @@ def create_podcast(
 
 def create_gradio_interface():
     """Create and configure the Gradio interface."""
+    if not GRADIO_AVAILABLE:
+        raise ImportError("gradio is required for web_interface. Install with: pip install gradio")
 
     # Custom CSS for styling and responsiveness
     custom_css = """
@@ -393,6 +412,9 @@ def launch_web_interface(share=False, server_name="127.0.0.1", server_port=7860,
         server_port: Port number
         auth: Tuple of (username, password) for authentication
     """
+    if not GRADIO_AVAILABLE:
+        raise ImportError("gradio is required for web_interface. Install with: pip install gradio")
+    
     interface = create_gradio_interface()
 
     interface.launch(

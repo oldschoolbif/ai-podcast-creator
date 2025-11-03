@@ -5,7 +5,7 @@ Main entry point for the command-line interface
 
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import typer
 from rich.console import Console
@@ -20,9 +20,21 @@ from src.core.music_generator import MusicGenerator
 from src.core.script_parser import ScriptParser
 from src.core.tts_engine import TTSEngine
 from src.core.video_composer import VideoComposer
-from src.models.database import Podcast, init_db
 from src.utils.config import load_config
 from src.utils.gpu_utils import get_gpu_manager, print_gpu_info
+
+# Optional database support (sqlalchemy may not be installed)
+DATABASE_AVAILABLE = False
+Podcast: Any = None
+init_db: Any = None
+
+try:
+    from src.models.database import Podcast, init_db  # noqa: F401
+
+    DATABASE_AVAILABLE = True
+except ImportError:
+    # Database is optional - CLI works without it
+    pass
 
 app = typer.Typer(
     name="podcast-creator",
@@ -248,6 +260,10 @@ def list():
     """List all generated podcasts."""
     console.print("[bold blue]Generated Podcasts[/bold blue]\n")
 
+    if not DATABASE_AVAILABLE:
+        console.print("[yellow]⚠️  Database not available. Install sqlalchemy to enable podcast tracking.[/yellow]")
+        return
+
     # TODO: Query database for podcasts
     table = Table(show_header=True, header_style="bold cyan")
     table.add_column("ID", style="dim")
@@ -309,11 +325,14 @@ def init():
         progress.update(task, completed=True)
         console.print("✅ Directories created")
 
-        # Initialize database
-        task = progress.add_task("Initializing database...", total=None)
-        init_db()
-        progress.update(task, completed=True)
-        console.print("✅ Database initialized")
+        # Initialize database (if available)
+        if DATABASE_AVAILABLE:
+            task = progress.add_task("Initializing database...", total=None)
+            init_db()
+            progress.update(task, completed=True)
+            console.print("✅ Database initialized")
+        else:
+            console.print("⚠️  Database not available (sqlalchemy not installed)")
 
         # Check dependencies
         task = progress.add_task("Checking dependencies...", total=None)
@@ -535,7 +554,7 @@ def status():
     # Check models
     models_dir = Path("data/models")
     if models_dir.exists():
-        model_count = len(list(models_dir.rglob("*")))
+        model_count = sum(1 for _ in models_dir.rglob("*"))
         table.add_row("Models", "[green]✓[/green]", f"{model_count} files")
     else:
         table.add_row("Models", "[yellow]⚠[/yellow]", "Directory not found")

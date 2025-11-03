@@ -17,7 +17,12 @@ Write-Host ""
 
 # Install dev dependencies
 Write-Host "📦 Installing development dependencies..." -ForegroundColor Cyan
-pip install pre-commit black flake8 isort bandit safety radon mypy pytest-html pytest-xdist pytest-timeout
+if (Test-Path "requirements-dev.txt") {
+    pip install -r requirements-dev.txt
+} else {
+    # Fallback (legacy)
+    pip install pre-commit black flake8 isort bandit safety radon mypy pytest-html pytest-xdist pytest-timeout
+}
 
 # Install pre-commit hooks
 Write-Host ""
@@ -38,6 +43,8 @@ Write-Host "   .\scripts\test-fast.ps1     - Run fast tests only" -ForegroundCol
 Write-Host "   .\scripts\coverage.ps1      - Generate coverage report" -ForegroundColor White
 Write-Host "   .\scripts\lint.ps1          - Run linting" -ForegroundColor White
 Write-Host "   .\scripts\security.ps1      - Run security scan" -ForegroundColor White
+Write-Host "   python -m pytest tests/performance -k benchmark  - Run performance suites" -ForegroundColor White
+Write-Host "   .\scripts\run_mutmut.ps1    - Launch mutation testing" -ForegroundColor White
 Write-Host ""
 Write-Host "📖 Full guide: CI_CD_SETUP_GUIDE.md" -ForegroundColor Cyan
 

@@ -88,7 +88,7 @@ class MusicGenerator:
         # TODO: Load pre-existing music library
         pass
 
-    def generate(self, music_input) -> Path:
+    def generate(self, music_input) -> Path | None:
         """
         Generate background music based on description or cues.
 
@@ -125,8 +125,11 @@ class MusicGenerator:
             return self._generate_mubert(primary_cue, cached_path)
         elif self.engine_type == "library":
             return self._select_from_library(primary_cue, cached_path)
+        else:
+            # Unknown engine type, return None
+            return None
 
-    def _generate_musicgen(self, description: str, output_path: Path) -> Path:
+    def _generate_musicgen(self, description: str, output_path: Path) -> Path | None:
         """Generate music using MusicGen with GPU acceleration."""
         if self.model is None:
             print("⚠ MusicGen not available, skipping music generation")

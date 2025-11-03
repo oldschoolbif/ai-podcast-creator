@@ -152,6 +152,9 @@ class AvatarGenerator:
             return self._generate_wav2lip(audio_path, output_path)
         elif self.engine_type == "did":
             return self._generate_did(audio_path, output_path)
+        else:
+            # Unknown engine type, use fallback
+            return self._create_fallback_video(audio_path, output_path)
 
     def _generate_sadtalker(self, audio_path: Path, output_path: Path) -> Path:
         """Generate video using SadTalker with GPU acceleration."""
@@ -525,7 +528,7 @@ Wav2Lip Inference Script
 Simplified inference for AI Podcast Creator
 """
 import sys
-print("⚠ Wav2Lip full installation required")
+print("Wav2Lip full installation required")
 print("  Please install Wav2Lip from: https://github.com/Rudrabha/Wav2Lip")
 sys.exit(1)
 '''

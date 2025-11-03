@@ -1,0 +1,4 @@
+# file: /workspace/src/core/audio_visualizer.py
+# hypothesis_version: 6.142.5
+
+[0.4, 0.5, 0.8, 0.85, 1.0, 100, 150, 200, 255, 300, 400, 600, 1080, 1920, '2000k', 'RGB', 'aac', 'background_color', 'blur', 'circular', 'fps', 'libx264', 'medium', 'particles', 'primary_color', 'resolution', 'secondary_color', 'sensitivity', 'size', 'spectrum', 'style', 'video', 'visualization', 'vx', 'vy', 'waveform', 'x', 'y']

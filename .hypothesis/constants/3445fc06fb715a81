@@ -1,0 +1,4 @@
+# file: /workspace/src/core/audio_mixer.py
+# hypothesis_version: 6.142.5
+
+[0.0, 0.2, 0.5, 1.0, 1000, '192k', 'cache_dir', 'ducking', 'mixed', 'mp3', 'music', 'storage', 'voice_volume']
