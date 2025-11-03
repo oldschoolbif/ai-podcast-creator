@@ -24,7 +24,7 @@ gTTS>=2.3.0,<3.0.0  # Primary TTS engine (works on all Python versions)
 
 # Audio Processing
 pydub==0.25.1
-librosa>=0.10.2,<0.11.0  # Upgraded to support numpy 1.23+
+librosa>=0.10.2,<0.12.0  # Upgraded to support numpy 1.23+
 soundfile==0.12.1
 scipy>=1.11.0,<1.15.0
 numpy>=1.23.0,<2.0.0  # Compatible with librosa 0.10.2+ and most ML libraries
