@@ -29,8 +29,8 @@ jobs:
     - name: Install Python dependencies
       run: |
         pip install pyyaml  # Install yaml early for conftest.py
-        # Install core test dependencies first
-        pip install numpy hypothesis sortedcontainers pytest pytest-cov pytest-xdist
+        # Install core test dependencies (pytest comes from requirements.txt)
+        pip install numpy hypothesis sortedcontainers
         # Install requirements - continue even if optional packages like av/audiocraft fail
         pip install -r requirements.txt || echo "Some packages failed to install (expected for optional dependencies)"
     
