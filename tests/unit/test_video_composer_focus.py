@@ -375,9 +375,8 @@ def test_overlay_visualization_last_resort_copies_avatar(tmp_path):
 def test_create_text_image_font_fallback(tmp_path):
     """Test font fallback when truetype fails.
     
-    Note: This test verifies truetype fallback to load_default.
-    When both fail (CI with no fonts), PIL will also fail internally,
-    which is a system configuration issue, not a code bug.
+    Note: PIL internally calls load_default() when font=None is passed to textbbox/text.
+    This test verifies our code handles the truetype -> load_default fallback correctly.
     """
     from PIL import ImageFont
 
@@ -387,13 +386,9 @@ def test_create_text_image_font_fallback(tmp_path):
     comp = VideoComposer(cfg)
 
     # Test fallback from truetype to load_default
-    # If load_default also fails, PIL will fail internally (system config issue)
+    # Only patch truetype - let load_default work normally (it should succeed)
+    # In CI, if load_default also fails, PIL will fail internally, which is acceptable
     with patch("PIL.ImageFont.truetype", side_effect=OSError("no font")):
-        # load_default should succeed (real implementation)
-        # If it doesn't, that's a CI environment issue, not our code
-        try:
-            path = comp._create_text_image("Test", (640, 480))
-            assert Path(path).exists()
-        except OSError:
-            # In environments where fonts truly aren't available, skip
-            pytest.skip("Fonts not available in CI environment - system configuration required")
+        # load_default should succeed (PIL's default font should be available)
+        path = comp._create_text_image("Test", (640, 480))
+        assert Path(path).exists()
