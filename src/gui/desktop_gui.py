@@ -392,7 +392,7 @@ class PodcastCreatorGUI:
             self.log(f"❌ Error: {str(e)}", "red")
             self.update_status("❌ Error", "red")
             self._run_on_ui_thread(
-                lambda: messagebox.showerror("Error", f"Failed to create podcast:\n\n{str(e)}"), wait=True
+                lambda e=e: messagebox.showerror("Error", f"Failed to create podcast:\n\n{str(e)}"), wait=True
             )
 
         finally:
