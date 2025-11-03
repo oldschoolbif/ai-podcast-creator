@@ -303,14 +303,19 @@ class VideoComposer:
         img = Image.new("RGBA", size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
 
-        # Try to use a nice font, fallback to default, then None (PIL will use built-in)
+        # Try to use a nice font, fallback to default
+        # Note: PIL requires a font object - it calls load_default internally if None is passed
+        # So we must ensure at least load_default succeeds, or create a basic font object
+        font = None
         try:
             font = ImageFont.truetype("arial.ttf", 60)  # type: ignore[assignment]
         except Exception:
             try:
                 font = ImageFont.load_default()  # type: ignore[assignment]
             except Exception:
-                font = None  # PIL will use built-in default
+                # Last resort: PIL will try to load default internally when font=None
+                # If that also fails, we'll let it raise - this is a system configuration issue
+                pass
 
         # Get text size
         bbox = draw.textbbox((0, 0), text, font=font)
