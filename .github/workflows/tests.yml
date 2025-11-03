@@ -63,8 +63,9 @@ jobs:
       continue-on-error: true
     
     - name: Run tests with coverage
+      shell: bash
       run: |
-        pytest --cov=src --cov-report=xml --cov-report=term -n auto --maxfail=10 --tb=short || exit 1
+        pytest --cov=src --cov-report=xml --cov-report=term -n auto --maxfail=10 --tb=short
       timeout-minutes: 15
     
     - name: Upload coverage to Codecov

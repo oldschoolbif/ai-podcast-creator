@@ -5,9 +5,14 @@ Audio Visualizer - Generate vibrant backgrounds that react to voice
 from pathlib import Path
 
 import librosa
-import librosa.display
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
+
+# Optional import - librosa.display requires matplotlib
+try:
+    import librosa.display  # noqa: F401
+except ImportError:
+    pass  # librosa.display is optional, only needed for spectrogram visualization
 
 
 class AudioVisualizer:

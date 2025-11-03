@@ -11,11 +11,109 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+# Mock gradio before importing web_interface - MUST happen before any web_interface import
+import sys
+
+try:
+    import gradio as gr
+    GRADIO_AVAILABLE = True
+except ImportError:
+    GRADIO_AVAILABLE = False
+    # Create a mock gradio module if not available
+    class MockGradio:
+        class Blocks:
+            def __init__(self, *args, **kwargs):
+                pass
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+        
+        class Markdown:
+            def __init__(self, *args, **kwargs):
+                pass
+        
+        class Tabs:
+            def __init__(self):
+                pass
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+        
+        class Tab:
+            def __init__(self, *args, **kwargs):
+                pass
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+        
+        class Row:
+            def __init__(self, *args, **kwargs):
+                pass
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+        
+        class Column:
+            def __init__(self, *args, **kwargs):
+                pass
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+        
+        class File:
+            def __init__(self, *args, **kwargs):
+                pass
+        
+        class Textbox:
+            def __init__(self, *args, **kwargs):
+                pass
+        
+        class Dropdown:
+            def __init__(self, *args, **kwargs):
+                pass
+        
+        class Slider:
+            def __init__(self, *args, **kwargs):
+                pass
+        
+        class Button:
+            def __init__(self, *args, **kwargs):
+                pass
+            def click(self, *args, **kwargs):
+                pass
+        
+        class Video:
+            def __init__(self, *args, **kwargs):
+                pass
+        
+        class Progress:
+            def __init__(self):
+                pass
+            def __call__(self, *args, **kwargs):
+                pass
+        
+        class themes:
+            class Soft:
+                pass
+        
+        def launch(self, *args, **kwargs):
+            pass
+    
+    # Inject mock into sys.modules BEFORE web_interface tries to import it
+    sys.modules['gradio'] = MockGradio()
+    gr = MockGradio()
+
 from src.gui.web_interface import (
     create_gradio_interface,
     create_podcast,
     get_gpu_status,
     launch_web_interface,
+    GRADIO_AVAILABLE,
 )
 
 
