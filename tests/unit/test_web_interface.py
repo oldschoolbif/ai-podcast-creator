@@ -608,7 +608,10 @@ class TestVideoQualitySettings:
             progress=MagicMock(),
         )
 
-        assert mock_config["video"]["resolution"] == [1280, 720]
+        # Verify composer.compose was called with quality="medium"
+        mock_composer_instance.compose.assert_called_once()
+        call_kwargs = mock_composer_instance.compose.call_args[1]
+        assert call_kwargs.get("quality") == "medium"
 
     @patch("src.gui.web_interface.VideoComposer")
     @patch("src.gui.web_interface.AudioMixer")
@@ -664,4 +667,7 @@ class TestVideoQualitySettings:
             progress=MagicMock(),
         )
 
-        assert mock_config["video"]["resolution"] == [854, 480]
+        # Verify composer.compose was called with quality="fastest" (Low maps to fastest)
+        mock_composer_instance.compose.assert_called_once()
+        call_kwargs = mock_composer_instance.compose.call_args[1]
+        assert call_kwargs.get("quality") == "fastest"
