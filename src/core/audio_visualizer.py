@@ -991,8 +991,13 @@ class AudioVisualizer:
             if len(chunk) > hop_length:
                 D = np.abs(librosa.stft(chunk, hop_length=max(hop_length, 1)))
                 # Use the middle column (most representative of current frame)
-                mid_col = D.shape[1] // 2 if D.shape[1] > 0 else 0
-                spectrum = D[:, mid_col] if mid_col < D.shape[1] else D[:, 0]
+                # Handle edge case where STFT returns empty result
+                if D.shape[1] == 0:
+                    # No time frames in STFT, use magnitude of chunk directly
+                    spectrum = np.abs(chunk)
+                else:
+                    mid_col = D.shape[1] // 2
+                    spectrum = D[:, mid_col]
             else:
                 spectrum = np.abs(chunk)
             
@@ -1005,11 +1010,16 @@ class AudioVisualizer:
             draw = ImageDraw.Draw(img)
             
             # Bin spectrum into bars
-            if len(spectrum) >= num_bars:
+            if len(spectrum) == 0:
+                # Empty spectrum - use zero bars
+                bar_heights = [0.0] * num_bars
+            elif len(spectrum) >= num_bars:
                 bins = np.array_split(spectrum[:num_bars*10], num_bars)  # Use first part for efficiency
                 bar_heights = [np.mean(b) for b in bins]
             else:
-                bar_heights = [np.mean(spectrum)] * num_bars
+                # Spectrum too short - use mean of available data
+                mean_val = np.mean(spectrum) if len(spectrum) > 0 else 0.0
+                bar_heights = [mean_val] * num_bars
             
             # Normalize using global max
             max_height = global_max_amplitude if global_max_amplitude > 0 else 1
