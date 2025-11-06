@@ -1,0 +1,11 @@
+This is a test script for flag combinations.
+
+We're testing different video output modes:
+- Minimal (default)
+- With waveform visualization
+- With background image
+- With avatar/lip-sync
+- And all combinations thereof.
+
+This should be quick to process for testing purposes.
+

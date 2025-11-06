@@ -1,0 +1,185 @@
+{
+  "total_tests": 30,
+  "tests": [
+    {
+      "name": "test_graininess_opencv_2x",
+      "description": "OpenCV 2x render scale - should be smooth",
+      "script": "Creations/Scripts/waveform_tests/test_graininess_opencv_2x.txt",
+      "config": "Creations/Configs/waveform_tests/test_graininess_opencv_2x_config.yaml"
+    },
+    {
+      "name": "test_graininess_opencv_4x",
+      "description": "OpenCV 4x render scale - maximum smoothness",
+      "script": "Creations/Scripts/waveform_tests/test_graininess_opencv_4x.txt",
+      "config": "Creations/Configs/waveform_tests/test_graininess_opencv_4x_config.yaml"
+    },
+    {
+      "name": "test_position_top",
+      "description": "Waveform at top of screen",
+      "script": "Creations/Scripts/waveform_tests/test_position_top.txt",
+      "config": "Creations/Configs/waveform_tests/test_position_top_config.yaml"
+    },
+    {
+      "name": "test_position_bottom",
+      "description": "Waveform at bottom of screen",
+      "script": "Creations/Scripts/waveform_tests/test_position_bottom.txt",
+      "config": "Creations/Configs/waveform_tests/test_position_bottom_config.yaml"
+    },
+    {
+      "name": "test_position_middle",
+      "description": "Waveform in middle of screen",
+      "script": "Creations/Scripts/waveform_tests/test_position_middle.txt",
+      "config": "Creations/Configs/waveform_tests/test_position_middle_config.yaml"
+    },
+    {
+      "name": "test_position_top_bottom",
+      "description": "Waveforms at top and bottom simultaneously",
+      "script": "Creations/Scripts/waveform_tests/test_position_top_bottom.txt",
+      "config": "Creations/Configs/waveform_tests/test_position_top_bottom_config.yaml"
+    },
+    {
+      "name": "test_position_left",
+      "description": "Vertical waveform on left side",
+      "script": "Creations/Scripts/waveform_tests/test_position_left.txt",
+      "config": "Creations/Configs/waveform_tests/test_position_left_config.yaml"
+    },
+    {
+      "name": "test_position_right",
+      "description": "Vertical waveform on right side",
+      "script": "Creations/Scripts/waveform_tests/test_position_right.txt",
+      "config": "Creations/Configs/waveform_tests/test_position_right_config.yaml"
+    },
+    {
+      "name": "test_position_left_right",
+      "description": "Vertical waveforms on left and right with independent spacing",
+      "script": "Creations/Scripts/waveform_tests/test_position_left_right.txt",
+      "config": "Creations/Configs/waveform_tests/test_position_left_right_config.yaml"
+    },
+    {
+      "name": "test_position_all_three",
+      "description": "All three positions: top, left, right",
+      "script": "Creations/Scripts/waveform_tests/test_position_all_three.txt",
+      "config": "Creations/Configs/waveform_tests/test_position_all_three_config.yaml"
+    },
+    {
+      "name": "test_lines_1",
+      "description": "Single waveform line",
+      "script": "Creations/Scripts/waveform_tests/test_lines_1.txt",
+      "config": "Creations/Configs/waveform_tests/test_lines_1_config.yaml"
+    },
+    {
+      "name": "test_lines_5",
+      "description": "Five waveform lines",
+      "script": "Creations/Scripts/waveform_tests/test_lines_5.txt",
+      "config": "Creations/Configs/waveform_tests/test_lines_5_config.yaml"
+    },
+    {
+      "name": "test_lines_10",
+      "description": "Ten waveform lines (maximum)",
+      "script": "Creations/Scripts/waveform_tests/test_lines_10.txt",
+      "config": "Creations/Configs/waveform_tests/test_lines_10_config.yaml"
+    },
+    {
+      "name": "test_thickness_per_line",
+      "description": "Per-line thickness: [15, 12, 8]",
+      "script": "Creations/Scripts/waveform_tests/test_thickness_per_line.txt",
+      "config": "Creations/Configs/waveform_tests/test_thickness_per_line_config.yaml"
+    },
+    {
+      "name": "test_colors_per_line",
+      "description": "Per-line colors: green, cyan, magenta",
+      "script": "Creations/Scripts/waveform_tests/test_colors_per_line.txt",
+      "config": "Creations/Configs/waveform_tests/test_colors_per_line_config.yaml"
+    },
+    {
+      "name": "test_colors_rainbow",
+      "description": "Rainbow colors per line",
+      "script": "Creations/Scripts/waveform_tests/test_colors_rainbow.txt",
+      "config": "Creations/Configs/waveform_tests/test_colors_rainbow_config.yaml"
+    },
+    {
+      "name": "test_style_continuous",
+      "description": "Continuous waveform style (default)",
+      "script": "Creations/Scripts/waveform_tests/test_style_continuous.txt",
+      "config": "Creations/Configs/waveform_tests/test_style_continuous_config.yaml"
+    },
+    {
+      "name": "test_style_bars",
+      "description": "Bar-style waveform (vertical bars)",
+      "script": "Creations/Scripts/waveform_tests/test_style_bars.txt",
+      "config": "Creations/Configs/waveform_tests/test_style_bars_config.yaml"
+    },
+    {
+      "name": "test_style_dots",
+      "description": "Dots-style waveform",
+      "script": "Creations/Scripts/waveform_tests/test_style_dots.txt",
+      "config": "Creations/Configs/waveform_tests/test_style_dots_config.yaml"
+    },
+    {
+      "name": "test_style_filled",
+      "description": "Filled area under waveform",
+      "script": "Creations/Scripts/waveform_tests/test_style_filled.txt",
+      "config": "Creations/Configs/waveform_tests/test_style_filled_config.yaml"
+    },
+    {
+      "name": "test_opacity_50",
+      "description": "50% opacity waveform",
+      "script": "Creations/Scripts/waveform_tests/test_opacity_50.txt",
+      "config": "Creations/Configs/waveform_tests/test_opacity_50_config.yaml"
+    },
+    {
+      "name": "test_opacity_75",
+      "description": "75% opacity waveform",
+      "script": "Creations/Scripts/waveform_tests/test_opacity_75.txt",
+      "config": "Creations/Configs/waveform_tests/test_opacity_75_config.yaml"
+    },
+    {
+      "name": "test_height_10",
+      "description": "10% height (horizontal waveform)",
+      "script": "Creations/Scripts/waveform_tests/test_height_10.txt",
+      "config": "Creations/Configs/waveform_tests/test_height_10_config.yaml"
+    },
+    {
+      "name": "test_height_50",
+      "description": "50% height (horizontal waveform)",
+      "script": "Creations/Scripts/waveform_tests/test_height_50.txt",
+      "config": "Creations/Configs/waveform_tests/test_height_50_config.yaml"
+    },
+    {
+      "name": "test_width_10",
+      "description": "10% width (vertical waveform)",
+      "script": "Creations/Scripts/waveform_tests/test_width_10.txt",
+      "config": "Creations/Configs/waveform_tests/test_width_10_config.yaml"
+    },
+    {
+      "name": "test_width_50",
+      "description": "50% width (vertical waveform)",
+      "script": "Creations/Scripts/waveform_tests/test_width_50.txt",
+      "config": "Creations/Configs/waveform_tests/test_width_50_config.yaml"
+    },
+    {
+      "name": "test_randomized",
+      "description": "Randomized configuration per video",
+      "script": "Creations/Scripts/waveform_tests/test_randomized.txt",
+      "config": "Creations/Configs/waveform_tests/test_randomized_config.yaml"
+    },
+    {
+      "name": "test_complex_1",
+      "description": "Complex: Top+Bottom, 5 lines, per-line colors, filled style",
+      "script": "Creations/Scripts/waveform_tests/test_complex_1.txt",
+      "config": "Creations/Configs/waveform_tests/test_complex_1_config.yaml"
+    },
+    {
+      "name": "test_complex_2",
+      "description": "Complex: Left+Right, per-line thickness, bars style",
+      "script": "Creations/Scripts/waveform_tests/test_complex_2.txt",
+      "config": "Creations/Configs/waveform_tests/test_complex_2_config.yaml"
+    },
+    {
+      "name": "test_complex_3",
+      "description": "Complex: All positions, rainbow colors, dots style",
+      "script": "Creations/Scripts/waveform_tests/test_complex_3.txt",
+      "config": "Creations/Configs/waveform_tests/test_complex_3_config.yaml"
+    }
+  ]
+}

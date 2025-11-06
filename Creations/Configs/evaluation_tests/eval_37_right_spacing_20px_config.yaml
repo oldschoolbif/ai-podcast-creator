@@ -1,0 +1,5 @@
+visualization:
+  style: waveform
+  waveform:
+    position: right
+    right_spacing: 20

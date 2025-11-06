@@ -1,0 +1,31 @@
+visualization:
+  style: waveform
+  waveform:
+    position: top,bottom,left,right
+    num_lines: 5
+    line_thickness:
+    - 18
+    - 15
+    - 12
+    - 10
+    - 8
+    line_colors:
+    - - 255
+      - 0
+      - 0
+    - - 255
+      - 127
+      - 0
+    - - 255
+      - 255
+      - 0
+    - - 0
+      - 255
+      - 0
+    - - 0
+      - 0
+      - 255
+    waveform_style: filled
+    height_percent: 12
+    width_percent: 12
+    opacity: 0.9

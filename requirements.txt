@@ -40,6 +40,8 @@ opencv-python==4.8.1.78
 pillow==10.1.0
 imageio==2.33.0
 imageio-ffmpeg==0.4.9
+face-alignment>=1.4.0  # Installed: 68-point facial landmarks for accurate lip-sync alignment (works with Python 3.13)
+# mediapipe>=0.10.0  # Optional: Best facial landmark detection (468 points) - Not available for Python 3.13 yet
 
 # Database
 sqlalchemy>=2.0.23,<2.1.0
@@ -61,6 +63,8 @@ tenacity>=8.2.0,<10.0.0
 loguru>=0.7.0,<0.8.0
 tqdm>=4.66.0,<5.0.0
 pyyaml>=6.0.0,<7.0.0
+psutil>=6.1.0,<8.0.0  # System resource monitoring (CPU, RAM)
+ffmpegcv[cuda]>=0.2.0,<1.0.0  # GPU-accelerated video processing (CUDA support)
 
 # Development
 pytest==7.4.3

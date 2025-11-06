@@ -1,0 +1,815 @@
+[EVAL] Starting evaluation test suite
+[EVAL] Test script: Creations\Scripts\test_short.txt
+[EVAL] Total tests: 47
+
+
+[1/47] Running test...
+
+======================================================================
+[TEST] eval_01_bottom_default
+[DESC] Bottom position - default settings
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_01_bottom_default
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[2/47] Running test...
+
+======================================================================
+[TEST] eval_02_top_default
+[DESC] Top position - default settings
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_02_top_default
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[3/47] Running test...
+
+======================================================================
+[TEST] eval_03_middle_default
+[DESC] Middle position - default settings
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_03_middle_default
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[4/47] Running test...
+
+======================================================================
+[TEST] eval_04_left_vertical
+[DESC] Left side - vertical waveform
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_04_left_vertical
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[5/47] Running test...
+
+======================================================================
+[TEST] eval_05_right_vertical
+[DESC] Right side - vertical waveform
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_05_right_vertical
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[6/47] Running test...
+
+======================================================================
+[TEST] eval_06_top_bottom
+[DESC] Top and bottom simultaneously
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_06_top_bottom
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[7/47] Running test...
+
+======================================================================
+[TEST] eval_07_left_right
+[DESC] Left and right simultaneously
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_07_left_right
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[8/47] Running test...
+
+======================================================================
+[TEST] eval_08_top_left
+[DESC] Top and left simultaneously
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_08_top_left
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[9/47] Running test...
+
+======================================================================
+[TEST] eval_09_top_right
+[DESC] Top and right simultaneously
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_09_top_right
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[10/47] Running test...
+
+======================================================================
+[TEST] eval_10_bottom_left
+[DESC] Bottom and left simultaneously
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_10_bottom_left
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[11/47] Running test...
+
+======================================================================
+[TEST] eval_11_bottom_right
+[DESC] Bottom and right simultaneously
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_11_bottom_right
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[12/47] Running test...
+
+======================================================================
+[TEST] eval_12_top_left_right
+[DESC] Top, left, and right simultaneously
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_12_top_left_right
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[13/47] Running test...
+
+======================================================================
+[TEST] eval_13_bottom_left_right
+[DESC] Bottom, left, and right simultaneously
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_13_bottom_left_right
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[14/47] Running test...
+
+======================================================================
+[TEST] eval_14_top_bottom_left
+[DESC] Top, bottom, and left simultaneously
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_14_top_bottom_left
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[15/47] Running test...
+
+======================================================================
+[TEST] eval_15_top_bottom_right
+[DESC] Top, bottom, and right simultaneously
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_15_top_bottom_right
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[16/47] Running test...
+
+======================================================================
+[TEST] eval_16_all_four_positions
+[DESC] All four positions: top, bottom, left, right
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_16_all_four_positions
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[17/47] Running test...
+
+======================================================================
+[TEST] eval_17_bottom_1_line
+[DESC] Bottom position - 1 line
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_17_bottom_1_line
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[18/47] Running test...
+
+======================================================================
+[TEST] eval_18_bottom_5_lines
+[DESC] Bottom position - 5 lines
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_18_bottom_5_lines
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[19/47] Running test...
+
+======================================================================
+[TEST] eval_19_bottom_10_lines
+[DESC] Bottom position - 10 lines (maximum)
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_19_bottom_10_lines
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[20/47] Running test...
+
+======================================================================
+[TEST] eval_20_bottom_continuous
+[DESC] Bottom - continuous style
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_20_bottom_continuous
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[21/47] Running test...
+
+======================================================================
+[TEST] eval_21_bottom_bars
+[DESC] Bottom - bars style
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_21_bottom_bars
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[22/47] Running test...
+
+======================================================================
+[TEST] eval_22_bottom_dots
+[DESC] Bottom - dots style
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_22_bottom_dots
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[23/47] Running test...
+
+======================================================================
+[TEST] eval_23_bottom_filled
+[DESC] Bottom - filled style
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_23_bottom_filled
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[24/47] Running test...
+
+======================================================================
+[TEST] eval_24_bottom_neon_green
+[DESC] Bottom - neon green (single color)
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_24_bottom_neon_green
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[25/47] Running test...
+
+======================================================================
+[TEST] eval_25_bottom_rainbow
+[DESC] Bottom - rainbow colors
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_25_bottom_rainbow
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[26/47] Running test...
+
+======================================================================
+[TEST] eval_26_bottom_cyan_magenta
+[DESC] Bottom - cyan and magenta
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_26_bottom_cyan_magenta
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[27/47] Running test...
+
+======================================================================
+[TEST] eval_27_bottom_thick
+[DESC] Bottom - thick lines (20px)
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_27_bottom_thick
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[28/47] Running test...
+
+======================================================================
+[TEST] eval_28_bottom_thin
+[DESC] Bottom - thin lines (6px)
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_28_bottom_thin
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[29/47] Running test...
+
+======================================================================
+[TEST] eval_29_bottom_varying_thickness
+[DESC] Bottom - varying thickness per line
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_29_bottom_varying_thickness
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[30/47] Running test...
+
+======================================================================
+[TEST] eval_30_bottom_opacity_50
+[DESC] Bottom - 50% opacity
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_30_bottom_opacity_50
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[31/47] Running test...
+
+======================================================================
+[TEST] eval_31_bottom_opacity_75
+[DESC] Bottom - 75% opacity
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_31_bottom_opacity_75
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[32/47] Running test...
+
+======================================================================
+[TEST] eval_32_bottom_10_percent
+[DESC] Bottom - 10% height
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_32_bottom_10_percent
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[33/47] Running test...
+
+======================================================================
+[TEST] eval_33_bottom_50_percent
+[DESC] Bottom - 50% height
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_33_bottom_50_percent
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[34/47] Running test...
+
+======================================================================
+[TEST] eval_34_left_10_percent
+[DESC] Left - 10% width
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_34_left_10_percent
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[35/47] Running test...
+
+======================================================================
+[TEST] eval_35_left_50_percent
+[DESC] Left - 50% width
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_35_left_50_percent
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[36/47] Running test...
+
+======================================================================
+[TEST] eval_36_left_spacing_20px
+[DESC] Left - 20px spacing from edge
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_36_left_spacing_20px
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[37/47] Running test...
+
+======================================================================
+[TEST] eval_37_right_spacing_20px
+[DESC] Right - 20px spacing from edge
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_37_right_spacing_20px
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[38/47] Running test...
+
+======================================================================
+[TEST] eval_38_left_right_spacing_30px
+[DESC] Left and right - 30px spacing each
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_38_left_right_spacing_30px
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[39/47] Running test...
+
+======================================================================
+[TEST] eval_39_bottom_render_1x
+[DESC] Bottom - 1x render scale (baseline)
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_39_bottom_render_1x
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[40/47] Running test...
+
+======================================================================
+[TEST] eval_40_bottom_render_4x
+[DESC] Bottom - 4x render scale (maximum smoothness)
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_40_bottom_render_4x
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[41/47] Running test...
+
+======================================================================
+[TEST] eval_41_bottom_no_antialias
+[DESC] Bottom - no anti-aliasing
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_41_bottom_no_antialias
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[42/47] Running test...
+
+======================================================================
+[TEST] eval_42_top_bottom_5_lines_rainbow
+[DESC] Top and bottom - 5 lines - rainbow colors
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_42_top_bottom_5_lines_rainbow
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[43/47] Running test...
+
+======================================================================
+[TEST] eval_43_left_right_bars_style
+[DESC] Left and right - bars style
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_43_left_right_bars_style
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[44/47] Running test...
+
+======================================================================
+[TEST] eval_44_all_four_dots_style
+[DESC] All four positions - dots style
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_44_all_four_dots_style
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[45/47] Running test...
+
+======================================================================
+[TEST] eval_45_top_bottom_filled_rainbow
+[DESC] Top and bottom - filled style - rainbow
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_45_top_bottom_filled_rainbow
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[46/47] Running test...
+
+======================================================================
+[TEST] eval_46_complex_all_features
+[DESC] Complex: All positions, 5 lines, varying thickness, rainbow, filled
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_46_complex_all_features
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+[47/47] Running test...
+
+======================================================================
+[TEST] eval_47_randomized
+[DESC] Randomized configuration
+======================================================================
+[RUN] Executing test...
+[FAIL] Test failed: eval_47_randomized
+[ERROR] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\dev\AI_Podcast_Creator\src\cli\main.py", line 10, in <module>
+    import typer
+ModuleNotFoundError: No module named 'typer'
+
+
+======================================================================
+[SUMMARY] Evaluation Test Suite Results
+======================================================================
+Total: 47
+Passed: 0
+Failed: 47
+
+[FAILED TESTS]
+  - eval_01_bottom_default: Bottom position - default settings
+  - eval_02_top_default: Top position - default settings
+  - eval_03_middle_default: Middle position - default settings
+  - eval_04_left_vertical: Left side - vertical waveform
+  - eval_05_right_vertical: Right side - vertical waveform
+  - eval_06_top_bottom: Top and bottom simultaneously
+  - eval_07_left_right: Left and right simultaneously
+  - eval_08_top_left: Top and left simultaneously
+  - eval_09_top_right: Top and right simultaneously
+  - eval_10_bottom_left: Bottom and left simultaneously
+  - eval_11_bottom_right: Bottom and right simultaneously
+  - eval_12_top_left_right: Top, left, and right simultaneously
+  - eval_13_bottom_left_right: Bottom, left, and right simultaneously
+  - eval_14_top_bottom_left: Top, bottom, and left simultaneously
+  - eval_15_top_bottom_right: Top, bottom, and right simultaneously
+  - eval_16_all_four_positions: All four positions: top, bottom, left, right
+  - eval_17_bottom_1_line: Bottom position - 1 line
+  - eval_18_bottom_5_lines: Bottom position - 5 lines
+  - eval_19_bottom_10_lines: Bottom position - 10 lines (maximum)
+  - eval_20_bottom_continuous: Bottom - continuous style
+  - eval_21_bottom_bars: Bottom - bars style
+  - eval_22_bottom_dots: Bottom - dots style
+  - eval_23_bottom_filled: Bottom - filled style
+  - eval_24_bottom_neon_green: Bottom - neon green (single color)
+  - eval_25_bottom_rainbow: Bottom - rainbow colors
+  - eval_26_bottom_cyan_magenta: Bottom - cyan and magenta
+  - eval_27_bottom_thick: Bottom - thick lines (20px)
+  - eval_28_bottom_thin: Bottom - thin lines (6px)
+  - eval_29_bottom_varying_thickness: Bottom - varying thickness per line
+  - eval_30_bottom_opacity_50: Bottom - 50% opacity
+  - eval_31_bottom_opacity_75: Bottom - 75% opacity
+  - eval_32_bottom_10_percent: Bottom - 10% height
+  - eval_33_bottom_50_percent: Bottom - 50% height
+  - eval_34_left_10_percent: Left - 10% width
+  - eval_35_left_50_percent: Left - 50% width
+  - eval_36_left_spacing_20px: Left - 20px spacing from edge
+  - eval_37_right_spacing_20px: Right - 20px spacing from edge
+  - eval_38_left_right_spacing_30px: Left and right - 30px spacing each
+  - eval_39_bottom_render_1x: Bottom - 1x render scale (baseline)
+  - eval_40_bottom_render_4x: Bottom - 4x render scale (maximum smoothness)
+  - eval_41_bottom_no_antialias: Bottom - no anti-aliasing
+  - eval_42_top_bottom_5_lines_rainbow: Top and bottom - 5 lines - rainbow colors
+  - eval_43_left_right_bars_style: Left and right - bars style
+  - eval_44_all_four_dots_style: All four positions - dots style
+  - eval_45_top_bottom_filled_rainbow: Top and bottom - filled style - rainbow
+  - eval_46_complex_all_features: Complex: All positions, 5 lines, varying thickness, rainbow, filled
+  - eval_47_randomized: Randomized configuration
+
+[OUTPUT] All test outputs saved to: Creations/MMedia/
+[CONFIG] Config files saved to: Creations/Configs/evaluation_tests/

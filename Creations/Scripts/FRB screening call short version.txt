@@ -1,0 +1,18 @@
+[Soft intro music – steady, professional tone]
+
+DEAN (narrating):
+I had a quick, thirty-minute call with the Federal Reserve Bank of Chicago — and it turned out to be a fire-hose download.
+
+There are twelve regional banks, each independent, with Chicago’s Seventh District focused on the Midwest. Most IT roles fall under National, Local, or Financial Services—but this one’s different.
+
+It sits inside the Research Division—a small, embedded team supporting economists and even the executive leadership. Three people today: two systems analysts and one security lead. They’re reducing on-prem systems, moving workloads to the cloud, and building a data-driven environment for policy research.
+
+The Senior Solution Architect role I’m pursuing would design those solutions end-to-end—ninety percent focused on building, not support.
+
+Ken, the hiring manager, leads the RPPE division—Research, Policy, and Public Economics—and collaborates across the broader Federal Reserve System.
+
+The process is structured but fast: a technical discussion, a culture fit round, then executive interviews. The role’s exempt from the federal hiring freeze, on-site most of the week but flexible for personal or hybrid days.
+
+Walking away from that call, I realized this isn’t just an IT job. It’s a chance to modernize how economic policy is shaped and delivered—and that’s exactly the kind of mission I want to build for...except it is onsite 4 days a week. Ugghhh.
+
+[Music fade out]

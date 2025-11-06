@@ -439,6 +439,22 @@ chmod -R 755 AI_Podcast_Creator/
 # Windows: Run as administrator or check folder permissions
 ```
 
+### File Opening Errors
+
+**Problem**: `Cannot open file` or `No such file or directory` errors when generating videos
+
+**Cause**: The output directory doesn't exist before FFmpeg tries to write the file.
+
+**Solution**: This is now automatically handled - the output directory is created before writing. However, if you still encounter this error:
+
+1. **Check output path**: Ensure the output path is valid and doesn't contain invalid characters
+2. **Check permissions**: Ensure you have write permissions to the parent directory
+3. **Check disk space**: Ensure there's sufficient disk space
+
+**Fixed in**: The `_stream_frames_to_video` method now automatically creates the output directory using `output_path.parent.mkdir(parents=True, exist_ok=True)` before attempting to write.
+
+**Test**: The fix is covered by `test_output_directory_created` in `tests/unit/test_audio_visualizer.py`
+
 ### Slow Generation
 
 **Problem**: Video generation takes very long

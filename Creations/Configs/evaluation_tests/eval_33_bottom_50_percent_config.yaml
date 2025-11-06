@@ -1,0 +1,5 @@
+visualization:
+  style: waveform
+  waveform:
+    position: bottom
+    height_percent: 50

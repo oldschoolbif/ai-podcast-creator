@@ -1,0 +1,18 @@
+feat: Add advanced waveform visualization features
+
+- Add orientation offset (0-100) for fine-grained positioning
+- Add rotation support (0-360 degrees)
+- Add amplitude multiplier with smart compression curve
+- Add multiple instances support (1-10)
+- Add instance spacing and intersection controls
+- Implement dynamic baseline positioning for middle waveforms
+- Add comprehensive amplitude scaling algorithm
+- Update CLI with new parameters
+- Add standalone waveform generator for testing
+- Add unit tests for all new features
+- Update documentation
+
+Fixes amplitude scaling issues (too high/low amplitudes)
+Prevents ceiling clipping with logarithmic compression
+Enables complex multi-layer waveform effects
+

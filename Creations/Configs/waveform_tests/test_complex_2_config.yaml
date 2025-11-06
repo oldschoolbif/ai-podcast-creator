@@ -1,0 +1,14 @@
+visualization:
+  style: waveform
+  waveform:
+    position: left,right
+    num_lines: 4
+    line_thickness:
+    - 18
+    - 15
+    - 12
+    - 10
+    waveform_style: bars
+    width_percent: 25
+    left_spacing: 30
+    right_spacing: 30

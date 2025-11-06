@@ -1,0 +1,12 @@
+visualization:
+  style: waveform
+  waveform:
+    position: bottom
+    num_lines: 2
+    line_colors:
+    - - 0
+      - 255
+      - 255
+    - - 255
+      - 0
+      - 255

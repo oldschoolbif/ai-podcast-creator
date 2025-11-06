@@ -1,0 +1,66 @@
+Podcast Script — "Inside the Fed: The 30-Minute Call"
+Runtime: ~1:20
+Tone: Calm, confident, analytical — understated but focused.
+Style: Dean’s voice front and center; steady pacing; light ambient background bed (low-tempo, modern instrumental).
+
+[Intro music: soft piano + light synth pulse, -12dB, fade in 2s → underlay for 5s]
+
+DEAN (steady, measured tone):
+(beat)
+I had a quick, thirty-minute call with the Federal Reserve Bank of Chicago — and it turned into a fire hose of insight.
+[pause 1s]
+
+There are twelve regional banks in the Federal Reserve System, each independent.
+[pause 0.5s]
+Chicago covers the Seventh District — the industrial heart of America.
+[pause 0.5s]
+Most tech roles fall under National IT, Local IT, or Financial Services.
+(beat)
+But this one? It’s different.
+[pause 0.75s]
+
+[Subtle underscore resumes — low synth pulse, slight reverb]
+
+It sits inside the Research Division — a small, embedded team supporting economists and even the executive leadership.
+[pause 0.5s]
+Right now, there are just three people: two systems analysts and one focused on security.
+They’re leading the move to the cloud — reducing on-prem systems and building a data-driven platform for policy research.
+[pause 0.75s]
+
+[Layer in faint ticking hi-hat / data texture for 3s, fade out]
+
+The Senior Solution Architect role I’m pursuing?
+Ninety percent focused on building — not support.
+Designing solutions end-to-end, in AWS and Azure, while enabling some of the smartest economists in the country.
+[pause 1s]
+
+Ken — the hiring manager — leads the Research, Policy, and Public Economics division and works across the broader Federal Reserve System.
+The process ahead is structured but fast: a technical interview, culture round, then executive conversations.
+[pause 0.5s]
+The position’s exempt from the federal hiring freeze, mostly on-site but flexible when it counts.
+[pause 1s]
+
+[Fade up soft strings + light heartbeat bass, +2dB over bed for emotional lift]
+
+Walking away from that call, I realized — this isn’t just an IT job.
+(beat)
+It’s a chance to modernize how economic policy is shaped and delivered.
+(beat)
+And that’s exactly the kind of mission I want to build for, except, I want to be remote for most work.
+
+[Music fade out — 3s, end clean]
+
+Production Notes:
+Total length: ~1:20 at a 135–145 WPM delivery pace.
+Voice: Steady, grounded tone. Avoid "radio enthusiasm." Think "reflective confidence."
+Processing:
+
+Gentle compression (-3dB threshold, 3:1 ratio).
+
+Subtle room reverb (small space).
+
+De-ess lightly on "s" and "ch" sounds.
+EQ: Low-cut at 90Hz, slight presence boost at 4kHz.
+Bed track: Subtle, atmospheric; no strong rhythm.
+Suggested cue: "Ambient Documentary Piano" or "Data Flow" style beds.
+Room tone / breath: Leave natural pauses; don’t over-cut breaths—they add authenticity.

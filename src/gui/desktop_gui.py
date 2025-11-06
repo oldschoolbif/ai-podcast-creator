@@ -35,7 +35,10 @@ class PodcastCreatorGUI:
         self.music_description = tk.StringVar()
         self.voice_type = tk.StringVar(value="gtts")
         self.avatar_style = tk.StringVar(value="Professional Studio")
-        self.video_quality = tk.StringVar(value="High (1080p)")
+        self.video_quality = tk.StringVar(value="Fastest (Testing)")  # Default to fastest for testing
+        self.visualize = tk.BooleanVar(value=False)  # Waveform visualization (opt-in)
+        self.background = tk.BooleanVar(value=False)  # Background image (opt-in)
+        self.avatar = tk.BooleanVar(value=False)  # Avatar/lip-sync (opt-in)
         self.output_name = tk.StringVar()
 
         # Load config
@@ -163,17 +166,36 @@ class PodcastCreatorGUI:
         quality_combo = ttk.Combobox(
             right_frame,
             textvariable=self.video_quality,
-            values=["High (1080p)", "Medium (720p)", "Low (480p)"],
+            values=["Fastest (Testing)", "Fast (720p)", "Medium (720p)", "High (1080p)"],
             state="readonly",
             width=30,
         )
         quality_combo.grid(row=5, column=0, pady=(0, 10))
 
+        # Video effects checkboxes
+        effects_frame = tk.LabelFrame(right_frame, text="🎨 Video Effects (opt-in)", font=("Arial", 10, "bold"), padx=10, pady=10)
+        effects_frame.grid(row=6, column=0, sticky="ew", pady=(0, 10))
+
+        visualize_check = tk.Checkbutton(
+            effects_frame, text="Waveform Visualization", variable=self.visualize, font=("Arial", 9)
+        )
+        visualize_check.grid(row=0, column=0, sticky="w", pady=2)
+
+        background_check = tk.Checkbutton(
+            effects_frame, text="Static Background Image", variable=self.background, font=("Arial", 9)
+        )
+        background_check.grid(row=1, column=0, sticky="w", pady=2)
+
+        avatar_check = tk.Checkbutton(
+            effects_frame, text="Avatar / Lip-Sync", variable=self.avatar, font=("Arial", 9)
+        )
+        avatar_check.grid(row=2, column=0, sticky="w", pady=2)
+
         # Output name
-        tk.Label(right_frame, text="Output Name:", font=("Arial", 10)).grid(row=6, column=0, sticky="w", pady=(0, 5))
+        tk.Label(right_frame, text="Output Name:", font=("Arial", 10)).grid(row=7, column=0, sticky="w", pady=(0, 5))
 
         output_entry = tk.Entry(right_frame, textvariable=self.output_name, width=33)
-        output_entry.grid(row=7, column=0, pady=(0, 10))
+        output_entry.grid(row=8, column=0, pady=(0, 10))
 
         # Bottom section - Log and buttons
         bottom_frame = tk.Frame(main_frame)
@@ -354,20 +376,54 @@ class PodcastCreatorGUI:
                 mixed_audio = audio_path
                 self.log("⏭️ Skipping audio mixing (no music)")
 
+            # Generate avatar if requested
+            avatar_video_path = None
+            if self.avatar.get():
+                try:
+                    self.log("🎭 Generating avatar with lip-sync...")
+                    from src.core.avatar_generator import AvatarGenerator
+                    avatar_gen = AvatarGenerator(self.config)
+                    avatar_video_path = avatar_gen.generate(mixed_audio)
+                    if avatar_video_path and avatar_video_path.exists() and avatar_video_path.stat().st_size > 0:
+                        self.log(f"✅ Avatar generated: {avatar_video_path.name}")
+                    else:
+                        self.log("⚠️ Avatar generation failed, continuing without avatar...")
+                        avatar_video_path = None
+                except Exception as e:
+                    self.log(f"⚠️ Avatar generation error: {e}, continuing without avatar...")
+                    avatar_video_path = None
+
             # Create video
             self.log("🎬 Creating video...")
             composer = VideoComposer(self.config)
 
-            # Set quality
-            if "1080p" in self.video_quality.get():
-                self.config["video"]["resolution"] = [1920, 1080]
-            elif "720p" in self.video_quality.get():
-                self.config["video"]["resolution"] = [1280, 720]
+            # Map UI quality strings to internal quality presets
+            quality_map = {
+                "Fastest (Testing)": "fastest",
+                "Fast (720p)": "fast",
+                "Medium (720p)": "medium",
+                "High (1080p)": "high",
+            }
+            # Support legacy format
+            video_quality_str = self.video_quality.get()
+            if "1080p" in video_quality_str and "High" in video_quality_str:
+                quality = "high"
+            elif "720p" in video_quality_str and "Medium" in video_quality_str:
+                quality = "medium"
+            elif "720p" in video_quality_str and "Fast" in video_quality_str:
+                quality = "fast"
             else:
-                self.config["video"]["resolution"] = [854, 480]
+                quality = quality_map.get(video_quality_str, "fastest")  # Default to fastest for testing
 
             output_name = self.output_name.get() or script_path.stem
-            final_video = composer.compose(mixed_audio, output_name=output_name)
+            final_video = composer.compose(
+                mixed_audio, 
+                output_name=output_name, 
+                use_visualization=self.visualize.get(),
+                use_background=self.background.get(),
+                avatar_video=avatar_video_path,
+                quality=quality
+            )
 
             self.log("=" * 60)
             self.log("✅ Podcast created successfully!")

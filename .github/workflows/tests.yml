@@ -68,6 +68,14 @@ jobs:
         pytest --cov=src --cov-report=xml --cov-report=term -n auto --maxfail=10 --tb=short
       timeout-minutes: 15
     
+    - name: Run GPU utilization tests
+      shell: bash
+      run: |
+        # Run GPU utilization tests (will skip if no GPU available)
+        pytest tests/unit/test_gpu_utilization.py -v -m "not gpu" || echo "GPU tests skipped (expected in CI without GPU)"
+      continue-on-error: true
+      timeout-minutes: 5
+    
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:

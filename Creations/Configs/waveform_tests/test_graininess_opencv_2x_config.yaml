@@ -1,0 +1,9 @@
+visualization:
+  style: waveform
+  waveform:
+    render_scale: 2.0
+    anti_alias: true
+    position: bottom
+    num_lines: 3
+    line_thickness: 12
+    waveform_style: continuous

@@ -1,0 +1,7 @@
+10% width (vertical waveform)
+
+Welcome to the AI Podcast Creator waveform test suite.
+
+This is a short test script to verify waveform visualization features.
+
+The waveform should be clearly visible and match the configuration parameters.

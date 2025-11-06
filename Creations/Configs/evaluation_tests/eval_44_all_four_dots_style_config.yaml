@@ -1,0 +1,7 @@
+visualization:
+  style: waveform
+  waveform:
+    position: top,bottom,left,right
+    waveform_style: dots
+    height_percent: 12
+    width_percent: 12

@@ -512,3 +512,69 @@ class TestEdgeCases:
 
     # Note: _frames_to_video test removed due to complex moviepy mocking requirements
     # This method (lines 329-349) can be tested via integration tests with real moviepy
+    
+    def test_output_directory_created(self, test_config_visualization, temp_dir):
+        """Test that output directory is created before writing video file.
+        
+        This test verifies the fix for file opening errors when the output
+        directory doesn't exist. The _stream_frames_to_video method should
+        create the parent directory before attempting to write the output file.
+        """
+        from src.core.audio_visualizer import AudioVisualizer
+        from pathlib import Path
+        
+        viz = AudioVisualizer(test_config_visualization)
+        
+        # Create a nested directory path that doesn't exist
+        nested_dir = temp_dir / "nested" / "deep" / "path"
+        output_path = nested_dir / "output.mp4"
+        audio_path = temp_dir / "test.wav"
+        audio_path.write_bytes(b"fake audio")
+        
+        # Verify directory doesn't exist yet
+        assert not nested_dir.exists()
+        
+        # Verify the directory creation code is executed
+        # We'll just check that mkdir is called on the parent path
+        # The actual fix is at line 385: output_path.parent.mkdir(parents=True, exist_ok=True)
+        with patch('pathlib.Path.mkdir') as mock_mkdir:
+            # Mock subprocess to avoid actual FFmpeg execution
+            with patch('subprocess.Popen') as mock_popen:
+                # Mock FFmpeg process
+                mock_process = MagicMock()
+                mock_process.poll.return_value = None  # Process is still running
+                mock_process.stdin = MagicMock()
+                mock_process.stderr = MagicMock()
+                mock_process.stderr.readline.return_value = b''
+                mock_popen.return_value = mock_process
+                
+                # Mock threading and other dependencies
+                with patch('threading.Thread'), \
+                     patch('src.core.audio_visualizer.FileMonitor'), \
+                     patch('src.core.audio_visualizer.RAMMonitor'):
+                    # Mock frame generator
+                    import numpy as np
+                    def mock_frame_gen():
+                        yield np.zeros((1080, 1920, 3), dtype=np.uint8)
+                        return
+                    
+                    # This should create the directory before writing
+                    try:
+                        viz._stream_frames_to_video(
+                            mock_frame_gen(),
+                            audio_path,
+                            output_path,
+                            duration=0.1
+                        )
+                    except Exception:
+                        # Expected to fail due to mocking, but mkdir should be called
+                        pass
+        
+        # Verify mkdir was called on the parent directory
+        # This confirms the fix is working
+        assert mock_mkdir.called, "mkdir should be called on output_path.parent"
+        # Check that it was called with parents=True and exist_ok=True
+        call_args = mock_mkdir.call_args
+        assert call_args is not None, "mkdir should be called with arguments"
+        assert call_args.kwargs.get('parents') == True, "mkdir should be called with parents=True"
+        assert call_args.kwargs.get('exist_ok') == True, "mkdir should be called with exist_ok=True"
