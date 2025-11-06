@@ -12,6 +12,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.core.video_composer import VideoComposer
+from tests.conftest import create_valid_mp3_file
 
 
 def create_moviepy_mock(audio_duration=5.0):
@@ -51,22 +52,15 @@ class TestVideoCompositionIntegration:
         }
 
         audio_file = temp_dir / "test_audio.mp3"
-        # Create valid audio file (must be > 100 bytes to pass validation)
-        audio_file.write_bytes(b"RIFF" + b"\x00" * 200)  # Minimal valid-looking file structure
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=10.0)
 
         composer = VideoComposer(test_config)
 
         mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=10.0)
 
         with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
-            # Mock ffprobe to return valid duration for validation
-            with patch("subprocess.run") as mock_subprocess:
-                mock_result = MagicMock()
-                mock_result.returncode = 0
-                mock_result.stdout = "10.0\n"  # Valid duration
-                mock_result.stderr = ""
-                mock_subprocess.return_value = mock_result
-                output = composer.compose(audio_file, output_name="integration_test")
+            output = composer.compose(audio_file, output_name="integration_test")
 
             assert output.suffix == ".mp4"
             assert "integration_test" in str(output)
@@ -94,14 +88,7 @@ class TestVideoCompositionIntegration:
             mock_moviepy, mock_audio, mock_video = create_moviepy_mock()
 
             with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
-                # Mock ffprobe to return valid duration for validation
-                with patch("subprocess.run") as mock_subprocess:
-                    mock_result = MagicMock()
-                    mock_result.returncode = 0
-                    mock_result.stdout = "5.0\n"  # Valid duration
-                    mock_result.stderr = ""
-                    mock_subprocess.return_value = mock_result
-                    output = composer.compose(audio_file, output_name=name)
+                output = composer.compose(audio_file, output_name=name)
 
                 # Verify resolution was used
                 if mock_moviepy.editor.ColorClip.called:
@@ -125,14 +112,7 @@ class TestVideoCompositionIntegration:
 
         with patch("src.core.audio_visualizer.AudioVisualizer", return_value=mock_visualizer):
             composer = VideoComposer(test_config)
-            # Mock ffprobe to return valid duration for validation
-            with patch("subprocess.run") as mock_subprocess:
-                mock_result = MagicMock()
-                mock_result.returncode = 0
-                mock_result.stdout = "5.0\n"  # Valid duration
-                mock_result.stderr = ""
-                mock_subprocess.return_value = mock_result
-                result = composer.compose(audio_file, use_visualization=True)
+            result = composer.compose(audio_file, use_visualization=True)
 
             mock_visualizer.generate_visualization.assert_called_once()
             assert result == expected_output
@@ -154,14 +134,7 @@ class TestVideoCompositionIntegration:
         mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=3.0)
 
         with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
-            # Mock ffprobe to return valid duration for validation
-            with patch("subprocess.run") as mock_subprocess:
-                mock_result = MagicMock()
-                mock_result.returncode = 0
-                mock_result.stdout = "3.0\n"  # Valid duration
-                mock_result.stderr = ""
-                mock_subprocess.return_value = mock_result
-                output = composer.compose(audio_file)
+            output = composer.compose(audio_file)
 
             # Verify ImageClip was used (not ColorClip) for background image
             assert mock_moviepy.editor.ImageClip.called
@@ -185,14 +158,7 @@ class TestVideoCompositionIntegration:
             mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=duration)
 
             with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
-                # Mock ffprobe to return valid duration for validation
-                with patch("subprocess.run") as mock_subprocess:
-                    mock_result = MagicMock()
-                    mock_result.returncode = 0
-                    mock_result.stdout = f"{duration}\n"  # Valid duration
-                    mock_result.stderr = ""
-                    mock_subprocess.return_value = mock_result
-                    output = composer.compose(audio_file, output_name=f"test_{duration}s")
+                output = composer.compose(audio_file, output_name=f"test_{duration}s")
 
                 # Verify duration was set
                 mock_video.set_duration.assert_called_with(duration)
@@ -225,15 +191,8 @@ class TestVideoCompositionIntegration:
         mock_moviepy, mock_audio, mock_video = create_moviepy_mock()
 
         with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
-            # Mock ffprobe to return valid duration for validation
-            with patch("subprocess.run") as mock_subprocess:
-                mock_result = MagicMock()
-                mock_result.returncode = 0
-                mock_result.stdout = "5.0\n"  # Valid duration
-                mock_result.stderr = ""
-                mock_subprocess.return_value = mock_result
-                output1 = composer.compose(audio_file, output_name=None)
-                output2 = composer.compose(audio_file, output_name=None)
+            output1 = composer.compose(audio_file, output_name=None)
+            output2 = composer.compose(audio_file, output_name=None)
 
             assert "podcast_" in str(output1)
             assert "podcast_" in str(output2)
@@ -253,6 +212,53 @@ class TestVideoCompositionIntegration:
         
         # Verify error message mentions the file doesn't exist
         assert "does not exist" in str(exc_info.value).lower() or "Audio file" in str(exc_info.value)
+    
+    def test_error_handling_corrupted_mp3(self, test_config, temp_dir):
+        """Test graceful error handling with corrupted MP3 file."""
+        test_config["storage"]["outputs_dir"] = str(temp_dir)
+        test_config["video"] = {"background_path": str(temp_dir / "bg.jpg")}
+
+        # Create a corrupted MP3 file (invalid MP3 structure)
+        corrupted_file = temp_dir / "corrupted.mp3"
+        # Write invalid data that looks like it might be an MP3 but isn't
+        corrupted_file.write_bytes(b"FAKE_MP3_DATA" * 20)  # 260 bytes - passes size check but invalid format
+
+        composer = VideoComposer(test_config)
+
+        # Should raise ValueError or RuntimeError with clear error message
+        with pytest.raises((ValueError, RuntimeError)) as exc_info:
+            composer.compose(corrupted_file, output_name="corrupted_test")
+        
+        error_msg = str(exc_info.value)
+        # Verify error message is helpful for troubleshooting
+        assert ("validation" in error_msg.lower() or 
+                "corrupted" in error_msg.lower() or
+                "invalid" in error_msg.lower() or
+                "ffmpeg" in error_msg.lower())
+        assert str(corrupted_file) in error_msg
+        # Should provide troubleshooting information
+        assert "Troubleshooting" in error_msg or "troubleshooting" in error_msg.lower()
+    
+    def test_error_handling_empty_mp3(self, test_config, temp_dir):
+        """Test graceful error handling with empty MP3 file."""
+        test_config["storage"]["outputs_dir"] = str(temp_dir)
+        test_config["video"] = {"background_path": str(temp_dir / "bg.jpg")}
+
+        # Create an empty file
+        empty_file = temp_dir / "empty.mp3"
+        empty_file.write_bytes(b"")
+
+        composer = VideoComposer(test_config)
+
+        # Should raise ValueError with clear error message
+        with pytest.raises(ValueError) as exc_info:
+            composer.compose(empty_file, output_name="empty_test")
+        
+        error_msg = str(exc_info.value)
+        assert ("empty" in error_msg.lower() or 
+                "too small" in error_msg.lower() or
+                "validation" in error_msg.lower())
+        assert str(empty_file) in error_msg
 
 
 @pytest.mark.integration
@@ -266,21 +272,14 @@ class TestVideoAvatarIntegration:
 
         audio_file = temp_dir / "audio.mp3"
         avatar_video = temp_dir / "avatar.mp4"
-        # Create valid audio file (must be > 100 bytes to pass validation)
-        audio_file.write_bytes(b"RIFF" + b"\x00" * 200)  # Minimal valid-looking file structure
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
         avatar_video.write_bytes(b"video")
 
         output_file = temp_dir / "final.mp4"
 
         with patch.object(VideoComposer, "_overlay_visualization_on_avatar", return_value=output_file):
             composer = VideoComposer(test_config)
-            # Mock ffprobe to return valid duration for validation
-            with patch("subprocess.run") as mock_subprocess:
-                mock_result = MagicMock()
-                mock_result.returncode = 0
-                mock_result.stdout = "5.0\n"  # Valid duration
-                mock_result.stderr = ""
-                mock_subprocess.return_value = mock_result
-                result = composer.compose(audio_file, avatar_video=avatar_video, use_visualization=True)
+            result = composer.compose(audio_file, avatar_video=avatar_video, use_visualization=True)
 
             assert result == output_file

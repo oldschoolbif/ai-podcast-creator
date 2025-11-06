@@ -16,6 +16,44 @@ import yaml
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+def create_valid_mp3_file(output_path: Path, duration_seconds: float = 1.0) -> Path:
+    """
+    Create a minimal valid MP3 file for testing.
+    
+    Uses pydub to generate silence and export as MP3, which creates a valid MP3 file
+    that FFmpeg can process. Falls back to a minimal valid MP3 structure if pydub fails.
+    
+    Args:
+        output_path: Path where the MP3 file should be created
+        duration_seconds: Duration of the audio file in seconds (default: 1.0)
+    
+    Returns:
+        Path to the created MP3 file
+    """
+    try:
+        # Try using pydub to create a valid MP3 file
+        from pydub import AudioSegment
+        from pydub.generators import Sine
+        
+        # Generate a short sine wave (minimal valid audio)
+        audio = Sine(440).to_audio_segment(duration=int(duration_seconds * 1000))
+        # Export as MP3
+        audio.export(str(output_path), format="mp3", bitrate="64k")
+        return output_path
+    except (ImportError, Exception):
+        # Fallback: Create a minimal valid MP3 file structure
+        # This is a minimal MP3 frame header (ID3v2 tag + MP3 frame)
+        # Note: This is a very basic structure that should pass validation
+        # but may not play in all players
+        mp3_header = (
+            b"ID3\x03\x00\x00\x00\x00\x00\x00"  # ID3v2 header (minimal)
+            b"\xff\xfb\x90\x00"  # MP3 sync word + header
+            b"\x00" * 100  # Minimal frame data
+        )
+        output_path.write_bytes(mp3_header)
+        return output_path
+
+
 @pytest.fixture(scope="session")
 def project_root():
     """Get project root directory."""

@@ -15,6 +15,7 @@ from src.core.audio_mixer import AudioMixer
 from src.core.script_parser import ScriptParser
 from src.core.tts_engine import TTSEngine
 from src.core.video_composer import VideoComposer
+from tests.conftest import create_valid_mp3_file
 
 
 @pytest.mark.e2e
@@ -85,10 +86,9 @@ class TestCompleteWorkflows:
 
     def test_audio_to_video_workflow(self, test_config, temp_dir):
         """Test audio-to-video workflow."""
-        # Create valid mock audio file (must be > 100 bytes to pass validation)
+        # Create valid MP3 file for happy path test
         audio_file = temp_dir / "podcast_audio.mp3"
-        # Create a file large enough to pass size validation (min 100 bytes)
-        audio_file.write_bytes(b"RIFF" + b"\x00" * 200)  # Minimal valid-looking file structure
+        create_valid_mp3_file(audio_file, duration_seconds=10.5)
 
         # Configure video composer
         test_config["storage"]["outputs_dir"] = str(temp_dir)
@@ -112,14 +112,7 @@ class TestCompleteWorkflows:
         mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_video)
 
         with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
-            # Mock ffprobe to return valid duration for validation
-            with patch("subprocess.run") as mock_subprocess:
-                mock_result = MagicMock()
-                mock_result.returncode = 0
-                mock_result.stdout = "10.5\n"  # Valid duration
-                mock_result.stderr = ""
-                mock_subprocess.return_value = mock_result
-                video_path = composer.compose(audio_file, output_name="e2e_test")
+            video_path = composer.compose(audio_file, output_name="e2e_test")
 
             assert video_path.suffix == ".mp4"
             assert "e2e_test" in str(video_path)
@@ -151,8 +144,8 @@ class TestCompleteWorkflows:
         cache_key = tts._get_cache_key(parsed["text"])
         cached_path = tts.cache_dir / f"{cache_key}.mp3"
         cached_path.parent.mkdir(parents=True, exist_ok=True)
-        # Create valid audio file (must be > 100 bytes and pass ffprobe validation)
-        cached_path.write_bytes(b"RIFF" + b"\x00" * 200)  # Minimal valid-looking file structure
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(cached_path, duration_seconds=15.0)
 
         audio_path = tts.generate(parsed["text"])
 
@@ -178,14 +171,7 @@ class TestCompleteWorkflows:
         mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_video)
 
         with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
-            # Mock ffprobe to return valid duration for validation
-            with patch("subprocess.run") as mock_subprocess:
-                mock_result = MagicMock()
-                mock_result.returncode = 0
-                mock_result.stdout = "15.0\n"  # Valid duration
-                mock_result.stderr = ""
-                mock_subprocess.return_value = mock_result
-                video_path = composer.compose(audio_path, output_name=parsed["metadata"]["title"])
+            video_path = composer.compose(audio_path, output_name=parsed["metadata"]["title"])
 
                 # Verify final output
                 assert video_path.exists() or video_path.parent.exists()
@@ -307,10 +293,9 @@ class TestErrorRecoveryWorkflows:
 
     def test_video_composer_fallback_when_moviepy_missing(self, test_config, temp_dir):
         """Inject ImportError for moviepy and ensure FFmpeg fallback path executes."""
-
+        # Create valid MP3 file for happy path test
         audio_path = temp_dir / "audio.mp3"
-        # Create valid audio file (must be > 100 bytes to pass validation)
-        audio_path.write_bytes(b"RIFF" + b"\x00" * 200)  # Minimal valid-looking file structure
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         test_config["storage"]["outputs_dir"] = str(temp_dir)
 
@@ -328,14 +313,7 @@ class TestErrorRecoveryWorkflows:
 
             with patch("builtins.__import__", side_effect=fake_import):
                 composer = VideoComposer(test_config)
-                # Mock ffprobe to return valid duration for validation
-                with patch("subprocess.run") as mock_subprocess:
-                    mock_result = MagicMock()
-                    mock_result.returncode = 0
-                    mock_result.stdout = "5.0\n"  # Valid duration
-                    mock_result.stderr = ""
-                    mock_subprocess.return_value = mock_result
-                    output = composer.compose(audio_path, output_name="ffmpeg_fallback_test")
+                output = composer.compose(audio_path, output_name="ffmpeg_fallback_test")
 
         mock_run.assert_called()
         assert "ffmpeg_fallback_test" in str(output)
@@ -437,8 +415,8 @@ class TestConfigurationWorkflows:
         ]
 
         audio_file = temp_dir / "audio.mp3"
-        # Create valid audio file (must be > 100 bytes to pass validation)
-        audio_file.write_bytes(b"RIFF" + b"\x00" * 200)  # Minimal valid-looking file structure
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
 
         for resolution, name in resolutions:
             test_config["storage"]["outputs_dir"] = str(temp_dir)
@@ -464,14 +442,7 @@ class TestConfigurationWorkflows:
             mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_video)
 
             with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
-                # Mock ffprobe to return valid duration for validation
-                with patch("subprocess.run") as mock_subprocess:
-                    mock_result = MagicMock()
-                    mock_result.returncode = 0
-                    mock_result.stdout = "5.0\n"  # Valid duration
-                    mock_result.stderr = ""
-                    mock_subprocess.return_value = mock_result
-                    output = composer.compose(audio_file, output_name=name)
+                output = composer.compose(audio_file, output_name=name)
 
                 assert name in str(output)
 
