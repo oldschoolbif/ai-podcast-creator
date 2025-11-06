@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 import pytest
 
 from src.core.video_composer import VideoComposer
+from tests.conftest import create_valid_mp3_file
 
 
 class TestVideoComposerInit:
@@ -41,7 +42,8 @@ class TestVideoComposerCompose:
     def test_compose_basic(self, test_config, temp_dir):
         """Test basic video composition with moviepy."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create valid audio file for happy path test
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         # Mock moviepy components
         mock_audio = MagicMock()
@@ -71,7 +73,8 @@ class TestVideoComposerCompose:
     def test_compose_with_color_background(self, test_config, temp_dir):
         """Test composition when background image doesn't exist (uses ColorClip)."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create valid audio file for happy path test
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         # Remove background to trigger ColorClip
         test_config["video"]["background_path"] = str(temp_dir / "nonexistent.jpg")
@@ -102,7 +105,8 @@ class TestVideoComposerCompose:
     def test_compose_with_visualization(self, test_config, temp_dir):
         """Test composition with audio visualization."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create valid audio file for happy path test
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         expected_output = temp_dir / "output" / "test_viz.mp4"
 
@@ -120,7 +124,8 @@ class TestVideoComposerCompose:
     def test_compose_with_avatar_video_and_visualization(self, test_config, temp_dir):
         """Test composition with both avatar video and visualization."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create valid audio file for happy path test
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         avatar_video = temp_dir / "avatar.mp4"
         avatar_video.touch()
@@ -138,7 +143,8 @@ class TestVideoComposerCompose:
     def test_compose_default_use_visualization_false(self, test_config, temp_dir):
         """Test that compose defaults to use_visualization=False (no visualization by default)."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create valid audio file for happy path test
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         composer = VideoComposer(test_config)
 
@@ -173,7 +179,8 @@ class TestVideoComposerCompose:
     def test_compose_explicitly_use_visualization_false(self, test_config, temp_dir):
         """Test compose with use_visualization=False explicitly."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create valid audio file for happy path test
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         composer = VideoComposer(test_config)
 
@@ -207,7 +214,8 @@ class TestVideoComposerCompose:
     def test_compose_fallback_to_ffmpeg(self, test_config, temp_dir):
         """Test fallback to FFmpeg when moviepy fails."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create valid audio file for happy path test
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         # Create mock that raises ImportError
         mock_moviepy = MagicMock()
@@ -231,7 +239,8 @@ class TestVideoComposerCompose:
     def test_compose_generates_timestamp_name(self, test_config, temp_dir):
         """Test that compose generates timestamp-based name when not provided."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create valid audio file for happy path test
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         mock_audio = MagicMock()
         mock_audio.duration = 5.0
@@ -437,7 +446,8 @@ class TestVideoComposerErrorHandling:
     def test_compose_handles_moviepy_exception(self, test_config, temp_dir):
         """Test that exceptions during moviepy composition are handled."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create valid audio file for happy path test
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         # Create mock that raises Exception
         mock_moviepy = MagicMock()
@@ -546,7 +556,8 @@ class TestVideoComposerResolutions:
     def test_different_resolutions(self, test_config, temp_dir, resolution, expected):
         """Test video composition with different resolutions."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create valid audio file for happy path test
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         test_config["video"]["resolution"] = resolution
 

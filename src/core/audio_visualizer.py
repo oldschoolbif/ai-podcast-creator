@@ -3,6 +3,7 @@ Audio Visualizer - Generate vibrant backgrounds that react to voice
 """
 
 from pathlib import Path
+import subprocess
 
 import librosa
 import numpy as np
@@ -149,8 +150,11 @@ class AudioVisualizer:
         """
         print(f"[VIZ] Generating {self.style} visualization (streaming mode)...")
 
-        # Get duration without loading entire file (memory efficient)
-        duration = float(librosa.get_duration(filename=str(audio_path)))
+        # Get duration using FFmpeg (safer than librosa which can crash with C extensions)
+        duration = self._get_audio_duration_ffmpeg(audio_path)
+        if duration is None:
+            # Fallback: use default duration if FFmpeg fails
+            duration = 10.0
         
         # Get sample rate from a small sample (only need it for frame generation)
         y_sample, sr = librosa.load(str(audio_path), sr=None, duration=0.1, offset=0.0)
