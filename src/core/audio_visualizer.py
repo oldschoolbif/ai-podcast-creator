@@ -134,6 +134,31 @@ class AudioVisualizer:
         
         print(f"[WAVEFORM] Randomized config: {self.num_lines} lines, position={self.position}, opacity={self.opacity:.2f}")
 
+    def _get_audio_duration_ffmpeg(self, audio_path: Path) -> float:
+        """Get audio duration using FFmpeg (safer than librosa which can crash with C extensions)."""
+        try:
+            # Use ffprobe to get duration without loading audio into memory
+            cmd = [
+                "ffprobe",
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(audio_path)
+            ]
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=10
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return float(result.stdout.strip())
+        except (subprocess.TimeoutExpired, ValueError, FileNotFoundError):
+            pass
+        # Fallback: return None to use default duration
+        return None
+
     def generate_visualization(self, audio_path: Path, output_path: Path) -> Path:
         """
         Generate video with audio-reactive visualization (STREAMING - memory efficient)
