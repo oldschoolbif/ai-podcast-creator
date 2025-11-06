@@ -318,9 +318,9 @@ class TestEdgeCases:
 
     @patch("src.core.audio_visualizer.librosa.load")
     @patch("src.core.audio_visualizer.librosa")
-    @patch("src.core.audio_visualizer.AudioVisualizer._generate_waveform_frames_streaming_chunked_from_array")
-    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
-    def test_generate_visualization_calls_load_and_duration(self, mock_video, mock_waveform, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_waveform_frames_streaming_chunked")
+    @patch("src.core.audio_visualizer.AudioVisualizer._stream_frames_to_video")
+    def test_generate_visualization_calls_load_and_duration(self, mock_stream_video, mock_waveform, mock_get_duration, mock_load, test_config_visualization, temp_dir):
         """Test that generate_visualization loads audio and gets duration (lines 44-45)."""
         from src.core.audio_visualizer import AudioVisualizer
 
@@ -340,17 +340,17 @@ class TestEdgeCases:
 
         result = viz.generate_visualization(audio_path, output_path)
 
-        # Verify librosa was called (lines 44-45)
-        mock_load.assert_called_once_with(str(audio_path), sr=None)
-        # get_duration called with y and sr (line 45)
+        # Verify librosa was called for sample rate detection
+        assert mock_load.called
+        # get_duration called to get audio duration
         assert mock_get_duration.get_duration.called
-        assert result == mock_video.return_value
+        assert result == mock_stream_video.return_value
 
     @patch("src.core.audio_visualizer.librosa.load")
     @patch("src.core.audio_visualizer.librosa")
-    @patch("src.core.audio_visualizer.AudioVisualizer._generate_spectrum_frames")
-    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
-    def test_generate_visualization_spectrum_style(self, mock_video, mock_spectrum, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_spectrum_frames_streaming_chunked")
+    @patch("src.core.audio_visualizer.AudioVisualizer._stream_frames_to_video")
+    def test_generate_visualization_spectrum_style(self, mock_stream_video, mock_spectrum, mock_get_duration, mock_load, test_config_visualization, temp_dir):
         """Test generate_visualization with spectrum style (lines 50-51)."""
         from src.core.audio_visualizer import AudioVisualizer
 
@@ -360,8 +360,9 @@ class TestEdgeCases:
         y_data = np.random.randn(1000).astype(np.float32)
         mock_load.return_value = (y_data, 22050)
         mock_get_duration.get_duration.return_value = 2.0
-        mock_spectrum.return_value = [np.zeros((720, 1280, 3), dtype=np.uint8)]
-        mock_video.return_value = temp_dir / "output.mp4"
+        # Mock returns a generator that yields frames
+        mock_spectrum.return_value = iter([np.zeros((720, 1280, 3), dtype=np.uint8)])
+        mock_stream_video.return_value = temp_dir / "output.mp4"
 
         viz = AudioVisualizer(test_config_visualization)
         audio_path = temp_dir / "test.wav"
@@ -371,13 +372,13 @@ class TestEdgeCases:
         result = viz.generate_visualization(audio_path, output_path)
 
         assert mock_spectrum.called
-        assert result == mock_video.return_value
+        assert result == mock_stream_video.return_value
 
     @patch("src.core.audio_visualizer.librosa.load")
     @patch("src.core.audio_visualizer.librosa")
-    @patch("src.core.audio_visualizer.AudioVisualizer._generate_particle_frames_streaming_chunked_from_array")
-    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
-    def test_generate_visualization_particles_style(self, mock_video, mock_particles, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_particle_frames_streaming_chunked")
+    @patch("src.core.audio_visualizer.AudioVisualizer._stream_frames_to_video")
+    def test_generate_visualization_particles_style(self, mock_stream_video, mock_particles, mock_get_duration, mock_load, test_config_visualization, temp_dir):
         """Test generate_visualization with particles style (lines 54-55)."""
         from src.core.audio_visualizer import AudioVisualizer
 
@@ -399,13 +400,13 @@ class TestEdgeCases:
         result = viz.generate_visualization(audio_path, output_path)
 
         assert mock_particles.called
-        assert result == mock_video.return_value
+        assert result == mock_stream_video.return_value
 
     @patch("src.core.audio_visualizer.librosa.load")
     @patch("src.core.audio_visualizer.librosa")
-    @patch("src.core.audio_visualizer.AudioVisualizer._generate_waveform_frames_streaming_chunked_from_array")
-    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
-    def test_generate_visualization_default_fallback(self, mock_video, mock_waveform, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_waveform_frames_streaming_chunked")
+    @patch("src.core.audio_visualizer.AudioVisualizer._stream_frames_to_video")
+    def test_generate_visualization_default_fallback(self, mock_stream_video, mock_waveform, mock_get_duration, mock_load, test_config_visualization, temp_dir):
         """Test generate_visualization defaults to waveform for unknown style (lines 56-58)."""
         from src.core.audio_visualizer import AudioVisualizer
 
@@ -428,13 +429,13 @@ class TestEdgeCases:
 
         # Should fallback to waveform
         assert mock_waveform.called
-        assert result == mock_video.return_value
+        assert result == mock_stream_video.return_value
 
     @patch("src.core.audio_visualizer.librosa.load")
     @patch("src.core.audio_visualizer.librosa")
-    @patch("src.core.audio_visualizer.AudioVisualizer._generate_circular_frames_streaming")
-    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
-    def test_generate_visualization_circular_style(self, mock_video, mock_circular, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_circular_frames_streaming_chunked")
+    @patch("src.core.audio_visualizer.AudioVisualizer._stream_frames_to_video")
+    def test_generate_visualization_circular_style(self, mock_stream_video, mock_circular, mock_get_duration, mock_load, test_config_visualization, temp_dir):
         """Test generate_visualization with circular style (lines 52-53)."""
         from src.core.audio_visualizer import AudioVisualizer
 
@@ -456,7 +457,7 @@ class TestEdgeCases:
         result = viz.generate_visualization(audio_path, output_path)
 
         assert mock_circular.called
-        assert result == mock_video.return_value
+        assert result == mock_stream_video.return_value
 
     @patch("src.core.audio_visualizer.librosa.load")
     @patch("src.core.audio_visualizer.librosa")
