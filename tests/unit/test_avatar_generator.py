@@ -1108,30 +1108,39 @@ class TestAvatarGeneratorEdgeCases:
             mock_gpu.return_value.gpu_available = False
 
             generator = AvatarGenerator(test_config)
-            generator.wav2lip_model_path = temp_dir / "model.pth"
+            # Set model path and create the model file so it exists
+            model_path = temp_dir / "model.pth"
+            model_path.write_bytes(b"fake model")
+            generator.wav2lip_model_path = str(model_path)
 
             audio_path = temp_dir / "audio.wav"
             output_path = temp_dir / "output.mp4"
             audio_path.write_bytes(b"fake audio")
 
-            # The actual script path used by the code: scripts/wav2lip_inference.py
-            # Need to mock Path.exists() for this specific path to return False
-            from pathlib import Path as PathClass
+            # Mock the script path check to return False (script doesn't exist)
+            wav2lip_dir = Path(__file__).parent.parent.parent / "external" / "Wav2Lip"
+            wav2lip_script = wav2lip_dir / "inference.py"
             
-            original_exists = PathClass.exists
-            
-            def mock_exists(self):
+            # Create a mock that returns False for the script path, True for others
+            def mock_path_exists(path_self):
                 # Return False for the wav2lip script path to trigger creation
-                if "wav2lip_inference.py" in str(self):
+                if str(path_self) == str(wav2lip_script):
                     return False
-                return original_exists(self)
+                # For model path, return True
+                if path_self == model_path:
+                    return True
+                # For source image, return True
+                if "default_female.jpg" in str(path_self) or "JE_Static_Image.jpg" in str(path_self):
+                    return True
+                # Default to actual exists() for other paths
+                return Path.exists(path_self)
 
             with patch.object(generator, "_create_wav2lip_inference_script") as mock_create_script:
                 with patch("subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
                     
                     # Mock Path.exists() for the script path check
-                    with patch.object(PathClass, "exists", mock_exists):
+                    with patch("pathlib.Path.exists", mock_path_exists):
                         # Mock the result file that would be created
                         result_dir = Path(temp_dir) / "results"
                         result_dir.mkdir(exist_ok=True)
@@ -1173,10 +1182,11 @@ class TestAvatarGeneratorEdgeCases:
         with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
             mock_gpu.return_value.gpu_available = False
 
-            # Mock model as existing during init to prevent download call
+            # Create model file so it exists during init to prevent download call
             model_path = temp_dir / "wav2lip_gan.pth"
-            with patch.object(model_path, "exists", return_value=True):
-                generator = AvatarGenerator(test_config)
+            model_path.write_bytes(b"fake model")
+            
+            generator = AvatarGenerator(test_config)
 
             # Now test download with all URLs failing
             mock_urlretrieve.side_effect = Exception("Network error")

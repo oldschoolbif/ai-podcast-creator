@@ -333,6 +333,13 @@ class AvatarGenerator:
                 source_image_path = Path(self.source_image).resolve()
             
             audio_path_resolved = Path(audio_path).resolve()
+            
+            # Check if model path is available
+            if self.wav2lip_model_path is None:
+                print("[WARN] Wav2Lip model not found: model path is None")
+                print("  Creating static avatar video...")
+                return self._create_fallback_video(audio_path, output_path)
+            
             checkpoint_path_resolved = Path(self.wav2lip_model_path).resolve()
             
             # Ensure output directory exists
