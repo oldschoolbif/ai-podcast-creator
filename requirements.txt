@@ -64,7 +64,8 @@ loguru>=0.7.0,<0.8.0
 tqdm>=4.66.0,<5.0.0
 pyyaml>=6.0.0,<7.0.0
 psutil>=6.1.0,<8.0.0  # System resource monitoring (CPU, RAM)
-ffmpegcv[cuda]>=0.2.0,<1.0.0  # GPU-accelerated video processing (CUDA support)
+# GPU-accelerated video processing (CUDA support) - Optional, install manually if needed
+# ffmpegcv[cuda]>=0.2.0,<1.0.0  # Requires CUDA development tools - disabled in CI
 
 # Development
 pytest==7.4.3

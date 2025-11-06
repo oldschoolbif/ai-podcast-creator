@@ -44,10 +44,14 @@ jobs:
         python -m pip install --upgrade pip
         # Install pyyaml early for conftest.py (before requirements.txt)
         pip install pyyaml
-        # Install core test dependencies (pytest comes from requirements.txt)
+        # Install core test dependencies FIRST (pytest must be available)
         pip install numpy typer hypothesis sortedcontainers mypy types-PyYAML types-requests
-        # Install requirements - continue even if optional packages like av/audiocraft fail
-        pip install -r requirements.txt || echo "Some packages failed to install (expected for optional dependencies)"
+        pip install pytest pytest-asyncio pytest-cov pytest-xdist pytest-timeout pytest-benchmark
+        # Install requirements - continue even if optional packages fail
+        # Note: ffmpegcv[cuda] is commented out in requirements.txt to avoid pycuda build issues in CI
+        pip install -r requirements.txt || echo "Some optional packages failed to install (expected)"
+        # Ensure pytest is still available even if requirements.txt had issues
+        pip install pytest pytest-cov || true
     
     - name: Run linting
       run: |
