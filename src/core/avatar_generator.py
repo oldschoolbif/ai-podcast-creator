@@ -64,6 +64,31 @@ class AvatarGenerator:
     def get_file_monitor(self):
         """Get the last file monitor used for metrics tracking."""
         return self.last_file_monitor
+    
+    def _get_audio_duration_ffmpeg(self, audio_path: Path) -> float:
+        """Get audio duration using FFmpeg (safer than librosa which can crash with C extensions)."""
+        try:
+            # Use ffprobe to get duration without loading audio into memory
+            cmd = [
+                "ffprobe",
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(audio_path)
+            ]
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=10
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return float(result.stdout.strip())
+        except (subprocess.TimeoutExpired, ValueError, FileNotFoundError):
+            pass
+        # Fallback: return None to use default timeout
+        return None
 
     def _init_sadtalker(self):
         """Initialize SadTalker model with GPU acceleration."""
@@ -445,11 +470,14 @@ class AvatarGenerator:
                 
                 try:
                     # Add timeout to prevent hanging (audio duration + 5 minutes buffer)
-                    # Use resolved absolute path for librosa since we changed directories
-                    import librosa
-                    audio_duration = librosa.get_duration(filename=str(audio_path_resolved))
-                    timeout_seconds = int(audio_duration * 2) + 300  # 2x audio duration + 5 min buffer
-                    print(f"  [INFO] Wav2Lip timeout set to {timeout_seconds}s (audio: {audio_duration:.1f}s)")
+                    # Get audio duration using FFmpeg (safer than librosa which can crash)
+                    audio_duration = self._get_audio_duration_ffmpeg(audio_path_resolved)
+                    if audio_duration is not None:
+                        timeout_seconds = int(audio_duration * 2) + 300  # 2x audio duration + 5 min buffer
+                        print(f"  [INFO] Wav2Lip timeout set to {timeout_seconds}s (audio: {audio_duration:.1f}s)")
+                    else:
+                        timeout_seconds = 600  # 10 minutes default
+                        print(f"  [INFO] Wav2Lip timeout set to {timeout_seconds}s (default)")
                     
                     # Verify audio file exists before running (with absolute path since we changed dirs)
                     if not audio_path_resolved.exists():

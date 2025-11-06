@@ -264,7 +264,8 @@ class TestVideoComposerFFmpegFallback:
     def test_compose_with_ffmpeg_gpu(self, test_config, temp_dir):
         """Test FFmpeg composition with GPU acceleration."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create a valid audio file (mock validation will pass)
+        audio_path.write_bytes(b"RIFF" + b"\x00" * 100)  # Minimal valid-looking file
 
         bg_path = Path(test_config["video"]["background_path"])
         output_path = temp_dir / "output.mp4"
@@ -280,22 +281,26 @@ class TestVideoComposerFFmpegFallback:
             patch("src.utils.gpu_utils.get_gpu_manager", return_value=mock_gpu_manager),
             patch("subprocess.run", return_value=mock_result) as mock_run,
             patch("subprocess.Popen") as mock_popen,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
         ):
 
             mock_process = MagicMock()
-            mock_process.wait.return_value = 0
+            mock_process.communicate.return_value = ("", "")
+            mock_process.returncode = 0
             mock_popen.return_value = mock_process
 
             composer = VideoComposer(test_config)
             result = composer._compose_with_ffmpeg(audio_path, bg_path, output_path)
 
-            # Should have called subprocess
+            # Should have validated and called subprocess
+            mock_validate.assert_called_once_with(audio_path)
             assert mock_popen.called or mock_run.called
 
     def test_compose_with_ffmpeg_cpu(self, test_config, temp_dir):
         """Test FFmpeg composition without GPU."""
         audio_path = temp_dir / "test_audio.wav"
-        audio_path.touch()
+        # Create a valid audio file (mock validation will pass)
+        audio_path.write_bytes(b"RIFF" + b"\x00" * 100)  # Minimal valid-looking file
 
         bg_path = Path(test_config["video"]["background_path"])
         output_path = temp_dir / "output.mp4"
@@ -309,12 +314,14 @@ class TestVideoComposerFFmpegFallback:
         with (
             patch("src.utils.gpu_utils.get_gpu_manager", return_value=mock_gpu_manager),
             patch("subprocess.run", return_value=mock_result) as mock_run,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
         ):
 
             composer = VideoComposer(test_config)
             result = composer._compose_with_ffmpeg(audio_path, bg_path, output_path)
 
-            # Should use CPU encoding
+            # Should have validated and used CPU encoding
+            mock_validate.assert_called_once_with(audio_path)
             assert mock_run.called
             assert result == output_path
 
@@ -348,6 +355,80 @@ class TestVideoComposerHelperMethods:
 
             assert mock_img.called
             assert mock_draw.called
+    
+    def test_validate_audio_file_missing(self, test_config, temp_dir):
+        """Test audio file validation with missing file."""
+        composer = VideoComposer(test_config)
+        audio_path = temp_dir / "missing.wav"
+        
+        is_valid, error_msg = composer._validate_audio_file(audio_path)
+        
+        assert not is_valid
+        assert "does not exist" in error_msg
+        assert str(audio_path) in error_msg
+    
+    def test_validate_audio_file_empty(self, test_config, temp_dir):
+        """Test audio file validation with empty file."""
+        composer = VideoComposer(test_config)
+        audio_path = temp_dir / "empty.wav"
+        audio_path.touch()  # Create empty file
+        
+        is_valid, error_msg = composer._validate_audio_file(audio_path)
+        
+        assert not is_valid
+        assert "empty" in error_msg.lower() or "0 bytes" in error_msg
+        assert str(audio_path) in error_msg
+    
+    def test_validate_audio_file_too_small(self, test_config, temp_dir):
+        """Test audio file validation with file that's too small."""
+        composer = VideoComposer(test_config)
+        audio_path = temp_dir / "small.wav"
+        audio_path.write_bytes(b"x" * 50)  # 50 bytes - too small
+        
+        is_valid, error_msg = composer._validate_audio_file(audio_path)
+        
+        assert not is_valid
+        assert "too small" in error_msg.lower()
+        assert str(audio_path) in error_msg
+    
+    def test_validate_audio_file_corrupted(self, test_config, temp_dir):
+        """Test audio file validation with corrupted file (ffprobe detects corruption)."""
+        composer = VideoComposer(test_config)
+        audio_path = temp_dir / "corrupted.wav"
+        audio_path.write_bytes(b"INVALID_AUDIO" * 20)  # 240 bytes - passes size check
+        
+        # Mock ffprobe to return error indicating corruption
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stderr = "Illegal Audio-MPEG-Header 0x00000000"
+        mock_result.stdout = ""
+        
+        with patch("subprocess.run", return_value=mock_result):
+            is_valid, error_msg = composer._validate_audio_file(audio_path)
+            
+            assert not is_valid
+            assert ("corrupted" in error_msg.lower() or 
+                    "illegal" in error_msg.lower() or
+                    "validation failed" in error_msg.lower())
+            assert str(audio_path) in error_msg
+    
+    def test_validate_audio_file_valid(self, test_config, temp_dir):
+        """Test audio file validation with valid file."""
+        composer = VideoComposer(test_config)
+        audio_path = temp_dir / "valid.wav"
+        audio_path.write_bytes(b"RIFF" + b"\x00" * 200)  # 204 bytes - passes size check
+        
+        # Mock ffprobe to return valid duration
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stderr = ""
+        mock_result.stdout = "10.5\n"  # Valid duration
+        
+        with patch("subprocess.run", return_value=mock_result):
+            is_valid, error_msg = composer._validate_audio_file(audio_path)
+            
+            assert is_valid
+            assert error_msg == ""
 
 
 class TestVideoComposerErrorHandling:
@@ -377,19 +458,78 @@ class TestVideoComposerErrorHandling:
             mock_ffmpeg.assert_called_once()
 
     def test_compose_with_missing_audio(self, test_config, temp_dir):
-        """Test composition with missing audio file."""
+        """Test composition with missing audio file raises clear error."""
         audio_path = temp_dir / "missing_audio.wav"
         # Don't create the file
 
         composer = VideoComposer(test_config)
 
-        # Should handle gracefully (might raise exception or use fallback)
-        # This depends on implementation, but shouldn't crash
-        try:
-            result = composer.compose(audio_path, output_name="missing_test")
-        except (FileNotFoundError, Exception):
-            # Expected behavior
-            pass
+        # Should raise ValueError with clear error message
+        with pytest.raises(ValueError) as exc_info:
+            composer.compose(audio_path, output_name="missing_test")
+        
+        error_msg = str(exc_info.value)
+        assert "Audio file does not exist" in error_msg
+        assert str(audio_path) in error_msg
+        assert "Troubleshooting" in error_msg
+    
+    def test_compose_with_empty_audio_file(self, test_config, temp_dir):
+        """Test composition with empty audio file raises clear error."""
+        audio_path = temp_dir / "empty_audio.wav"
+        audio_path.touch()  # Create empty file (0 bytes)
+
+        composer = VideoComposer(test_config)
+
+        # Should raise ValueError with clear error message
+        with pytest.raises(ValueError) as exc_info:
+            composer.compose(audio_path, output_name="empty_test")
+        
+        error_msg = str(exc_info.value)
+        assert "empty" in error_msg.lower() or "0 bytes" in error_msg
+        assert str(audio_path) in error_msg
+        assert "Troubleshooting" in error_msg
+    
+    def test_compose_with_corrupted_audio_file(self, test_config, temp_dir):
+        """Test composition with corrupted audio file raises clear error."""
+        audio_path = temp_dir / "corrupted_audio.wav"
+        # Create a file with invalid audio data (too small to be valid)
+        audio_path.write_bytes(b"fake audio data" * 2)  # 30 bytes - too small
+
+        composer = VideoComposer(test_config)
+
+        # Should raise ValueError with clear error message
+        with pytest.raises(ValueError) as exc_info:
+            composer.compose(audio_path, output_name="corrupted_test")
+        
+        error_msg = str(exc_info.value)
+        assert ("too small" in error_msg.lower() or 
+                "corrupted" in error_msg.lower() or
+                "validation failed" in error_msg.lower())
+        assert str(audio_path) in error_msg
+        assert "Troubleshooting" in error_msg
+    
+    def test_compose_with_invalid_audio_format(self, test_config, temp_dir):
+        """Test composition with invalid audio format raises clear error."""
+        audio_path = temp_dir / "invalid_audio.wav"
+        # Create a file that looks like audio but isn't valid
+        # Write enough bytes to pass size check but invalid format
+        audio_path.write_bytes(b"INVALID_AUDIO_FORMAT" * 10)  # 200 bytes
+
+        composer = VideoComposer(test_config)
+
+        # Should raise ValueError or RuntimeError with clear error message
+        with pytest.raises((ValueError, RuntimeError)) as exc_info:
+            composer.compose(audio_path, output_name="invalid_test")
+        
+        error_msg = str(exc_info.value)
+        # Should mention validation failure, corruption, or FFmpeg error
+        assert ("validation" in error_msg.lower() or 
+                "corrupted" in error_msg.lower() or
+                "invalid" in error_msg.lower() or
+                "ffmpeg" in error_msg.lower())
+        assert str(audio_path) in error_msg
+        # Should provide troubleshooting information
+        assert "Troubleshooting" in error_msg or "troubleshooting" in error_msg.lower()
 
 
 class TestVideoComposerResolutions:

@@ -1176,24 +1176,38 @@ class TestAvatarGeneratorEdgeCases:
     @patch("urllib.request.urlretrieve")
     def test_download_wav2lip_model_all_urls_fail(self, mock_urlretrieve, test_config, temp_dir):
         """Test Wav2Lip model download when all URLs fail (lines 473-478)."""
+        import os
         test_config["avatar"]["engine"] = "wav2lip"
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
         with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
             mock_gpu.return_value.gpu_available = False
 
-            # Create model file so it exists during init to prevent download call
-            model_path = temp_dir / "wav2lip_gan.pth"
-            model_path.write_bytes(b"fake model")
-            
-            generator = AvatarGenerator(test_config)
+            # Change to temp_dir so that Path("models") resolves correctly
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(temp_dir)
+                
+                # Create model file so it exists during init to prevent download call
+                # models_dir is Path("models") which is relative to current working directory
+                models_dir = Path("models")
+                models_dir.mkdir(exist_ok=True)
+                model_path = models_dir / "wav2lip_gan.pth"
+                model_path.write_bytes(b"fake model")
+                
+                generator = AvatarGenerator(test_config)
+                
+                # Reset call count after __init__ (in case it was called)
+                mock_urlretrieve.reset_mock()
 
-            # Now test download with all URLs failing
-            mock_urlretrieve.side_effect = Exception("Network error")
-            generator._download_wav2lip_model(model_path)
+                # Now test download with all URLs failing
+                mock_urlretrieve.side_effect = Exception("Network error")
+                generator._download_wav2lip_model(model_path)
 
-            # Should try all URLs (3 attempts)
-            assert mock_urlretrieve.call_count == 3
+                # Should try all URLs (3 attempts)
+                assert mock_urlretrieve.call_count == 3
+            finally:
+                os.chdir(original_cwd)
 
     # Note: _create_fallback_video tests removed due to complex moviepy mocking
     # These methods (lines 480-517) can be tested via integration tests with real moviepy

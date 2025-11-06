@@ -24,6 +24,95 @@ class VideoComposer:
         """Get the last file monitor used for metrics tracking."""
         return self.last_file_monitor
     
+    def _validate_audio_file(self, audio_path: Path) -> tuple[bool, str]:
+        """
+        Validate audio file before processing.
+        
+        Returns:
+            (is_valid, error_message): Tuple indicating if file is valid and error message if not
+        """
+        # Check if file exists
+        if not audio_path.exists():
+            return False, f"Audio file does not exist: {audio_path}"
+        
+        # Check if file is empty
+        if audio_path.stat().st_size == 0:
+            return False, f"Audio file is empty (0 bytes): {audio_path}"
+        
+        # Check if file is too small (likely corrupted)
+        if audio_path.stat().st_size < 100:  # Less than 100 bytes is suspicious
+            return False, f"Audio file is too small ({audio_path.stat().st_size} bytes), likely corrupted: {audio_path}"
+        
+        # Use ffprobe to validate the audio file format
+        try:
+            cmd = [
+                "ffprobe",
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(audio_path)
+            ]
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=10
+            )
+            
+            # Check for common corruption indicators in stderr
+            stderr_lower = result.stderr.lower()
+            if "illegal" in stderr_lower or "invalid" in stderr_lower or "corrupt" in stderr_lower:
+                return False, f"Audio file appears corrupted (FFprobe error): {audio_path}\n  FFprobe stderr: {result.stderr[:200]}"
+            
+            if result.returncode != 0:
+                return False, f"Audio file validation failed (FFprobe returned {result.returncode}): {audio_path}\n  FFprobe stderr: {result.stderr[:200]}"
+            
+            # Check if we got a valid duration
+            if not result.stdout.strip():
+                return False, f"Audio file has no duration information (may be corrupted): {audio_path}\n  FFprobe stderr: {result.stderr[:200]}"
+            
+            try:
+                duration = float(result.stdout.strip())
+                if duration <= 0:
+                    return False, f"Audio file has invalid duration ({duration}s): {audio_path}"
+            except ValueError:
+                return False, f"Audio file duration could not be parsed: {audio_path}\n  FFprobe output: {result.stdout[:200]}"
+            
+            return True, ""
+            
+        except subprocess.TimeoutExpired:
+            return False, f"Audio file validation timed out (file may be corrupted or unreadable): {audio_path}"
+        except FileNotFoundError:
+            return False, f"FFprobe not found - cannot validate audio file: {audio_path}"
+        except Exception as e:
+            return False, f"Error validating audio file: {audio_path}\n  Error: {str(e)}"
+    
+    def _get_audio_duration_ffmpeg(self, audio_path: Path) -> float:
+        """Get audio duration using FFmpeg (safer than librosa which can crash with C extensions)."""
+        try:
+            # Use ffprobe to get duration without loading audio into memory
+            cmd = [
+                "ffprobe",
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(audio_path)
+            ]
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=10
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return float(result.stdout.strip())
+        except (subprocess.TimeoutExpired, ValueError, FileNotFoundError):
+            pass
+        # Fallback: return None to use default timeout
+        return None
+    
     def _cleanup_ffmpeg_process(self, process, timeout=2.0):
         """Properly cleanup FFmpeg process, closing all pipes and terminating/killing if needed."""
         import subprocess
@@ -187,6 +276,24 @@ class VideoComposer:
 
     def _compose_with_ffmpeg(self, audio_path: Path, image_path: Path, output_path: Path, quality: Optional[str] = None) -> Path:
         """Compose video using FFmpeg with GPU acceleration if available."""
+        # Validate audio file before processing
+        is_valid, error_msg = self._validate_audio_file(audio_path)
+        if not is_valid:
+            error_details = (
+                f"Audio file validation failed: {error_msg}\n"
+                f"  This usually indicates:\n"
+                f"  - The audio file was corrupted during generation\n"
+                f"  - The audio file is empty or incomplete\n"
+                f"  - The audio file format is invalid or unsupported\n"
+                f"  - The file path is incorrect\n"
+                f"  Troubleshooting steps:\n"
+                f"  1. Check if the audio file exists and is readable\n"
+                f"  2. Verify the file size is reasonable (not 0 bytes)\n"
+                f"  3. Try regenerating the audio file\n"
+                f"  4. Check the TTS/audio generation step for errors"
+            )
+            raise ValueError(error_details)
+        
         try:
             from src.utils.gpu_utils import get_gpu_manager
 
@@ -381,11 +488,11 @@ class VideoComposer:
 
             # Run FFmpeg with proper timeout and error handling using Popen for better control
             # Use a longer timeout for video encoding (audio duration + 5 minutes buffer)
-            try:
-                import librosa
-                audio_duration = librosa.get_duration(filename=str(audio_path))
+            # Get audio duration using FFmpeg (safer than librosa which can crash)
+            audio_duration = self._get_audio_duration_ffmpeg(audio_path)
+            if audio_duration is not None:
                 timeout_seconds = int(audio_duration * 2) + 300  # 2x audio duration + 5 min buffer
-            except Exception:
+            else:
                 timeout_seconds = 600  # 10 minutes default
             
             try:
@@ -514,6 +621,24 @@ class VideoComposer:
         """Create minimal video (black frame + audio) - default audio-only mode."""
         preset = self.QUALITY_PRESETS.get(quality or "fastest", self.QUALITY_PRESETS["fastest"])
         
+        # Validate audio file before processing
+        is_valid, error_msg = self._validate_audio_file(audio_path)
+        if not is_valid:
+            error_details = (
+                f"Audio file validation failed: {error_msg}\n"
+                f"  This usually indicates:\n"
+                f"  - The audio file was corrupted during generation\n"
+                f"  - The audio file is empty or incomplete\n"
+                f"  - The audio file format is invalid or unsupported\n"
+                f"  - The file path is incorrect\n"
+                f"  Troubleshooting steps:\n"
+                f"  1. Check if the audio file exists and is readable\n"
+                f"  2. Verify the file size is reasonable (not 0 bytes)\n"
+                f"  3. Try regenerating the audio file\n"
+                f"  4. Check the TTS/audio generation step for errors"
+            )
+            raise ValueError(error_details)
+        
         try:
             from src.utils.gpu_utils import get_gpu_manager
             gpu_manager = get_gpu_manager()
@@ -573,11 +698,11 @@ class VideoComposer:
                 ])
             
             # Use Popen with timeout for better cleanup
-            try:
-                import librosa
-                audio_duration = librosa.get_duration(filename=str(audio_path))
+            # Get audio duration using FFmpeg (safer than librosa which can crash)
+            audio_duration = self._get_audio_duration_ffmpeg(audio_path)
+            if audio_duration is not None:
                 timeout_seconds = int(audio_duration * 2) + 300
-            except Exception:
+            else:
                 timeout_seconds = 600
             
             try:
@@ -596,11 +721,67 @@ class VideoComposer:
                 raise RuntimeError(f"FFmpeg timed out after {timeout_seconds}s")
             
             if result.returncode != 0:
-                raise RuntimeError(f"Failed to create minimal video: {result.stderr[:500]}")
+                # Analyze FFmpeg error to provide better diagnostics
+                stderr_lower = result.stderr.lower() if result.stderr else ""
+                error_analysis = []
+                
+                # Check for common corruption indicators
+                if "illegal" in stderr_lower or "invalid" in stderr_lower:
+                    error_analysis.append("Audio file appears corrupted or invalid")
+                if "no such file" in stderr_lower or "cannot find" in stderr_lower:
+                    error_analysis.append("Audio file not found or path is incorrect")
+                if "end of file" in stderr_lower or "unexpected end" in stderr_lower:
+                    error_analysis.append("Audio file is incomplete or truncated")
+                if "codec" in stderr_lower and "not found" in stderr_lower:
+                    error_analysis.append("Required audio codec not available")
+                
+                # Build detailed error message
+                error_msg_parts = [
+                    f"FFmpeg failed to create minimal video (exit code {result.returncode})"
+                ]
+                
+                if error_analysis:
+                    error_msg_parts.append("  Detected issues:")
+                    for issue in error_analysis:
+                        error_msg_parts.append(f"    - {issue}")
+                
+                error_msg_parts.extend([
+                    f"  Audio file: {audio_path}",
+                    f"  File size: {audio_path.stat().st_size if audio_path.exists() else 'N/A'} bytes",
+                    f"  FFmpeg stderr (last 500 chars):",
+                    f"    {result.stderr[-500:] if result.stderr else '(empty)'}",
+                    "",
+                    "  Troubleshooting:",
+                    "  1. Verify the audio file is valid and not corrupted",
+                    "  2. Check if the audio file was generated correctly",
+                    "  3. Try regenerating the audio file",
+                    "  4. Verify FFmpeg can read the audio file format",
+                    "  5. Check disk space and file permissions"
+                ])
+                
+                raise RuntimeError("\n".join(error_msg_parts))
             
             return output_path
+        except ValueError as e:
+            # Re-raise validation errors as-is (they already have good messages)
+            raise
+        except RuntimeError as e:
+            # Re-raise RuntimeErrors as-is (they're already detailed)
+            raise
         except Exception as e:
-            raise RuntimeError(f"Failed to create minimal video: {e}")
+            # Wrap other exceptions with context
+            error_details = (
+                f"Failed to create minimal video: {str(e)}\n"
+                f"  Audio file: {audio_path}\n"
+                f"  Output path: {output_path}\n"
+                f"  Error type: {type(e).__name__}\n"
+                f"  This may indicate:\n"
+                f"  - Audio file corruption or invalid format\n"
+                f"  - FFmpeg installation or configuration issue\n"
+                f"  - Insufficient disk space or permissions\n"
+                f"  - System resource limitations"
+            )
+            raise RuntimeError(error_details) from e
     
     def _compose_visualization_only(self, audio_path: Path, output_path: Path, quality: Optional[str] = None) -> Path:
         """Compose visualization video without background (pure visualization)."""
@@ -687,11 +868,11 @@ class VideoComposer:
             ])
             
             # Use Popen with timeout for better cleanup
-            try:
-                import librosa
-                audio_duration = librosa.get_duration(filename=str(audio_path))
+            # Get audio duration using FFmpeg (safer than librosa which can crash)
+            audio_duration = self._get_audio_duration_ffmpeg(audio_path)
+            if audio_duration is not None:
                 timeout_seconds = int(audio_duration * 2) + 300
-            except Exception:
+            else:
                 timeout_seconds = 600
             
             try:
@@ -807,11 +988,11 @@ class VideoComposer:
             ])
 
             # Use Popen with timeout for better cleanup
-            try:
-                import librosa
-                audio_duration = librosa.get_duration(filename=str(audio_path))
+            # Get audio duration using FFmpeg (safer than librosa which can crash)
+            audio_duration = self._get_audio_duration_ffmpeg(audio_path)
+            if audio_duration is not None:
                 timeout_seconds = int(audio_duration * 2) + 300
-            except Exception:
+            else:
                 timeout_seconds = 600
             
             try:
@@ -1105,11 +1286,11 @@ class VideoComposer:
                     stderr_thread.start()
                     
                     # Calculate timeout based on audio duration
-                    try:
-                        import librosa
-                        audio_duration = librosa.get_duration(filename=str(audio_path))
+                    # Get audio duration using FFmpeg (safer than librosa which can crash)
+                    audio_duration = self._get_audio_duration_ffmpeg(audio_path)
+                    if audio_duration is not None:
                         timeout_seconds = int(audio_duration * 2) + 300
-                    except Exception:
+                    else:
                         timeout_seconds = 600
                     
                     # Wait for process to complete with timeout
@@ -1225,11 +1406,11 @@ class VideoComposer:
                     stderr_thread.start()
                     
                     # Calculate timeout based on audio duration
-                    try:
-                        import librosa
-                        audio_duration = librosa.get_duration(filename=str(audio_path))
+                    # Get audio duration using FFmpeg (safer than librosa which can crash)
+                    audio_duration = self._get_audio_duration_ffmpeg(audio_path)
+                    if audio_duration is not None:
                         timeout_seconds = int(audio_duration * 2) + 300
-                    except Exception:
+                    else:
                         timeout_seconds = 600
                     
                     # Wait for process to complete with timeout
