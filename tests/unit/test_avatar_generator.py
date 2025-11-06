@@ -1173,10 +1173,12 @@ class TestAvatarGeneratorEdgeCases:
         with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
             mock_gpu.return_value.gpu_available = False
 
-            generator = AvatarGenerator(test_config)
+            # Mock model as existing during init to prevent download call
             model_path = temp_dir / "wav2lip_gan.pth"
+            with patch.object(model_path, "exists", return_value=True):
+                generator = AvatarGenerator(test_config)
 
-            # Mock all downloads fail
+            # Now test download with all URLs failing
             mock_urlretrieve.side_effect = Exception("Network error")
             generator._download_wav2lip_model(model_path)
 

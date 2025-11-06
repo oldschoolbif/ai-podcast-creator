@@ -35,9 +35,15 @@ def load_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
         base_config = yaml.safe_load(f)
 
     # If custom config provided, merge it with base config
-    if config_path is not None and config_path.exists():
+    if config_path is not None:
+        if not config_path.exists():
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
         with open(config_path, "r", encoding="utf-8") as f:
             custom_config = yaml.safe_load(f)
+        
+        # Handle empty YAML (returns None)
+        if custom_config is None:
+            custom_config = {}
         
         # Deep merge custom config into base config
         config = _deep_merge(base_config, custom_config)
@@ -61,6 +67,10 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
     Returns:
         Merged dictionary
     """
+    # Handle None override (empty YAML)
+    if override is None:
+        return base
+    
     result = base.copy()
     
     for key, value in override.items():

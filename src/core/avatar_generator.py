@@ -316,9 +316,9 @@ class AvatarGenerator:
 
             if not wav2lip_script.exists():
                 print(f"[WARN] Wav2Lip inference script not found at {wav2lip_script}")
-                print("  Cloning Wav2Lip repository...")
-                # Repository should already be cloned, but if not, fallback
-                return self._create_fallback_video(audio_path, output_path)
+                print("  Creating Wav2Lip inference script...")
+                # Create the inference script if it doesn't exist
+                self._create_wav2lip_inference_script(wav2lip_script)
 
             # Get Python executable from current environment
             python_exe = sys.executable
