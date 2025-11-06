@@ -331,7 +331,7 @@ class TestEdgeCases:
         mock_get_duration.get_duration.return_value = 2.0
         # Mock returns a generator that yields frames
         mock_waveform.return_value = iter([np.zeros((720, 1280, 3), dtype=np.uint8)])
-        mock_video.return_value = temp_dir / "output.mp4"
+        mock_stream_video.return_value = temp_dir / "output.mp4"
 
         viz = AudioVisualizer(test_config_visualization)
         audio_path = temp_dir / "test.wav"
@@ -390,7 +390,7 @@ class TestEdgeCases:
         mock_get_duration.get_duration.return_value = 2.0
         # Mock returns a generator that yields frames
         mock_particles.return_value = iter([np.zeros((720, 1280, 3), dtype=np.uint8)])
-        mock_video.return_value = temp_dir / "output.mp4"
+        mock_stream_video.return_value = temp_dir / "output.mp4"
 
         viz = AudioVisualizer(test_config_visualization)
         audio_path = temp_dir / "test.wav"
@@ -418,7 +418,7 @@ class TestEdgeCases:
         mock_get_duration.get_duration.return_value = 2.0
         # Mock returns a generator that yields frames
         mock_waveform.return_value = iter([np.zeros((720, 1280, 3), dtype=np.uint8)])
-        mock_video.return_value = temp_dir / "output.mp4"
+        mock_stream_video.return_value = temp_dir / "output.mp4"
 
         viz = AudioVisualizer(test_config_visualization)
         audio_path = temp_dir / "test.wav"
@@ -447,7 +447,7 @@ class TestEdgeCases:
         mock_get_duration.get_duration.return_value = 2.0
         # Mock returns a generator that yields frames
         mock_circular.return_value = iter([np.zeros((720, 1280, 3), dtype=np.uint8)])
-        mock_video.return_value = temp_dir / "output.mp4"
+        mock_stream_video.return_value = temp_dir / "output.mp4"
 
         viz = AudioVisualizer(test_config_visualization)
         audio_path = temp_dir / "test.wav"
@@ -461,10 +461,10 @@ class TestEdgeCases:
 
     @patch("src.core.audio_visualizer.librosa.load")
     @patch("src.core.audio_visualizer.librosa")
-    @patch("src.core.audio_visualizer.AudioVisualizer._generate_waveform_frames")
-    @patch("src.core.audio_visualizer.AudioVisualizer._frames_to_video")
+    @patch("src.core.audio_visualizer.AudioVisualizer._generate_waveform_frames_streaming_chunked_from_array")
+    @patch("src.core.audio_visualizer.AudioVisualizer._stream_frames_to_video")
     @patch("builtins.print")
-    def test_generate_visualization_print_statements(self, mock_print, mock_video, mock_waveform, mock_get_duration, mock_load, test_config_visualization, temp_dir):
+    def test_generate_visualization_print_statements(self, mock_print, mock_stream_video, mock_waveform, mock_get_duration, mock_load, test_config_visualization, temp_dir):
         """Test generate_visualization print statements (lines 41, 63)."""
         from src.core.audio_visualizer import AudioVisualizer
 
@@ -473,8 +473,8 @@ class TestEdgeCases:
         y_data = np.random.randn(1000).astype(np.float32)
         mock_load.return_value = (y_data, 22050)
         mock_get_duration.get_duration.return_value = 2.0
-        mock_waveform.return_value = [np.zeros((720, 1280, 3), dtype=np.uint8)]
-        mock_video.return_value = temp_dir / "output.mp4"
+        mock_waveform.return_value = iter([np.zeros((720, 1280, 3), dtype=np.uint8)])
+        mock_stream_video.return_value = temp_dir / "output.mp4"
 
         viz = AudioVisualizer(test_config_visualization)
         audio_path = temp_dir / "test.wav"
@@ -502,7 +502,8 @@ class TestEdgeCases:
         # Use very small chunk to trigger boundary
         y_small = y[:100]  # Very small audio
         
-        frames = viz._generate_waveform_frames(y_small, sr, 0.1)
+        frame_generator = viz._generate_waveform_frames_streaming_chunked_from_array(y_small, sr, 0.1)
+        frames = list(frame_generator)
 
         assert isinstance(frames, list)
         assert len(frames) > 0
@@ -519,7 +520,8 @@ class TestEdgeCases:
         sr = 22050
         duration = 0.1
 
-        frames = viz._generate_circular_frames(y, sr, duration)
+        frame_generator = viz._generate_circular_frames_streaming(y, sr, duration)
+        frames = list(frame_generator)
 
         assert isinstance(frames, list)
 
@@ -563,8 +565,8 @@ class TestEdgeCases:
                 
                 # Mock threading and other dependencies
                 with patch('threading.Thread'), \
-                     patch('src.core.audio_visualizer.FileMonitor'), \
-                     patch('src.core.audio_visualizer.RAMMonitor'):
+                     patch('src.utils.file_monitor.FileMonitor'), \
+                     patch('src.utils.ram_monitor.RAMMonitor'):
                     # Mock frame generator
                     import numpy as np
                     def mock_frame_gen():

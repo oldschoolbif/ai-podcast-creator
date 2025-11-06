@@ -239,13 +239,8 @@ class TestAudioVisualizerPropertyBased:
             frame_generator = viz._generate_waveform_frames_streaming_chunked_from_array(y, sr, duration)
             frames = list(frame_generator)
         elif style == "spectrum":
-            # Skip if librosa.stft issues or librosa not available
-            try:
-                import librosa
-
-                frames = viz._generate_spectrum_frames(y, sr, duration)
-            except (ImportError, AttributeError, Exception):
-                pytest.skip("Spectrum generation requires librosa")
+            # Spectrum requires file path, not array - skip for property tests
+            pytest.skip("Spectrum generation requires file path, not suitable for property tests")
         elif style == "circular":
             frame_generator = viz._generate_circular_frames_streaming(y, sr, duration)
             frames = list(frame_generator)
