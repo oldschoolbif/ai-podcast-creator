@@ -63,12 +63,16 @@ class TestVideoComposerCompose:
         mock_moviepy.editor.ImageClip = MagicMock(return_value=mock_bg_clip)
         mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_bg_clip)
 
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+        with (
+            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
+        ):
             composer = VideoComposer(test_config)
             result = composer.compose(audio_path, output_name="test_output")
 
             assert result.name == "test_output.mp4"
             mock_audio.close.assert_called()
+            mock_validate.assert_called_once_with(audio_path)
 
     def test_compose_with_color_background(self, test_config, temp_dir):
         """Test composition when background image doesn't exist (uses ColorClip)."""
@@ -130,7 +134,10 @@ class TestVideoComposerCompose:
         avatar_video = temp_dir / "avatar.mp4"
         avatar_video.touch()
 
-        with patch.object(VideoComposer, "_overlay_visualization_on_avatar") as mock_overlay:
+        with (
+            patch.object(VideoComposer, "_overlay_visualization_on_avatar") as mock_overlay,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
+        ):
             mock_overlay.return_value = temp_dir / "output.mp4"
 
             composer = VideoComposer(test_config)
@@ -139,6 +146,7 @@ class TestVideoComposerCompose:
             )
 
             mock_overlay.assert_called_once()
+            mock_validate.assert_called_once_with(audio_path)
 
     def test_compose_default_use_visualization_false(self, test_config, temp_dir):
         """Test that compose defaults to use_visualization=False (no visualization by default)."""
@@ -225,6 +233,7 @@ class TestVideoComposerCompose:
         with (
             patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
             patch.object(VideoComposer, "_compose_with_ffmpeg") as mock_ffmpeg,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
         ):
 
             expected_output = temp_dir / "output" / "test_ffmpeg.mp4"
@@ -234,6 +243,7 @@ class TestVideoComposerCompose:
             result = composer.compose(audio_path, output_name="test_ffmpeg")
 
             mock_ffmpeg.assert_called_once()
+            mock_validate.assert_called_once_with(audio_path)
             assert result == expected_output
 
     def test_compose_generates_timestamp_name(self, test_config, temp_dir):

@@ -317,7 +317,7 @@ class TestEdgeCases:
         # But will fallback to waveform during generate() call
 
     @patch("src.core.audio_visualizer.librosa.load")
-    @patch("src.core.audio_visualizer.librosa")
+    @patch("src.core.audio_visualizer.AudioVisualizer._get_audio_duration_ffmpeg")
     @patch("src.core.audio_visualizer.AudioVisualizer._generate_waveform_frames_streaming_chunked")
     @patch("src.core.audio_visualizer.AudioVisualizer._stream_frames_to_video")
     def test_generate_visualization_calls_load_and_duration(self, mock_stream_video, mock_waveform, mock_get_duration, mock_load, test_config_visualization, temp_dir):
@@ -328,7 +328,7 @@ class TestEdgeCases:
 
         y_data = np.random.randn(1000).astype(np.float32)
         mock_load.return_value = (y_data, 22050)
-        mock_get_duration.get_duration.return_value = 2.0
+        mock_get_duration.return_value = 2.0  # FFmpeg method returns float directly
         # Mock returns a generator that yields frames
         mock_waveform.return_value = iter([np.zeros((720, 1280, 3), dtype=np.uint8)])
         mock_stream_video.return_value = temp_dir / "output.mp4"
@@ -342,8 +342,8 @@ class TestEdgeCases:
 
         # Verify librosa was called for sample rate detection
         assert mock_load.called
-        # get_duration called to get audio duration
-        assert mock_get_duration.get_duration.called
+        # _get_audio_duration_ffmpeg called to get audio duration
+        assert mock_get_duration.called
         assert result == mock_stream_video.return_value
 
     @patch("src.core.audio_visualizer.librosa.load")

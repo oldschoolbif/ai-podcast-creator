@@ -59,13 +59,17 @@ class TestVideoCompositionIntegration:
 
         mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=10.0)
 
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+        with (
+            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
+        ):
             output = composer.compose(audio_file, output_name="integration_test")
 
             assert output.suffix == ".mp4"
             assert "integration_test" in str(output)
             assert output.parent == temp_dir
             mock_video.write_videofile.assert_called_once()
+            mock_validate.assert_called_once_with(audio_file)
 
     def test_custom_resolution_workflow(self, test_config, temp_dir):
         """Test different resolutions are handled correctly."""
@@ -87,7 +91,10 @@ class TestVideoCompositionIntegration:
 
             mock_moviepy, mock_audio, mock_video = create_moviepy_mock()
 
-            with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+            with (
+                patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+                patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+            ):
                 output = composer.compose(audio_file, output_name=name)
 
                 # Verify resolution was used
@@ -133,7 +140,10 @@ class TestVideoCompositionIntegration:
 
         mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=3.0)
 
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+        with (
+            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        ):
             output = composer.compose(audio_file)
 
             # Verify ImageClip was used (not ColorClip) for background image
@@ -157,7 +167,10 @@ class TestVideoCompositionIntegration:
 
             mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=duration)
 
-            with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+            with (
+                patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+                patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+            ):
                 output = composer.compose(audio_file, output_name=f"test_{duration}s")
 
                 # Verify duration was set
@@ -190,7 +203,10 @@ class TestVideoCompositionIntegration:
 
         mock_moviepy, mock_audio, mock_video = create_moviepy_mock()
 
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+        with (
+            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        ):
             output1 = composer.compose(audio_file, output_name=None)
             output2 = composer.compose(audio_file, output_name=None)
 

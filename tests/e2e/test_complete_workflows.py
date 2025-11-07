@@ -299,7 +299,10 @@ class TestErrorRecoveryWorkflows:
 
         test_config["storage"]["outputs_dir"] = str(temp_dir)
 
-        with patch("src.core.video_composer.subprocess.run") as mock_run:
+        with (
+            patch("src.core.video_composer.subprocess.run") as mock_run,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        ):
             mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
             import builtins
