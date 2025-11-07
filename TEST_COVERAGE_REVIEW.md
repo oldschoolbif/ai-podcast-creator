@@ -225,25 +225,55 @@
 
 ---
 
-## Implementation Strategy
+## Implementation Strategy (Risk-Based Prioritization)
 
-### Phase 1: Critical Edge Cases (Week 1)
+### Phase 1: Integration Tests (CRITICAL - Do First)
+- ✅ Add end-to-end integration tests for full waveform pipeline
+- ✅ Test CLI → AudioVisualizer → VideoComposer flow
+- ✅ Test various waveform configurations end-to-end
+- ✅ Test error propagation through the pipeline
+- **Target:** 80%+ integration test coverage
+- **Risk:** High - Integration bugs break entire feature
+- **Effort:** 6-8 hours
+
+### Phase 2: Critical Error Paths (CRITICAL - Do Second)
 - ✅ Add error handling tests for `audio_visualizer.py`
-- ✅ Add boundary condition tests (invalid inputs, edge values)
-- ✅ Add missing dependency tests (OpenCV, FFmpeg)
-- **Target:** Increase `audio_visualizer.py` coverage to 60%+
-
-### Phase 2: Avatar & Integration (Week 2)
+  - Missing OpenCV fallback
+  - FFmpeg failures
+  - Invalid audio files
+  - Memory errors
 - ✅ Add error path tests for `avatar_generator.py`
-- ✅ Add integration tests for full pipeline
-- ✅ Add CLI parameter validation tests
-- **Target:** Increase `avatar_generator.py` coverage to 70%+, add integration test suite
+  - FFmpeg duration calculation errors
+  - Wav2Lip generation failures
+  - Model download errors
+- **Target:** 70%+ coverage for error paths
+- **Risk:** High - Silent failures or crashes in production
+- **Effort:** 8-10 hours
 
-### Phase 3: Polish & Completeness (Week 3)
-- ✅ Add remaining CLI tests
+### Phase 3: Edge Cases & Boundary Conditions (HIGH - Do Third)
+- ✅ Add boundary condition tests (invalid inputs, edge values)
+- ✅ Add large file handling tests
+- ✅ Add streaming failure recovery tests
+- ✅ Add configuration validation tests
+- **Target:** 70%+ coverage for edge cases
+- **Risk:** Medium-High - Edge cases can cause unexpected failures
+- **Effort:** 6-8 hours
+
+### Phase 4: User Experience & Validation (MEDIUM - Do Fourth)
+- ✅ Add CLI parameter validation tests
+- ✅ Add error message quality tests
+- ✅ Add user feedback tests
+- **Target:** 60%+ CLI coverage
+- **Risk:** Medium - Poor UX hurts adoption
+- **Effort:** 4-6 hours
+
+### Phase 5: Completeness (LOW - Do Last)
 - ✅ Add face generator tests
+- ✅ Add remaining unit tests
 - ✅ Add performance/load tests
 - **Target:** Overall coverage to 70%+
+- **Risk:** Low - Completes coverage but not critical
+- **Effort:** 4-6 hours
 
 ---
 
