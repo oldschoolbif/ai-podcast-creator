@@ -307,9 +307,11 @@ def test_compose_with_ffmpeg_file_not_found(tmp_path):
 
     with (
         patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        patch.object(VideoComposer, "_get_audio_duration_ffmpeg", return_value=1.0),  # Avoid timeout calculation
         patch("src.core.video_composer.subprocess.Popen", side_effect=FileNotFoundError("ffmpeg")),
     ):
-        with pytest.raises((FileNotFoundError, RuntimeError), match="(ffmpeg|FFmpeg not found)"):
+        # FileNotFoundError from Popen should be caught and converted to RuntimeError
+        with pytest.raises(RuntimeError, match="FFmpeg not found"):
             comp._compose_with_ffmpeg(audio, image, output)
 
 
