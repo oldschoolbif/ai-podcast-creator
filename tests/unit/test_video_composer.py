@@ -321,11 +321,19 @@ class TestVideoComposerFFmpegFallback:
             mock_process.returncode = 0
             mock_popen.return_value = mock_process
 
-            # Create output file to simulate successful FFmpeg run
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_bytes(b"fake video")
-
             composer = VideoComposer(test_config)
+            
+            # Create output file AFTER mocking but BEFORE calling _compose_with_ffmpeg
+            # (the method checks if file exists after FFmpeg runs)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Mock subprocess.run to create the output file when called
+            def create_output_file(*args, **kwargs):
+                output_path.write_bytes(b"fake video")
+                return mock_result
+            
+            mock_run.side_effect = create_output_file
+            
             result = composer._compose_with_ffmpeg(audio_path, bg_path, output_path)
 
             # Should have validated and used CPU encoding
