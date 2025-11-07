@@ -173,9 +173,9 @@ class TestCompleteWorkflows:
         with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
             video_path = composer.compose(audio_path, output_name=parsed["metadata"]["title"])
 
-                # Verify final output
-                assert video_path.exists() or video_path.parent.exists()
-                assert "My Test Podcast" in str(video_path) or video_path.suffix == ".mp4"
+            # Verify final output
+            assert video_path.exists() or video_path.parent.exists()
+            assert "My Test Podcast" in str(video_path) or video_path.suffix == ".mp4"
 
     def test_multiple_podcasts_workflow(self, test_config, temp_dir, skip_if_no_internet):
         """Test creating multiple podcasts in sequence."""
