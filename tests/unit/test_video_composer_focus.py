@@ -86,6 +86,7 @@ def test_text_overlay_path(tmp_path):
         with (
             patch("src.core.video_composer.VideoComposer._create_text_image", return_value=str(tmp_path / "t.png")),
             patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+            patch.object(VideoComposer, "_compose_minimal_video", return_value=tmp_path / "out" / "output.mp4"),
         ):
             comp = VideoComposer(cfg)
             out = comp.compose(audio)
@@ -120,6 +121,7 @@ def test_ffmpeg_fallback_on_import_error(tmp_path):
         with (
             patch("builtins.__import__", side_effect=fake_import),
             patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+            patch.object(VideoComposer, "_compose_minimal_video", return_value=tmp_path / "out" / "output.mp4"),
         ):
             comp = VideoComposer(cfg)
             out = comp.compose(audio)

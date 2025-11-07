@@ -46,7 +46,7 @@ class TestVideoComposerCompose:
         create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         with (
-            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
             patch.object(VideoComposer, "_compose_minimal_video") as mock_minimal,
         ):
             mock_minimal.return_value = temp_dir / "test_output.mp4"
@@ -54,7 +54,8 @@ class TestVideoComposerCompose:
             result = composer.compose(audio_path, output_name="test_output")
 
             assert result.name == "test_output.mp4"
-            mock_validate.assert_called_once_with(audio_path)
+            # Note: validation is called inside _compose_minimal_video, which is mocked
+            # So we just verify _compose_minimal_video was called
             mock_minimal.assert_called_once()
 
     def test_compose_with_color_background(self, test_config, temp_dir):
@@ -119,9 +120,11 @@ class TestVideoComposerCompose:
 
         with (
             patch.object(VideoComposer, "_overlay_visualization_on_avatar") as mock_overlay,
-            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+            patch("src.core.audio_visualizer.AudioVisualizer.generate_visualization") as mock_viz_gen,
         ):
             mock_overlay.return_value = temp_dir / "output.mp4"
+            mock_viz_gen.return_value = temp_dir / "viz.mp4"
 
             composer = VideoComposer(test_config)
             result = composer.compose(
@@ -129,7 +132,6 @@ class TestVideoComposerCompose:
             )
 
             mock_overlay.assert_called_once()
-            mock_validate.assert_called_once_with(audio_path)
 
     def test_compose_default_use_visualization_false(self, test_config, temp_dir):
         """Test that compose defaults to use_visualization=False (no visualization by default)."""

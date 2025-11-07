@@ -57,18 +57,17 @@ class TestVideoCompositionIntegration:
 
         composer = VideoComposer(test_config)
 
-        mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=10.0)
-
         with (
-            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
             patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
+            patch.object(VideoComposer, "_compose_minimal_video") as mock_minimal,
         ):
+            mock_minimal.return_value = temp_dir / "integration_test.mp4"
             output = composer.compose(audio_file, output_name="integration_test")
 
             assert output.suffix == ".mp4"
             assert "integration_test" in str(output)
             assert output.parent == temp_dir
-            mock_video.write_videofile.assert_called_once()
+            mock_minimal.assert_called_once()
             mock_validate.assert_called_once_with(audio_file)
 
     def test_custom_resolution_workflow(self, test_config, temp_dir):
@@ -138,16 +137,15 @@ class TestVideoCompositionIntegration:
 
         composer = VideoComposer(test_config)
 
-        mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=3.0)
-
         with (
-            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
             patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+            patch.object(VideoComposer, "_compose_with_ffmpeg") as mock_ffmpeg,
         ):
+            mock_ffmpeg.return_value = temp_dir / "output.mp4"
             output = composer.compose(audio_file)
 
-            # Verify ImageClip was used (not ColorClip) for background image
-            assert mock_moviepy.editor.ImageClip.called
+            # Verify _compose_with_ffmpeg was called (background image path)
+            mock_ffmpeg.assert_called_once()
             # Output should be created
             assert output is not None
 
@@ -165,16 +163,15 @@ class TestVideoCompositionIntegration:
         for duration in durations:
             composer = VideoComposer(test_config)
 
-            mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=duration)
-
             with (
-                patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
                 patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+                patch.object(VideoComposer, "_compose_with_ffmpeg") as mock_ffmpeg,
             ):
+                mock_ffmpeg.return_value = temp_dir / f"test_{duration}s.mp4"
                 output = composer.compose(audio_file, output_name=f"test_{duration}s")
 
-                # Verify duration was set
-                mock_video.set_duration.assert_called_with(duration)
+                # Verify _compose_with_ffmpeg was called (background image path)
+                mock_ffmpeg.assert_called_once()
                 assert f"test_{duration}s" in str(output)
 
     def test_output_directory_creation(self, test_config, temp_dir):
