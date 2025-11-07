@@ -116,7 +116,8 @@ class TestVideoComposerCompose:
         create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         avatar_video = temp_dir / "avatar.mp4"
-        avatar_video.touch()
+        # Create avatar video with content (size > 0 required by compose logic)
+        avatar_video.write_bytes(b"fake video content" * 100)
 
         with (
             patch.object(VideoComposer, "_overlay_visualization_on_avatar") as mock_overlay,
@@ -319,6 +320,10 @@ class TestVideoComposerFFmpegFallback:
             mock_process.communicate.return_value = ("", "")
             mock_process.returncode = 0
             mock_popen.return_value = mock_process
+
+            # Create output file to simulate successful FFmpeg run
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(b"fake video")
 
             composer = VideoComposer(test_config)
             result = composer._compose_with_ffmpeg(audio_path, bg_path, output_path)

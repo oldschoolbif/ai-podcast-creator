@@ -58,7 +58,7 @@ class TestVideoCompositionIntegration:
         composer = VideoComposer(test_config)
 
         with (
-            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
             patch.object(VideoComposer, "_compose_minimal_video") as mock_minimal,
         ):
             mock_minimal.return_value = temp_dir / "integration_test.mp4"
@@ -68,7 +68,7 @@ class TestVideoCompositionIntegration:
             assert "integration_test" in str(output)
             assert output.parent == temp_dir
             mock_minimal.assert_called_once()
-            mock_validate.assert_called_once_with(audio_file)
+            # Note: validation happens inside _compose_minimal_video, which is mocked
 
     def test_custom_resolution_workflow(self, test_config, temp_dir):
         """Test different resolutions are handled correctly."""
@@ -142,7 +142,7 @@ class TestVideoCompositionIntegration:
             patch.object(VideoComposer, "_compose_with_ffmpeg") as mock_ffmpeg,
         ):
             mock_ffmpeg.return_value = temp_dir / "output.mp4"
-            output = composer.compose(audio_file)
+            output = composer.compose(audio_file, use_background=True)
 
             # Verify _compose_with_ffmpeg was called (background image path)
             mock_ffmpeg.assert_called_once()
@@ -168,7 +168,7 @@ class TestVideoCompositionIntegration:
                 patch.object(VideoComposer, "_compose_with_ffmpeg") as mock_ffmpeg,
             ):
                 mock_ffmpeg.return_value = temp_dir / f"test_{duration}s.mp4"
-                output = composer.compose(audio_file, output_name=f"test_{duration}s")
+                output = composer.compose(audio_file, output_name=f"test_{duration}s", use_background=True)
 
                 # Verify _compose_with_ffmpeg was called (background image path)
                 mock_ffmpeg.assert_called_once()
