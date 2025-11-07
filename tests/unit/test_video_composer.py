@@ -296,8 +296,8 @@ class TestVideoComposerFFmpegFallback:
     def test_compose_with_ffmpeg_cpu(self, test_config, temp_dir):
         """Test FFmpeg composition without GPU."""
         audio_path = temp_dir / "test_audio.wav"
-        # Create a valid audio file (mock validation will pass)
-        audio_path.write_bytes(b"RIFF" + b"\x00" * 100)  # Minimal valid-looking file
+        # Create valid audio file for happy path test
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         bg_path = Path(test_config["video"]["background_path"])
         output_path = temp_dir / "output.mp4"
