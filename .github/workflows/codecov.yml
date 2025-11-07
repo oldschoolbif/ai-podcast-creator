@@ -66,7 +66,7 @@ jobs:
         coverage-badge -o coverage.svg -f || true
     
     - name: Post coverage comment on PR
-      if: github.event_name == 'pull_request' && false  # Disabled: PR diff too large (>20000 lines) causes API error
+      if: github.event_name == 'pull_request' && github.event.pull_request.changed_files < 200
       uses: py-cov-action/python-coverage-comment-action@v3
       with:
         GITHUB_TOKEN: ${{ github.token }}
