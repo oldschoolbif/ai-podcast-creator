@@ -47,7 +47,11 @@ All test outputs saved to `Creations/MMedia/`:
   - `test_compose_with_invalid_audio_format` - Invalid format detection
   - `test_validate_audio_file_*` - Direct validation method tests (5 tests)
 - `tests/unit/test_avatar_generator.py` - Fixed `test_download_wav2lip_model_all_urls_fail` working directory issue
-- `tests/e2e/test_complete_workflows.py` - Updated to use `create_valid_mp3_file()` helper for happy path tests, fixed indentation error at line 177
+- `tests/e2e/test_complete_workflows.py` - Updated to use `create_valid_mp3_file()` helper for happy path tests, fixed indentation error at line 177, added validation mocking for happy path tests
+- `tests/conftest.py` - Improved `create_valid_mp3_file()` to use ffmpeg directly with verification, ensuring truly valid MP3 files
+- `tests/unit/test_audio_visualizer.py` - Updated `test_generate_visualization_calls_load_and_duration` to mock `_get_audio_duration_ffmpeg` instead of `librosa.get_duration`
+- `tests/unit/test_video_composer.py` - Added validation mocking to happy path tests (`test_compose_basic`, `test_compose_with_avatar_video_and_visualization`, `test_compose_fallback_to_ffmpeg`)
+- `tests/integration/test_video_integration.py` - Added validation mocking to happy path tests while preserving error handling tests that verify validation works
 - `tests/integration/test_video_integration.py` - Updated to use valid MP3 files for happy path, added corrupted/empty file error handling tests
 - `tests/conftest.py` - Added `create_valid_mp3_file()` helper function using pydub/ffmpeg to generate real MP3/WAV files
 - `tests/unit/test_video_composer.py` - Updated all happy path tests to use valid audio files, existing corrupted file tests verify graceful error handling (20% edge cases)
