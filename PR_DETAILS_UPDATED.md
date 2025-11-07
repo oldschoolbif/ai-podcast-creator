@@ -47,8 +47,11 @@ All test outputs saved to `Creations/MMedia/`:
   - `test_compose_with_invalid_audio_format` - Invalid format detection
   - `test_validate_audio_file_*` - Direct validation method tests (5 tests)
 - `tests/unit/test_avatar_generator.py` - Fixed `test_download_wav2lip_model_all_urls_fail` working directory issue
-- `tests/e2e/test_complete_workflows.py` - Updated to create valid audio files (>100 bytes) and mock ffprobe
-- `tests/integration/test_video_integration.py` - Updated to create valid audio files and mock ffprobe for validation
+- `tests/e2e/test_complete_workflows.py` - Updated to use `create_valid_mp3_file()` helper for happy path tests, fixed indentation error at line 177
+- `tests/integration/test_video_integration.py` - Updated to use valid MP3 files for happy path, added corrupted/empty file error handling tests
+- `tests/conftest.py` - Added `create_valid_mp3_file()` helper function using pydub/ffmpeg to generate real MP3/WAV files
+- `tests/unit/test_video_composer.py` - Updated all happy path tests to use valid audio files, existing corrupted file tests verify graceful error handling (20% edge cases)
+- `src/core/audio_visualizer.py` - Replaced `librosa.get_duration()` with FFmpeg-based `_get_audio_duration_ffmpeg()` to avoid C extension crashes
 
 ### Manual Testing
 ```bash
