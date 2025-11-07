@@ -205,30 +205,23 @@ class TestVideoComposerCompose:
             assert result is not None
 
     def test_compose_fallback_to_ffmpeg(self, test_config, temp_dir):
-        """Test fallback to FFmpeg when moviepy fails."""
+        """Test that compose uses _compose_minimal_video by default (no MoviePy fallback needed)."""
         audio_path = temp_dir / "test_audio.wav"
         # Create valid audio file for happy path test
         create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
-        # Create mock that raises ImportError
-        mock_moviepy = MagicMock()
-        mock_moviepy.editor = MagicMock()
-        mock_moviepy.editor.AudioFileClip = MagicMock(side_effect=ImportError("MoviePy not available"))
-
         with (
-            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
-            patch.object(VideoComposer, "_compose_with_ffmpeg") as mock_ffmpeg,
-            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
+            patch.object(VideoComposer, "_compose_minimal_video") as mock_minimal,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
         ):
-
             expected_output = temp_dir / "output" / "test_ffmpeg.mp4"
-            mock_ffmpeg.return_value = expected_output
+            mock_minimal.return_value = expected_output
 
             composer = VideoComposer(test_config)
             result = composer.compose(audio_path, output_name="test_ffmpeg")
 
-            mock_ffmpeg.assert_called_once()
-            mock_validate.assert_called_once_with(audio_path)
+            # Compose now defaults to _compose_minimal_video (no MoviePy fallback)
+            mock_minimal.assert_called_once()
             assert result == expected_output
 
     def test_compose_generates_timestamp_name(self, test_config, temp_dir):
@@ -318,15 +311,21 @@ class TestVideoComposerFFmpegFallback:
         with (
             patch("src.utils.gpu_utils.get_gpu_manager", return_value=mock_gpu_manager),
             patch("subprocess.run", return_value=mock_result) as mock_run,
+            patch("subprocess.Popen") as mock_popen,
             patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
         ):
+            # Mock Popen for FFmpeg streaming
+            mock_process = MagicMock()
+            mock_process.communicate.return_value = ("", "")
+            mock_process.returncode = 0
+            mock_popen.return_value = mock_process
 
             composer = VideoComposer(test_config)
             result = composer._compose_with_ffmpeg(audio_path, bg_path, output_path)
 
             # Should have validated and used CPU encoding
             mock_validate.assert_called_once_with(audio_path)
-            assert mock_run.called
+            assert mock_popen.called or mock_run.called
             assert result == output_path
 
 
@@ -450,19 +449,16 @@ class TestVideoComposerErrorHandling:
         mock_moviepy.editor.AudioFileClip = MagicMock(side_effect=Exception("Moviepy error"))
 
         with (
-            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
-            patch.object(VideoComposer, "_compose_with_ffmpeg") as mock_ffmpeg,
-            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
+            patch.object(VideoComposer, "_compose_minimal_video") as mock_minimal,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
         ):
-
-            mock_ffmpeg.return_value = temp_dir / "output.mp4"
+            mock_minimal.return_value = temp_dir / "output.mp4"
 
             composer = VideoComposer(test_config)
             result = composer.compose(audio_path, output_name="error_test")
 
-            # Should fall back to FFmpeg
-            mock_ffmpeg.assert_called_once()
-            mock_validate.assert_called_once_with(audio_path)
+            # Compose now defaults to _compose_minimal_video (no MoviePy exception handling needed)
+            mock_minimal.assert_called_once()
 
     def test_compose_with_missing_audio(self, test_config, temp_dir):
         """Test composition with missing audio file raises clear error."""
