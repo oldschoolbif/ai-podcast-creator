@@ -1122,21 +1122,24 @@ class TestAvatarGeneratorEdgeCases:
             wav2lip_script = wav2lip_dir / "inference.py"
             
             # Create a mock that returns False for the script path, True for others
-            # Store original exists to avoid recursion
-            original_exists = Path.exists
+            # Use string comparison to avoid recursion issues
+            wav2lip_script_str = str(wav2lip_script)
+            model_path_str = str(model_path)
             
             def mock_path_exists(path_self):
+                path_str = str(path_self)
                 # Return False for the wav2lip script path to trigger creation
-                if str(path_self) == str(wav2lip_script):
+                if path_str == wav2lip_script_str:
                     return False
                 # For model path, return True
-                if str(path_self) == str(model_path):
+                if path_str == model_path_str:
                     return True
                 # For source image, return True
-                if "default_female.jpg" in str(path_self) or "JE_Static_Image.jpg" in str(path_self):
+                if "default_female.jpg" in path_str or "JE_Static_Image.jpg" in path_str:
                     return True
-                # Default to actual exists() for other paths (use original, not self)
-                return original_exists(path_self)
+                # For other paths, check if they actually exist using os.path.exists
+                import os
+                return os.path.exists(path_str)
 
             with patch.object(generator, "_create_wav2lip_inference_script") as mock_create_script:
                 with patch("subprocess.run") as mock_run:
