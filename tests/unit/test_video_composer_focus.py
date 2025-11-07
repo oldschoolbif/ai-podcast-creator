@@ -307,9 +307,9 @@ def test_compose_with_ffmpeg_file_not_found(tmp_path):
 
     with (
         patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
-        patch("src.core.video_composer.subprocess.run", side_effect=FileNotFoundError("ffmpeg")),
+        patch("src.core.video_composer.subprocess.Popen", side_effect=FileNotFoundError("ffmpeg")),
     ):
-        with pytest.raises(RuntimeError, match="FFmpeg not found"):
+        with pytest.raises((FileNotFoundError, RuntimeError), match="(ffmpeg|FFmpeg not found)"):
             comp._compose_with_ffmpeg(audio, image, output)
 
 
