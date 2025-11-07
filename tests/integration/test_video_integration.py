@@ -82,8 +82,8 @@ class TestVideoCompositionIntegration:
         ]
 
         audio_file = temp_dir / "audio.mp3"
-        # Create valid audio file (must be > 100 bytes to pass validation)
-        audio_file.write_bytes(b"RIFF" + b"\x00" * 200)  # Minimal valid-looking file structure
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
 
         for resolution, name in resolutions:
             test_config["video"] = {"resolution": resolution, "background_path": str(temp_dir / "bg.jpg")}
@@ -109,8 +109,8 @@ class TestVideoCompositionIntegration:
         test_config["storage"]["outputs_dir"] = str(temp_dir)
 
         audio_file = temp_dir / "audio.mp3"
-        # Create valid audio file (must be > 100 bytes to pass validation)
-        audio_file.write_bytes(b"RIFF" + b"\x00" * 200)  # Minimal valid-looking file structure
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
 
         expected_output = temp_dir / "viz_output.mp4"
 
@@ -133,8 +133,8 @@ class TestVideoCompositionIntegration:
         test_config["video"] = {"background_path": str(bg_file)}
 
         audio_file = temp_dir / "audio.mp3"
-        # Create valid audio file (must be > 100 bytes to pass validation)
-        audio_file.write_bytes(b"RIFF" + b"\x00" * 200)  # Minimal valid-looking file structure
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=3.0)
 
         composer = VideoComposer(test_config)
 
@@ -157,8 +157,8 @@ class TestVideoCompositionIntegration:
         test_config["video"] = {"background_path": str(temp_dir / "bg.jpg")}
 
         audio_file = temp_dir / "audio.mp3"
-        # Create valid audio file (must be > 100 bytes to pass validation)
-        audio_file.write_bytes(b"RIFF" + b"\x00" * 200)  # Minimal valid-looking file structure
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
 
         durations = [1.0, 5.0, 30.0, 120.0]
 
@@ -196,8 +196,8 @@ class TestVideoCompositionIntegration:
         test_config["video"] = {"background_path": str(temp_dir / "bg.jpg")}
 
         audio_file = temp_dir / "audio.mp3"
-        # Create valid audio file (must be > 100 bytes to pass validation)
-        audio_file.write_bytes(b"RIFF" + b"\x00" * 200)  # Minimal valid-looking file structure
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
 
         composer = VideoComposer(test_config)
 

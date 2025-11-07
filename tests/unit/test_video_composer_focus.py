@@ -83,7 +83,10 @@ def test_text_overlay_path(tmp_path):
     fake_editor.CompositeVideoClip = MagicMock(return_value=FakeClip())
 
     with patch.dict(sys.modules, {"moviepy": MagicMock(editor=fake_editor), "moviepy.editor": fake_editor}):
-        with patch("src.core.video_composer.VideoComposer._create_text_image", return_value=str(tmp_path / "t.png")):
+        with (
+            patch("src.core.video_composer.VideoComposer._create_text_image", return_value=str(tmp_path / "t.png")),
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        ):
             comp = VideoComposer(cfg)
             out = comp.compose(audio)
             assert isinstance(out, Path)
@@ -114,7 +117,10 @@ def test_ffmpeg_fallback_on_import_error(tmp_path):
                 raise ImportError("no moviepy")
             return orig_import(name, *args, **kwargs)
 
-        with patch("builtins.__import__", side_effect=fake_import):
+        with (
+            patch("builtins.__import__", side_effect=fake_import),
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        ):
             comp = VideoComposer(cfg)
             out = comp.compose(audio)
             assert isinstance(out, Path)
@@ -245,12 +251,15 @@ def test_color_background_used_when_missing_file(tmp_path):
     ):
         fake_bg = tmp_path / "generated_bg.jpg"
         assert not fake_bg.exists()
-        with patch("src.core.video_composer.VideoComposer._create_text_image", return_value=str(tmp_path / "txt.png")):
-            with patch("src.core.video_composer.VideoComposer._create_default_background", return_value=fake_bg):
-                comp = VideoComposer(cfg)
-                out = comp.compose(audio)
-                assert isinstance(out, Path)
-                fake_editor.ColorClip.assert_called_once()
+        with (
+            patch("src.core.video_composer.VideoComposer._create_text_image", return_value=str(tmp_path / "txt.png")),
+            patch("src.core.video_composer.VideoComposer._create_default_background", return_value=fake_bg),
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        ):
+            comp = VideoComposer(cfg)
+            out = comp.compose(audio)
+            assert isinstance(out, Path)
+            fake_editor.ColorClip.assert_called_once()
 
 
 @pytest.mark.unit

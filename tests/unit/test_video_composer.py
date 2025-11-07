@@ -40,39 +40,22 @@ class TestVideoComposerCompose:
     """Test VideoComposer.compose() method."""
 
     def test_compose_basic(self, test_config, temp_dir):
-        """Test basic video composition with moviepy."""
+        """Test basic video composition (uses _compose_minimal_video by default)."""
         audio_path = temp_dir / "test_audio.wav"
         # Create valid audio file for happy path test
         create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
-        # Mock moviepy components
-        mock_audio = MagicMock()
-        mock_audio.duration = 5.0
-        mock_audio.close = MagicMock()
-
-        mock_bg_clip = MagicMock()
-        mock_bg_clip.set_duration = MagicMock(return_value=mock_bg_clip)
-        mock_bg_clip.set_audio = MagicMock(return_value=mock_bg_clip)
-        mock_bg_clip.write_videofile = MagicMock()
-        mock_bg_clip.close = MagicMock()
-
-        # Create mock moviepy module
-        mock_moviepy = MagicMock()
-        mock_moviepy.editor = MagicMock()
-        mock_moviepy.editor.AudioFileClip = MagicMock(return_value=mock_audio)
-        mock_moviepy.editor.ImageClip = MagicMock(return_value=mock_bg_clip)
-        mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_bg_clip)
-
         with (
-            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
             patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
+            patch.object(VideoComposer, "_compose_minimal_video") as mock_minimal,
         ):
+            mock_minimal.return_value = temp_dir / "test_output.mp4"
             composer = VideoComposer(test_config)
             result = composer.compose(audio_path, output_name="test_output")
 
             assert result.name == "test_output.mp4"
-            mock_audio.close.assert_called()
             mock_validate.assert_called_once_with(audio_path)
+            mock_minimal.assert_called_once()
 
     def test_compose_with_color_background(self, test_config, temp_dir):
         """Test composition when background image doesn't exist (uses ColorClip)."""
@@ -467,6 +450,7 @@ class TestVideoComposerErrorHandling:
         with (
             patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
             patch.object(VideoComposer, "_compose_with_ffmpeg") as mock_ffmpeg,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
         ):
 
             mock_ffmpeg.return_value = temp_dir / "output.mp4"
@@ -476,6 +460,7 @@ class TestVideoComposerErrorHandling:
 
             # Should fall back to FFmpeg
             mock_ffmpeg.assert_called_once()
+            mock_validate.assert_called_once_with(audio_path)
 
     def test_compose_with_missing_audio(self, test_config, temp_dir):
         """Test composition with missing audio file raises clear error."""
