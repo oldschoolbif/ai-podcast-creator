@@ -165,25 +165,25 @@ jobs:
     - name: Coverage summary
       if: always()
       run: |
-python3 - <<'PYEOF'
-import json
-from pathlib import Path
+        python3 -c "import json, textwrap; from pathlib import Path; exec(textwrap.dedent('''
+            import json
+            from pathlib import Path
 
-coverage_path = Path("coverage.json")
-if not coverage_path.exists():
-    print("⚠️ Coverage report not generated (tests may have failed)")
-else:
-    print("📊 Coverage Summary:")
-    with coverage_path.open() as f:
-        data = json.load(f)
-    total = data["totals"]["percent_covered"]
-    print(f"Total Coverage: {total:.2f}%")
-    print("\n📈 Module Coverage:")
-    for file, stats in sorted(data["files"].items()):
-        if "src/" in file:
-            name = file.split("src/")[-1]
-            cov = stats["summary"]["percent_covered"]
-            print(f"  {name}: {cov:.1f}%")
-PYEOF
+            coverage_path = Path('coverage.json')
+            if not coverage_path.exists():
+                print('⚠️ Coverage report not generated (tests may have failed)')
+            else:
+                print('📊 Coverage Summary:')
+                with coverage_path.open() as f:
+                    data = json.load(f)
+                total = data['totals']['percent_covered']
+                print(f'Total Coverage: {total:.2f}%')
+                print('\\n📈 Module Coverage:')
+                for file, stats in sorted(data['files'].items()):
+                    if 'src/' in file:
+                        name = file.split('src/')[-1]
+                        cov = stats['summary']['percent_covered']
+                        print(f'  {name}: {cov:.1f}%')
+        '''))"
       continue-on-error: true
 
