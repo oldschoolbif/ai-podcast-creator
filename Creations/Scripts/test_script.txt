@@ -1,0 +1,11 @@
+# Test Podcast Script
+
+This is a short test of the AI Podcast Creator.
+
+We are testing:
+- TTS generation
+- Waveform visualization
+- Static background image
+- Video composition
+
+Let's see how it works!

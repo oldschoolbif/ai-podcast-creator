@@ -1,0 +1,5 @@
+visualization:
+  style: waveform
+  waveform:
+    width_percent: 10
+    position: left

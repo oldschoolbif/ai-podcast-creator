@@ -1,0 +1,6 @@
+visualization:
+  style: waveform
+  waveform:
+    position: left,right
+    left_spacing: 30
+    right_spacing: 30

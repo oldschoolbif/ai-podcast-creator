@@ -1,0 +1,5 @@
+visualization:
+  style: waveform
+  waveform:
+    position: bottom
+    render_scale: 1.0

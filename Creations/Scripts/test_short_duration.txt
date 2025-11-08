@@ -1,0 +1,2 @@
+This is a short test script designed to take approximately ten seconds to read aloud. The content is brief and straightforward, allowing us to measure rendering performance quickly. This script will help us verify that the spinner indicator works correctly during short waveform generation tasks.
+

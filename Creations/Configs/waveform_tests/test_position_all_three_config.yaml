@@ -1,0 +1,7 @@
+visualization:
+  style: waveform
+  waveform:
+    position: top,left,right
+    num_lines: 2
+    height_percent: 20
+    width_percent: 20

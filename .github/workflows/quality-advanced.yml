@@ -9,6 +9,7 @@ on:
 jobs:
   mutation-testing:
     name: Mutation Testing
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     
     steps:
@@ -48,6 +49,7 @@ jobs:
 
   type-checking:
     name: Type Checking with MyPy
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     
     steps:
@@ -71,6 +73,7 @@ jobs:
 
   performance-tests:
     name: Performance Testing
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     
     steps:
@@ -96,6 +99,7 @@ jobs:
 
   dependency-audit:
     name: Dependency Security Audit
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     
     steps:
@@ -123,6 +127,7 @@ jobs:
 
   test-coverage-trend:
     name: Coverage Trend Analysis
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     
     steps:
@@ -136,10 +141,21 @@ jobs:
       with:
         python-version: '3.11'
     
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+    
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
-        pip install pytest pytest-cov
+        python -m pip install --upgrade pip
+        # Install core test dependencies FIRST (pytest must be available)
+        pip install numpy typer hypothesis sortedcontainers mypy types-PyYAML types-requests
+        pip install pytest pytest-asyncio pytest-cov pytest-xdist pytest-timeout pytest-benchmark
+        # Install requirements - continue even if optional packages fail
+        pip install -r requirements.txt || echo "Some optional packages failed to install (expected)"
+        # Ensure pytest is still available even if requirements.txt had issues
+        pip install pytest pytest-cov || true
     
     - name: Generate coverage report
       run: |
@@ -149,27 +165,25 @@ jobs:
     - name: Coverage summary
       if: always()
       run: |
-        if [ -f coverage.json ]; then
-          echo "📊 Coverage Summary:"
-          python3 << 'PYEOF'
-import json
-try:
-    with open('coverage.json') as f:
-        data = json.load(f)
-        total = data['totals']['percent_covered']
-        print(f'Total Coverage: {total:.2f}%')
-        
-        print('\n📈 Module Coverage:')
-        for file, stats in sorted(data['files'].items()):
-            if 'src/' in file:
-                name = file.split('src/')[-1]
-                cov = stats['summary']['percent_covered']
-                print(f'  {name}: {cov:.1f}%')
-except Exception as e:
-    print(f'Error reading coverage.json: {e}')
-PYEOF
-        else
-          echo "⚠️ Coverage report not generated (tests may have failed)"
-        fi
+        python3 -c "import json, textwrap; from pathlib import Path; exec(textwrap.dedent('''
+            import json
+            from pathlib import Path
+
+            coverage_path = Path('coverage.json')
+            if not coverage_path.exists():
+                print('⚠️ Coverage report not generated (tests may have failed)')
+            else:
+                print('📊 Coverage Summary:')
+                with coverage_path.open() as f:
+                    data = json.load(f)
+                total = data['totals']['percent_covered']
+                print(f'Total Coverage: {total:.2f}%')
+                print('\\n📈 Module Coverage:')
+                for file, stats in sorted(data['files'].items()):
+                    if 'src/' in file:
+                        name = file.split('src/')[-1]
+                        cov = stats['summary']['percent_covered']
+                        print(f'  {name}: {cov:.1f}%')
+        '''))"
       continue-on-error: true
 

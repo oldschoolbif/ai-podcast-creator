@@ -1,16 +1,35 @@
-# Dean's First AI Podcast Test
-
-[MUSIC: upbeat electronic intro]
-
-Hello! I'm Vivienne Sterling, and welcome to my AI-powered podcast studio.
-
-Today we're testing out some exciting new technology that brings scripts to life with realistic voices and professional production quality.
-
-[MUSIC: ambient background]
-
-This is Dean's first test of the system, combining text-to-speech generation, automated music integration, and video composition—all powered by artificial intelligence.
-
-[MUSIC: uplifting outro]
-
-If you're hearing this, it means the system is working perfectly. Thanks for watching!
-
+ Hiring-Manager Brief - Podcast Script Edition
+ Intro Music
+ [Intro music: moderate EDM pulse, subtle bass, filtered synth]
+ Narration
+ Today we are talking about a builder who did something few ever try: he built a working
+ healthcare AI ecosystem from scratch, locally, privately, and with zero licensing costs. His
+ name is Dean Pipes, and his project, Exponis, was not just a proof of concept. It was a
+ manifesto in code.
+ Narration
+ Dean's approach to technology was human at its core. He saw healthcare software not as a
+ product, but as a public utility: safe, observable, and open to improvement. Privacy was not a
+ feature; it was a right. So he designed systems that could run locally, where every action was
+ traceable, every message auditable, and every patient protected.
+ Narration
+ In under half a day, Dean built Exponis-Local, a GPU-accelerated, RAG-powered AI platform
+ that understood patient history, enforced content guardrails, and spoke securely through
+ speech integration. It ran on open-source components, cost nothing to operate, and required
+ no external servers. A living proof that healthcare AI can be ethical, performant, and
+ accessible.
+ Narration
+ But Exponis was more than code: it was a philosophy of engineering, composable,
+ observable, and defensible. Dean combined speed with seriousness, merging modern
+ cloud-native patterns with patient safety. Think systems mind, indie shipping speed,
+ infrastructure taste, and full-stack pragmatism, grounded in healthcare's real-world demands.
+ Narration
+ He understood that technology moves people only when it respects them. His audit logs were
+ not just compliance; they were accountability. His local-first stance was sovereignty. And his
+ architectures were blueprints for a more humane digital future.
+ Narration
+He leaves behind more than repositories: he leaves behind a pattern language. Build fast,
+ with guardrails. Automate, but never abdicate responsibility. Innovate, but never at the cost of
+ trust.
+ Outro
+ If you are building something bold and need an architect who still loves to build, Dean is open
+ to new projects. You can reach him on LinkedIn. [Music fades out

@@ -1,0 +1,6 @@
+visualization:
+  style: waveform
+  waveform:
+    opacity: 0.75
+    num_lines: 3
+    position: bottom

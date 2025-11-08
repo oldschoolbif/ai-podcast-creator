@@ -1,0 +1,15 @@
+# AI Podcast Creator - Project Overview
+
+Welcome to this special episode about the AI Podcast Creator project. I'm your host, and today I'll be sharing the story behind this revolutionary automated video podcast generation system.
+
+The AI Podcast Creator is a fully automated system that transforms simple text scripts into professional-quality video podcasts. Imagine writing a script, hitting a button, and getting a complete video podcast with a British female narrator, background music, animated talking head, and professional studio setting - all automatically generated.
+
+Let's start with the core concept. The system takes text input and processes it through a sophisticated pipeline. First, a script parser extracts the narrative content and any music cues. Then, a text-to-speech engine converts the text into natural-sounding speech using advanced AI voices. Our default narrator, Vivienne Sterling, speaks with a professional British Received Pronunciation accent that's warm, engaging, and perfectly suited for podcast content.
+
+But it doesn't stop at speech. The system can also generate background music automatically using AI music generation technology. You simply describe the mood you want - perhaps "upbeat electronic music" or "calm ambient background" - and the system creates custom music that matches your description. The audio mixer intelligently applies ducking, automatically lowering the music volume when speech is present, ensuring your narration always remains clear and prominent.
+
+The visual component is equally impressive. The system generates an animated talking head that's perfectly lip-synced to the audio. Using advanced facial animation technology, the avatar's mouth movements match the speech with remarkable accuracy. The talking head is placed in a professional recording studio setting, complete with acoustic panels and professional equipment, giving your podcast that polished, broadcast-quality look.
+
+One of the most exciting aspects of this system is its GPU acceleration capability. With NVIDIA GPU support, the entire generation process can be up to twelve times faster than traditional CPU processing. What might take an hour on a standard computer can be completed in just five to eight minutes with GPU acceleration. This makes the system practical for regular content creation, not just occasional use.
+
+The system is built with modularity in mind. You can swap out different text-to-speech engines - choose from Coqui TTS for open-source quality, ElevenLabs for premium voices, or Azure Speech for enterprise reliability. Similarly, the avatar system supports multiple technologies, including SadTalker for natural facial expressions and Wav2Lip for precise lip-sync. This flexibility ensures the system can adapt to different needs and budgets.

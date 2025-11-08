@@ -1,0 +1,4 @@
+visualization:
+  style: waveform
+  waveform:
+    randomize: true

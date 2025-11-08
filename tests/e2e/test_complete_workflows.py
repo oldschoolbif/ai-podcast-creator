@@ -15,6 +15,7 @@ from src.core.audio_mixer import AudioMixer
 from src.core.script_parser import ScriptParser
 from src.core.tts_engine import TTSEngine
 from src.core.video_composer import VideoComposer
+from tests.conftest import create_valid_mp3_file
 
 
 @pytest.mark.e2e
@@ -85,9 +86,9 @@ class TestCompleteWorkflows:
 
     def test_audio_to_video_workflow(self, test_config, temp_dir):
         """Test audio-to-video workflow."""
-        # Create mock audio file
+        # Create valid MP3 file for happy path test
         audio_file = temp_dir / "podcast_audio.mp3"
-        audio_file.write_bytes(b"audio content")
+        create_valid_mp3_file(audio_file, duration_seconds=10.5)
 
         # Configure video composer
         test_config["storage"]["outputs_dir"] = str(temp_dir)
@@ -143,7 +144,8 @@ class TestCompleteWorkflows:
         cache_key = tts._get_cache_key(parsed["text"])
         cached_path = tts.cache_dir / f"{cache_key}.mp3"
         cached_path.parent.mkdir(parents=True, exist_ok=True)
-        cached_path.write_bytes(b"cached audio" * 100)
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(cached_path, duration_seconds=15.0)
 
         audio_path = tts.generate(parsed["text"])
 
@@ -291,13 +293,16 @@ class TestErrorRecoveryWorkflows:
 
     def test_video_composer_fallback_when_moviepy_missing(self, test_config, temp_dir):
         """Inject ImportError for moviepy and ensure FFmpeg fallback path executes."""
-
+        # Create valid MP3 file for happy path test
         audio_path = temp_dir / "audio.mp3"
-        audio_path.write_bytes(b"audio")
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
 
         test_config["storage"]["outputs_dir"] = str(temp_dir)
 
-        with patch("src.core.video_composer.subprocess.run") as mock_run:
+        with (
+            patch("src.core.video_composer.subprocess.run") as mock_run,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        ):
             mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
             import builtins
@@ -413,7 +418,8 @@ class TestConfigurationWorkflows:
         ]
 
         audio_file = temp_dir / "audio.mp3"
-        audio_file.write_bytes(b"audio")
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
 
         for resolution, name in resolutions:
             test_config["storage"]["outputs_dir"] = str(temp_dir)

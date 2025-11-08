@@ -1,0 +1,185 @@
+Architecture Decision Log - Brief Summary
+Runtime: ~3:00
+Tone: Professional, analytical, comprehensive — clear and structured presentation of technical decisions.
+Style: Informative narration; steady pacing; minimal background (optional soft ambient).
+
+[Intro music: subtle professional, instrumental, -15dB, fade in 1s → underlay throughout]
+
+NARRATOR (professional, clear tone):
+(pause 0.5s)
+
+Welcome to the Architecture Decision Log summary for AI Podcast Creator.
+This document captures sixty-five key decisions that shaped the project from inception to its current advanced script format implementation.
+[pause 0.5s]
+
+(beat)
+
+We'll cover decisions across ten major categories, highlighting the rationale, alternatives considered, and impact of each choice.
+[pause 0.5s]
+
+[Subtle underscore resumes — low synth pulse]
+
+Let's begin with core architecture.
+(pause 0.5s)
+
+The project was built on Python 3.10 plus, chosen for its rich AI and machine learning ecosystem.
+[pause 0.5s]
+We adopted a command-line-first architecture with optional graphical interfaces, enabling both automation and user-friendly access.
+[pause 0.5s]
+A modular component design allows swapping engines independently — different TTS systems, avatar generators, or music engines can be substituted without changing core logic.
+[pause 0.5s]
+
+(beat)
+
+Configuration is entirely YAML-driven, meaning users customize the system without touching code.
+[pause 0.5s]
+Metadata storage uses SQLite — simple, file-based, zero server configuration required.
+[pause 0.75s]
+
+[Layer in faint data texture for 2s, fade out]
+
+Technology stack choices were deliberate.
+(pause 0.5s)
+
+PyTorch serves as our machine learning framework — best GPU support and strongest model ecosystem.
+[pause 0.5s]
+For video processing, FFmpeg is primary with MoviePy as fallback, giving us ten to twenty times faster encoding when GPU acceleration is available.
+[pause 0.5s]
+Audio manipulation relies on pydub for mixing, with pedalboard added for professional effects processing.
+[pause 0.5s]
+The command-line interface uses Typer — modern, type-safe, with beautiful terminal output via Rich.
+[pause 0.75s]
+
+(beat)
+
+For text-to-speech, we support multiple engines.
+(pause 0.5s)
+
+Currently, Google TTS — gTTS — is preferred: free, unlimited, good quality British voices.
+[pause 0.5s]
+Coqui TTS provides open-source voice cloning capability when GPU is available.
+[pause 0.5s]
+Premium options like ElevenLabs and Azure Speech are supported for production-quality needs.
+[pause 0.5s]
+All TTS output is cached by script hash to avoid regeneration and save costs.
+[pause 0.75s]
+
+[Fade up soft strings + light heartbeat bass, +2dB over bed for transition]
+
+Video and audio processing decisions prioritize universal compatibility.
+(pause 0.5s)
+
+We use H.264 baseline profile with level 3.1 — this ensures playback on any device without additional codecs or drivers.
+[pause 0.5s]
+NVENC GPU encoding provides five to ten times faster video creation, with automatic CPU fallback.
+[pause 0.5s]
+Regular keyframes every second enable smooth seeking and variable speed playback — one point two five times, one point five times, even two times speed all work flawlessly.
+[pause 0.5s]
+Audio uses AAC codec at one ninety-two kilobits per second — standard, high quality, universally compatible.
+[pause 0.75s]
+
+(beat)
+
+Quality presets give users control: fastest for testing, fast and medium for balanced output, high for final production.
+[pause 0.5s]
+The faststart flag ensures videos begin playing immediately in web browsers.
+[pause 0.75s]
+
+[Subtle underscore resumes — low synth pulse]
+
+Performance optimization is automatic and zero-configuration.
+(pause 0.5s)
+
+GPU acceleration auto-detects NVIDIA hardware and enables optimizations automatically.
+[pause 0.5s]
+FP16 mixed precision doubles speed on RTX and V100 series GPUs.
+[pause 0.5s]
+TF32 acceleration provides eight times faster matrix operations on Ampere architecture — RTX thirty and forty series.
+[pause 0.5s]
+cuDNN benchmarking selects optimal convolution algorithms for maximum throughput.
+[pause 0.5s]
+Memory management clears GPU cache between operations, preventing out-of-memory errors.
+[pause 0.75s]
+
+(beat)
+
+Batch sizes auto-adjust based on available GPU memory — small GPUs get batch size one, larger GPUs can handle two or four.
+[pause 0.75s]
+
+[Layer in faint ticking hi-hat / data texture for 3s, fade out]
+
+Interface design supports multiple access methods.
+(pause 0.5s)
+
+Command-line interface is primary — scriptable, automatable, server-friendly.
+[pause 0.5s]
+Gradio web interface provides browser-based access on port seven eight six one.
+[pause 0.5s]
+Tkinter desktop GUI offers native application experience for offline use.
+[pause 0.5s]
+All interfaces support video quality selection: fastest for testing, fast, medium, or high for production.
+[pause 0.75s]
+
+[Fade up soft strings + light heartbeat bass, +2dB over bed for emphasis]
+
+The most recent decisions involve advanced script format support.
+(pause 0.5s)
+
+For audio effects, we chose pedalboard plus pydub hybrid — professional-grade effects with easy integration.
+[pause 0.5s]
+Backward compatibility was rejected — we're in private alpha, so we focus on the best format without legacy constraints.
+[pause 0.5s]
+Timing precision is configurable: frame-based for video synchronization, time-based for audio-only content, with upgrade paths to millisecond or sample-accurate precision.
+[pause 0.5s]
+Pause implementation uses a hybrid approach — SSML for engines that support it, post-processing for others, ensuring natural-sounding pauses across all TTS systems.
+[pause 0.75s]
+
+(beat)
+
+Key design principles emerged throughout development.
+(pause 0.5s)
+
+Quality first — we default to professional settings, not lowest common denominator.
+[pause 0.5s]
+Universal compatibility — videos must play anywhere without codecs or drivers.
+[pause 0.5s]
+Graceful degradation — every feature has fallbacks, the system continues working even if optional components fail.
+[pause 0.5s]
+Zero configuration — auto-detection and optimization mean users get maximum performance without manual setup.
+[pause 0.5s]
+User choice — multiple options at every level, from TTS engines to video quality to interface type.
+[pause 0.75s]
+
+[Music fade out — 2s, end clean]
+
+(beat)
+
+In total, sixty-five architectural decisions have been documented, each with context, rationale, alternatives considered, and impact analysis.
+[pause 0.5s]
+These decisions span from initial language selection through recent advanced format implementation.
+[pause 0.5s]
+Every choice was made with the goal of creating a professional, flexible, high-quality podcast generation system.
+[pause 1s]
+
+(pause 0.5s)
+
+For complete details, see the Architecture Decision Log directory.
+(pause 0.5s)
+
+Thank you for listening.
+[pause 1s]
+
+[Music fade out — 2s, end clean]
+
+Production Notes:
+Total length: ~3:00 at 140-150 WPM delivery pace.
+Voice: Professional, clear, analytical. Avoid "radio enthusiasm." Think "technical documentation narrator."
+Processing:
+- Gentle compression (-3dB threshold, 3:1 ratio).
+- Subtle room reverb (small space).
+- De-ess lightly on "s" and "ch" sounds.
+- EQ: Low-cut at 90Hz, slight presence boost at 4kHz.
+Bed track: Very subtle, atmospheric; no strong rhythm. Should not distract from technical content.
+Suggested cue: "Ambient Documentary" or "Subtle Data Flow" style beds.
+Room tone / breath: Leave natural pauses; technical content benefits from clear articulation.
+

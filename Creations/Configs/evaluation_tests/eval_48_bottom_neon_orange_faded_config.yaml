@@ -1,0 +1,16 @@
+visualization:
+  style: waveform
+  waveform:
+    position: bottom
+    num_lines: 1
+    line_thickness: 20
+    opacity: 0.15
+  primary_color:
+  - 255
+  - 120
+  - 0
+  secondary_color:
+  - 255
+  - 140
+  - 0
+

@@ -1,0 +1,2 @@
+feat: Add advanced waveform visualization features with amplitude scaling
+
