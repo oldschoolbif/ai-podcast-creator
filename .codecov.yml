@@ -3,8 +3,15 @@ ignore:
 
 coverage:
   status:
+    project:
+      default:
+        target: 0.70
+        threshold: 2.0
     patch:
       default:
-        target: auto
-        threshold: 0.0
-        base: auto
+        informational: true
+      source:
+        target: 0.80
+        threshold: 2.0
+        paths:
+          - "src/"
