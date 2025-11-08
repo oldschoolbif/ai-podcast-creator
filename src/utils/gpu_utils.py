@@ -42,16 +42,16 @@ class GPUManager:
                 # Set memory growth to avoid OOM
                 torch.cuda.empty_cache()
 
-                print(f"✓ GPU Detected: {self.gpu_name} ({self.gpu_memory:.1f} GB)")
-                print(f"✓ CUDA Version: {torch.version.cuda}")
-                print(f"✓ cuDNN Enabled: {torch.backends.cudnn.enabled}")
+                print(f"[OK] GPU Detected: {self.gpu_name} ({self.gpu_memory:.1f} GB)")
+                print(f"[OK] CUDA Version: {torch.version.cuda}")
+                print(f"[OK] cuDNN Enabled: {torch.backends.cudnn.enabled}")
 
             else:
-                print("⚠ No CUDA GPU detected, using CPU")
+                print("[WARN] No CUDA GPU detected, using CPU")
                 self.device = "cpu"
 
         except ImportError:
-            print("⚠ PyTorch not installed, GPU detection unavailable")
+            print("[WARN] PyTorch not installed, GPU detection unavailable")
             self.device = "cpu"
 
     def get_device(self) -> str:
@@ -79,13 +79,13 @@ class GPUManager:
             if torch.cuda.get_device_capability()[0] >= 8:
                 torch.backends.cuda.matmul.allow_tf32 = True
                 torch.backends.cudnn.allow_tf32 = True
-                print("✓ TF32 enabled for Ampere+ GPU")
+                print("[OK] TF32 enabled for Ampere+ GPU")
 
             # Set optimal memory allocation
             os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 
         except Exception as e:
-            print(f"⚠ Could not apply inference optimizations: {e}")
+            print(f"[WARN] Could not apply inference optimizations: {e}")
 
     def get_optimal_batch_size(self, task: str = "tts") -> int:
         """Get optimal batch size based on GPU memory."""
@@ -174,6 +174,51 @@ class GPUManager:
             return {"allocated_gb": allocated, "reserved_gb": reserved, "free_gb": free, "total_gb": self.gpu_memory}
         except Exception:
             return {"allocated": 0, "reserved": 0, "free": 0}
+
+    def get_utilization(self) -> Dict[str, float]:
+        """
+        Get GPU utilization percentage (compute usage, not just memory).
+        
+        Returns:
+            Dictionary with 'gpu_percent' (0-100) and 'memory_percent' (0-100)
+        """
+        if not self.gpu_available:
+            return {"gpu_percent": 0.0, "memory_percent": 0.0}
+        
+        try:
+            import subprocess
+            import re
+            
+            # Use nvidia-smi to get actual GPU utilization
+            result = subprocess.run(
+                ["nvidia-smi", "--query-gpu=utilization.gpu,utilization.memory", "--format=csv,noheader,nounits"],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            
+            if result.returncode == 0 and result.stdout.strip():
+                # Parse output: "XX, YY" where XX is GPU utilization, YY is memory utilization
+                match = re.search(r'(\d+)\s*,\s*(\d+)', result.stdout.strip())
+                if match:
+                    gpu_percent = float(match.group(1))
+                    memory_percent = float(match.group(2))
+                    return {"gpu_percent": gpu_percent, "memory_percent": memory_percent}
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ValueError, AttributeError):
+            # Fallback: try pynvml if available
+            try:
+                import pynvml
+                pynvml.nvmlInit()
+                handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+                mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                memory_percent = (mem_info.used / mem_info.total) * 100
+                return {"gpu_percent": float(util.gpu), "memory_percent": float(memory_percent)}
+            except (ImportError, Exception):
+                pass
+        
+        # If all methods fail, return zeros
+        return {"gpu_percent": 0.0, "memory_percent": 0.0}
 
     def set_device(self, device_id: int = 0):
         """Set active GPU device."""

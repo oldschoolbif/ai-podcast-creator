@@ -82,7 +82,22 @@ python3 -m src.cli.main create \
   --visualize \
   -o my_podcast
 
-# Output: data/outputs/my_podcast.mp4 (with visualization!)
+# Output: Creations/MMedia/my_podcast.mp4 (with visualization!)
+```
+
+### **Waveform-Only Generation** (for testing/quality review):
+```bash
+# Generate just the waveform visualization (no avatar, no background)
+python scripts/generate_waveform_only.py "Creations/Scripts/your_script.txt" \
+  --output test_waveform \
+  --waveform-lines 1 \
+  --waveform-position bottom \
+  --waveform-orientation-offset 0 \
+  --waveform-height 100 \
+  --waveform-amplitude 1.5 \
+  --waveform-rotation 0 \
+  --waveform-thickness 2 \
+  --waveform-instances 1
 ```
 
 ---

@@ -12,6 +12,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.core.video_composer import VideoComposer
+from tests.conftest import create_valid_mp3_file
 
 
 def create_moviepy_mock(audio_duration=5.0):
@@ -51,19 +52,23 @@ class TestVideoCompositionIntegration:
         }
 
         audio_file = temp_dir / "test_audio.mp3"
-        audio_file.write_bytes(b"fake audio data for testing")
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=10.0)
 
         composer = VideoComposer(test_config)
 
-        mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=10.0)
-
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+        with (
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+            patch.object(VideoComposer, "_compose_minimal_video") as mock_minimal,
+        ):
+            mock_minimal.return_value = temp_dir / "integration_test.mp4"
             output = composer.compose(audio_file, output_name="integration_test")
 
             assert output.suffix == ".mp4"
             assert "integration_test" in str(output)
             assert output.parent == temp_dir
-            mock_video.write_videofile.assert_called_once()
+            mock_minimal.assert_called_once()
+            # Note: validation happens inside _compose_minimal_video, which is mocked
 
     def test_custom_resolution_workflow(self, test_config, temp_dir):
         """Test different resolutions are handled correctly."""
@@ -76,7 +81,8 @@ class TestVideoCompositionIntegration:
         ]
 
         audio_file = temp_dir / "audio.mp3"
-        audio_file.write_bytes(b"audio")
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
 
         for resolution, name in resolutions:
             test_config["video"] = {"resolution": resolution, "background_path": str(temp_dir / "bg.jpg")}
@@ -84,7 +90,10 @@ class TestVideoCompositionIntegration:
 
             mock_moviepy, mock_audio, mock_video = create_moviepy_mock()
 
-            with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+            with (
+                patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+                patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+            ):
                 output = composer.compose(audio_file, output_name=name)
 
                 # Verify resolution was used
@@ -99,7 +108,8 @@ class TestVideoCompositionIntegration:
         test_config["storage"]["outputs_dir"] = str(temp_dir)
 
         audio_file = temp_dir / "audio.mp3"
-        audio_file.write_bytes(b"audio")
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
 
         expected_output = temp_dir / "viz_output.mp4"
 
@@ -122,17 +132,20 @@ class TestVideoCompositionIntegration:
         test_config["video"] = {"background_path": str(bg_file)}
 
         audio_file = temp_dir / "audio.mp3"
-        audio_file.write_bytes(b"audio")
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=3.0)
 
         composer = VideoComposer(test_config)
 
-        mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=3.0)
+        with (
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+            patch.object(VideoComposer, "_compose_with_ffmpeg") as mock_ffmpeg,
+        ):
+            mock_ffmpeg.return_value = temp_dir / "output.mp4"
+            output = composer.compose(audio_file, use_background=True)
 
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
-            output = composer.compose(audio_file)
-
-            # Verify ImageClip was used (not ColorClip) for background image
-            assert mock_moviepy.editor.ImageClip.called
+            # Verify _compose_with_ffmpeg was called (background image path)
+            mock_ffmpeg.assert_called_once()
             # Output should be created
             assert output is not None
 
@@ -142,20 +155,23 @@ class TestVideoCompositionIntegration:
         test_config["video"] = {"background_path": str(temp_dir / "bg.jpg")}
 
         audio_file = temp_dir / "audio.mp3"
-        audio_file.write_bytes(b"audio")
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
 
         durations = [1.0, 5.0, 30.0, 120.0]
 
         for duration in durations:
             composer = VideoComposer(test_config)
 
-            mock_moviepy, mock_audio, mock_video = create_moviepy_mock(audio_duration=duration)
+            with (
+                patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+                patch.object(VideoComposer, "_compose_with_ffmpeg") as mock_ffmpeg,
+            ):
+                mock_ffmpeg.return_value = temp_dir / f"test_{duration}s.mp4"
+                output = composer.compose(audio_file, output_name=f"test_{duration}s", use_background=True)
 
-            with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
-                output = composer.compose(audio_file, output_name=f"test_{duration}s")
-
-                # Verify duration was set
-                mock_video.set_duration.assert_called_with(duration)
+                # Verify _compose_with_ffmpeg was called (background image path)
+                mock_ffmpeg.assert_called_once()
                 assert f"test_{duration}s" in str(output)
 
     def test_output_directory_creation(self, test_config, temp_dir):
@@ -177,13 +193,17 @@ class TestVideoCompositionIntegration:
         test_config["video"] = {"background_path": str(temp_dir / "bg.jpg")}
 
         audio_file = temp_dir / "audio.mp3"
-        audio_file.write_bytes(b"audio")
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
 
         composer = VideoComposer(test_config)
 
         mock_moviepy, mock_audio, mock_video = create_moviepy_mock()
 
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+        with (
+            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        ):
             output1 = composer.compose(audio_file, output_name=None)
             output2 = composer.compose(audio_file, output_name=None)
 
@@ -199,8 +219,59 @@ class TestVideoCompositionIntegration:
 
         composer = VideoComposer(test_config)
 
-        with pytest.raises((FileNotFoundError, Exception)):
+        # Should raise ValueError from validation (not FileNotFoundError)
+        with pytest.raises(ValueError) as exc_info:
             composer.compose(missing_file)
+        
+        # Verify error message mentions the file doesn't exist
+        assert "does not exist" in str(exc_info.value).lower() or "Audio file" in str(exc_info.value)
+    
+    def test_error_handling_corrupted_mp3(self, test_config, temp_dir):
+        """Test graceful error handling with corrupted MP3 file."""
+        test_config["storage"]["outputs_dir"] = str(temp_dir)
+        test_config["video"] = {"background_path": str(temp_dir / "bg.jpg")}
+
+        # Create a corrupted MP3 file (invalid MP3 structure)
+        corrupted_file = temp_dir / "corrupted.mp3"
+        # Write invalid data that looks like it might be an MP3 but isn't
+        corrupted_file.write_bytes(b"FAKE_MP3_DATA" * 20)  # 260 bytes - passes size check but invalid format
+
+        composer = VideoComposer(test_config)
+
+        # Should raise ValueError or RuntimeError with clear error message
+        with pytest.raises((ValueError, RuntimeError)) as exc_info:
+            composer.compose(corrupted_file, output_name="corrupted_test")
+        
+        error_msg = str(exc_info.value)
+        # Verify error message is helpful for troubleshooting
+        assert ("validation" in error_msg.lower() or 
+                "corrupted" in error_msg.lower() or
+                "invalid" in error_msg.lower() or
+                "ffmpeg" in error_msg.lower())
+        assert str(corrupted_file) in error_msg
+        # Should provide troubleshooting information
+        assert "Troubleshooting" in error_msg or "troubleshooting" in error_msg.lower()
+    
+    def test_error_handling_empty_mp3(self, test_config, temp_dir):
+        """Test graceful error handling with empty MP3 file."""
+        test_config["storage"]["outputs_dir"] = str(temp_dir)
+        test_config["video"] = {"background_path": str(temp_dir / "bg.jpg")}
+
+        # Create an empty file
+        empty_file = temp_dir / "empty.mp3"
+        empty_file.write_bytes(b"")
+
+        composer = VideoComposer(test_config)
+
+        # Should raise ValueError with clear error message
+        with pytest.raises(ValueError) as exc_info:
+            composer.compose(empty_file, output_name="empty_test")
+        
+        error_msg = str(exc_info.value)
+        assert ("empty" in error_msg.lower() or 
+                "too small" in error_msg.lower() or
+                "validation" in error_msg.lower())
+        assert str(empty_file) in error_msg
 
 
 @pytest.mark.integration
@@ -214,7 +285,8 @@ class TestVideoAvatarIntegration:
 
         audio_file = temp_dir / "audio.mp3"
         avatar_video = temp_dir / "avatar.mp4"
-        audio_file.write_bytes(b"audio")
+        # Create valid MP3 file for happy path test
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
         avatar_video.write_bytes(b"video")
 
         output_file = temp_dir / "final.mp4"

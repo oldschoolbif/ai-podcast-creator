@@ -113,15 +113,32 @@ def create_podcast(
         # Create video
         composer = VideoComposer(config)
 
-        # Set video quality
+        # Map UI quality strings to internal quality presets
+        quality_map = {
+            "Fastest (Testing)": "fastest",
+            "Fast (720p)": "fast",
+            "Medium (720p)": "medium",
+            "High (1080p)": "high",
+        }
+        # Support legacy format
         if video_quality == "High (1080p)":
-            config["video"]["resolution"] = [1920, 1080]
+            quality = "high"
         elif video_quality == "Medium (720p)":
-            config["video"]["resolution"] = [1280, 720]
-        else:  # Low 480p
-            config["video"]["resolution"] = [854, 480]
+            quality = "medium"
+        elif video_quality == "Low (480p)":
+            quality = "fastest"
+        else:
+            quality = quality_map.get(video_quality, "fastest")  # Default to fastest for testing
 
-        final_video = composer.compose(mixed_audio, output_name=output_name or script_path.stem)
+        # Default: minimal video (no effects)
+        # Effects are opt-in via UI checkboxes (not yet implemented in web UI)
+        final_video = composer.compose(
+            mixed_audio, 
+            output_name=output_name or script_path.stem, 
+            use_visualization=False,  # Add checkbox in UI later
+            use_background=False,     # Add checkbox in UI later
+            quality=quality
+        )
 
         progress(1.0, desc="Complete!")
 
@@ -236,8 +253,8 @@ def create_gradio_interface():
 
                         video_quality = gr.Dropdown(
                             label="Video Quality",
-                            choices=["High (1080p)", "Medium (720p)", "Low (480p)"],
-                            value="High (1080p)",
+                            choices=["Fastest (Testing)", "Fast (720p)", "Medium (720p)", "High (1080p)"],
+                            value="Fastest (Testing)",  # Default to fastest for testing
                         )
 
                         output_name = gr.Textbox(

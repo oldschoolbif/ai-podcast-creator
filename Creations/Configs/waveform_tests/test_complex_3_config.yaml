@@ -1,0 +1,27 @@
+visualization:
+  style: waveform
+  waveform:
+    position: top,left,right
+    num_lines: 6
+    line_colors:
+    - - 255
+      - 0
+      - 0
+    - - 255
+      - 127
+      - 0
+    - - 255
+      - 255
+      - 0
+    - - 0
+      - 255
+      - 0
+    - - 0
+      - 0
+      - 255
+    - - 127
+      - 0
+      - 255
+    waveform_style: dots
+    height_percent: 15
+    width_percent: 15

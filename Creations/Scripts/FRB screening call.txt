@@ -1,0 +1,60 @@
+2025 has been an interesting year for Dean. And this week… it got a lot more interesting. From Dean:
+I had a 30-minute call with the Federal Reserve Bank of Chicago — part of the system of twelve regional banks that, together with the Board of Governors in Washington, keep the nation’s monetary engine running. Each of those twelve banks is independent, and Chicago, as the Seventh District, covers the industrial heart of America — Illinois, Indiana, Iowa, Michigan, and Wisconsin.
+You’d think joining the Fed means joining some vast bureaucracy — but what I learned on this call is that this role… is the opposite.
+
+[Cue subtle underscore music]
+DEAN:
+There are three big pieces of technology at the Fed.
+First, National IT — that’s the shared backbone, the infrastructure layer that runs across all twelve banks.
+Then there’s Local IT — the teams that keep internal systems and end-user technologies humming.
+And finally, Federal Reserve Financial Services, or FRFS — the part of the system that manages the public-facing payment products.
+But my prospective role? It doesn’t sit in any of those.
+Instead, it lives in the Research Division — embedded directly inside the economic policy team for the Seventh District.
+A small, specialized IT group that’s quietly doing something transformative: modernizing how research and data flow through the organization.
+
+DEAN:
+Right now, it’s a “small but mighty” team — three people: two systems analysts, one focused on security and risk.
+Together, they’re leading the charge into the cloud — migrating on-prem systems, architecting new solutions, and building a modern data foundation for policy research.
+And this role — the Senior Solution Architect — would be the one to design, build, and operationalize those solutions.
+What makes it fascinating is that this group doesn’t just support economists and analysts.
+They also support the executive leadership team directly.
+That means access — visibility at the top — and the kind of influence that’s rare for technical roles.
+It’s about 90% solutions work and only 10% support.
+And as the recruiter put it, “It’s a small team, but it punches way above its weight.”
+
+[Pause beat – shift tone slightly to analytical]
+DEAN:
+Ken — the hiring manager — oversees this research and policy technology environment, known as RPPE. He’s essentially the Chief Architect across that division and collaborates across the broader Federal Reserve System.
+The process ahead looks structured, deliberate — very Fed-like:
+
+
+First, a one-hour functional and technical interview. No whiteboard, thankfully — more conversational, focused on real-world architecture work. I’ll lean heavily on my experience at Exponis and my RAG frameworks.
+
+
+Then comes the behavioral and culture fit round.
+
+
+And finally, executive interviews — the “white-glove” stage — with the leaders I’d directly support.
+
+
+After that, decisions move quickly.
+
+[Shift tone warmer, reflective]
+DEAN:
+This role is actually exempt from the federal hiring freeze — it’s that important.
+And while the official stance is four to five days on-site, there’s some flexibility — especially for personal logistics or hybrid-style workdays. The recruiter even said, “If you can be productive on the train, go for it.”
+That’s the kind of pragmatism I appreciate.
+There’s minimal travel — maybe five percent — but the real movement here is intellectual.
+This is a chance to work shoulder-to-shoulder with economists, policymakers, and data scientists — people who shape how the country thinks about money and policy.
+
+[Soft underscore returns – hopeful tone]
+DEAN:
+The next step is Wednesday. That’s when the hiring team meets to decide which candidates advance.
+If I’m selected, the recruiter and I will regroup — he’ll help me prepare for the interviews, and we’ll line up the technical discussion.
+For now, I’m walking away from this call with one clear takeaway:
+This isn’t just an IT job.
+It’s a chance to bring modern architecture into one of the most consequential institutions in the world — to enable some of the smartest minds in economics to think faster, collaborate better, and push the boundaries of policy research.
+And that…is exactly the kind of challenge I’ve been waiting for but not being onsite full-time.
+
+[Music Fade Out]
+🎧 “Inside the Federal Reserve Interview” — Episode recorded October 2025.

@@ -1108,30 +1108,45 @@ class TestAvatarGeneratorEdgeCases:
             mock_gpu.return_value.gpu_available = False
 
             generator = AvatarGenerator(test_config)
-            generator.wav2lip_model_path = temp_dir / "model.pth"
+            # Set model path and create the model file so it exists
+            model_path = temp_dir / "model.pth"
+            model_path.write_bytes(b"fake model")
+            generator.wav2lip_model_path = str(model_path)
 
             audio_path = temp_dir / "audio.wav"
             output_path = temp_dir / "output.mp4"
             audio_path.write_bytes(b"fake audio")
 
-            # The actual script path used by the code: scripts/wav2lip_inference.py
-            # Need to mock Path.exists() for this specific path to return False
-            from pathlib import Path as PathClass
+            # Mock the script path check to return False (script doesn't exist)
+            wav2lip_dir = Path(__file__).parent.parent.parent / "external" / "Wav2Lip"
+            wav2lip_script = wav2lip_dir / "inference.py"
             
-            original_exists = PathClass.exists
+            # Create a mock that returns False for the script path, True for others
+            # Use string comparison to avoid recursion issues
+            wav2lip_script_str = str(wav2lip_script)
+            model_path_str = str(model_path)
             
-            def mock_exists(self):
+            def mock_path_exists(path_self):
+                path_str = str(path_self)
                 # Return False for the wav2lip script path to trigger creation
-                if "wav2lip_inference.py" in str(self):
+                if path_str == wav2lip_script_str:
                     return False
-                return original_exists(self)
+                # For model path, return True
+                if path_str == model_path_str:
+                    return True
+                # For source image, return True
+                if "default_female.jpg" in path_str or "JE_Static_Image.jpg" in path_str:
+                    return True
+                # For other paths, check if they actually exist using os.path.exists
+                import os
+                return os.path.exists(path_str)
 
             with patch.object(generator, "_create_wav2lip_inference_script") as mock_create_script:
                 with patch("subprocess.run") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
                     
                     # Mock Path.exists() for the script path check
-                    with patch.object(PathClass, "exists", mock_exists):
+                    with patch("pathlib.Path.exists", mock_path_exists):
                         # Mock the result file that would be created
                         result_dir = Path(temp_dir) / "results"
                         result_dir.mkdir(exist_ok=True)
@@ -1167,21 +1182,38 @@ class TestAvatarGeneratorEdgeCases:
     @patch("urllib.request.urlretrieve")
     def test_download_wav2lip_model_all_urls_fail(self, mock_urlretrieve, test_config, temp_dir):
         """Test Wav2Lip model download when all URLs fail (lines 473-478)."""
+        import os
         test_config["avatar"]["engine"] = "wav2lip"
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
         with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
             mock_gpu.return_value.gpu_available = False
 
-            generator = AvatarGenerator(test_config)
-            model_path = temp_dir / "wav2lip_gan.pth"
+            # Change to temp_dir so that Path("models") resolves correctly
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(temp_dir)
+                
+                # Create model file so it exists during init to prevent download call
+                # models_dir is Path("models") which is relative to current working directory
+                models_dir = Path("models")
+                models_dir.mkdir(exist_ok=True)
+                model_path = models_dir / "wav2lip_gan.pth"
+                model_path.write_bytes(b"fake model")
+                
+                generator = AvatarGenerator(test_config)
+                
+                # Reset call count after __init__ (in case it was called)
+                mock_urlretrieve.reset_mock()
 
-            # Mock all downloads fail
-            mock_urlretrieve.side_effect = Exception("Network error")
-            generator._download_wav2lip_model(model_path)
+                # Now test download with all URLs failing
+                mock_urlretrieve.side_effect = Exception("Network error")
+                generator._download_wav2lip_model(model_path)
 
-            # Should try all URLs (3 attempts)
-            assert mock_urlretrieve.call_count == 3
+                # Should try all URLs (3 attempts)
+                assert mock_urlretrieve.call_count == 3
+            finally:
+                os.chdir(original_cwd)
 
     # Note: _create_fallback_video tests removed due to complex moviepy mocking
     # These methods (lines 480-517) can be tested via integration tests with real moviepy

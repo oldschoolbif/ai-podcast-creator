@@ -1,0 +1,5 @@
+visualization:
+  style: waveform
+  waveform:
+    position: bottom
+    waveform_style: dots

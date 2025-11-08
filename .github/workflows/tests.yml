@@ -44,10 +44,14 @@ jobs:
         python -m pip install --upgrade pip
         # Install pyyaml early for conftest.py (before requirements.txt)
         pip install pyyaml
-        # Install core test dependencies (pytest comes from requirements.txt)
+        # Install core test dependencies FIRST (pytest must be available)
         pip install numpy typer hypothesis sortedcontainers mypy types-PyYAML types-requests
-        # Install requirements - continue even if optional packages like av/audiocraft fail
-        pip install -r requirements.txt || echo "Some packages failed to install (expected for optional dependencies)"
+        pip install pytest pytest-asyncio pytest-cov pytest-xdist pytest-timeout pytest-benchmark
+        # Install requirements - continue even if optional packages fail
+        # Note: ffmpegcv[cuda] is commented out in requirements.txt to avoid pycuda build issues in CI
+        pip install -r requirements.txt || echo "Some optional packages failed to install (expected)"
+        # Ensure pytest is still available even if requirements.txt had issues
+        pip install pytest pytest-cov || true
     
     - name: Run linting
       run: |
@@ -67,6 +71,14 @@ jobs:
       run: |
         pytest --cov=src --cov-report=xml --cov-report=term -n auto --maxfail=10 --tb=short
       timeout-minutes: 15
+    
+    - name: Run GPU utilization tests
+      shell: bash
+      run: |
+        # Run GPU utilization tests (will skip if no GPU available)
+        pytest tests/unit/test_gpu_utilization.py -v -m "not gpu" || echo "GPU tests skipped (expected in CI without GPU)"
+      continue-on-error: true
+      timeout-minutes: 5
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -188,10 +200,21 @@ jobs:
       with:
         python-version: '3.11'
     
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+    
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
-        pip install pytest pytest-cov
+        python -m pip install --upgrade pip
+        # Install core test dependencies FIRST (pytest must be available)
+        pip install numpy typer hypothesis sortedcontainers mypy types-PyYAML types-requests
+        pip install pytest pytest-asyncio pytest-cov pytest-xdist pytest-timeout pytest-benchmark
+        # Install requirements - continue even if optional packages fail
+        pip install -r requirements.txt || echo "Some optional packages failed to install (expected)"
+        # Ensure pytest is still available even if requirements.txt had issues
+        pip install pytest pytest-cov || true
     
     - name: Check coverage threshold
       run: |

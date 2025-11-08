@@ -62,8 +62,12 @@ class TestLoadConfig:
 
         result = load_config(config_file)
 
-        # Empty YAML returns None or empty dict
-        assert result is None or result == {}
+        # Empty YAML returns base config (empty YAML is treated as no overrides)
+        assert result is not None
+        assert isinstance(result, dict)
+        # Should have base config structure
+        assert "tts" in result
+        assert "avatar" in result
 
     def test_load_with_env_vars(self, temp_dir):
         """Test loading with environment variable replacement."""

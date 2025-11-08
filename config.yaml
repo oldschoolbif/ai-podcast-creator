@@ -14,8 +14,9 @@ character:
   personality: "Professional, warm, engaging"
 
 # TTS Configuration
+# NOTE: Coqui TTS requires Python < 3.12. For Python 3.13+, use gtts or edge-tts
 tts:
-  engine: "gtts"  # Options: gtts (basic/free), coqui, elevenlabs, azure, piper
+  engine: "gtts"  # Options: gtts (cloud, works with Python 3.13), edge (cloud, Python 3.13), coqui (GPU, requires Python < 3.12), elevenlabs, azure, piper
   
   # Coqui TTS Settings (default)
   coqui:
@@ -63,7 +64,7 @@ music:
 
 # Avatar/Talking Head
 avatar:
-  engine: "sadtalker"  # Options: sadtalker, wav2lip, did
+  engine: "wav2lip"  # Options: wav2lip (working, recommended), sadtalker (broken: NumPy 2.x incompatibility), did
   
   sadtalker:
     checkpoint_dir: "./data/models/sadtalker"
@@ -82,7 +83,7 @@ avatar:
     presenter_id: "amy-jcwCkr1grs"
     
   # Avatar Image
-  source_image: "./src/assets/avatars/vivienne_sterling.png"
+  source_image: "Creations/MMedia/JE_Static_Image.jpg"
   
 # Video Settings
 video:
@@ -113,16 +114,53 @@ video:
 # Audio Visualization (use --visualize flag)
 visualization:
   style: "waveform"  # Options: waveform, spectrum, circular, particles
-  primary_color: [0, 150, 255]  # RGB - Blue
-  secondary_color: [255, 100, 200]  # RGB - Pink
-  background_color: [10, 10, 20]  # RGB - Dark blue/black
-  blur: 3  # Glow effect intensity (0-10)
+  primary_color: [0, 255, 0]  # RGB - Neon Green (bright electric green)
+  secondary_color: [0, 255, 100]  # RGB - Neon Green-Cyan (bright lime green)
+  background_color: [0, 0, 0]  # RGB - Pure black for chromakey transparency
+  blur: 0  # Glow effect intensity (0-10) - Set to 0 for completely solid lines (no blur = no grain)
   sensitivity: 1.0  # Audio reactivity (0.5-2.0) - Waveform uses 3x internal multiplier
+  
+  # Waveform Configuration (NEW - comprehensive controls)
+  waveform:
+    # Quality & Smoothness (FIXES GRAININESS)
+    render_scale: 2.0  # Render at 2x resolution, scale down (smooths pixelation)
+    anti_alias: true   # Enable OpenCV anti-aliasing for smooth lines
+    
+    # Position & Layout
+    position: "bottom"  # top, bottom, left, right, middle, or "top,bottom", "left,right", "top,left,right"
+    orientation: "auto"  # auto, horizontal, vertical (auto: horizontal for top/bottom, vertical for left/right)
+    height_percent: 25  # For horizontal waveforms (10-50% of screen height)
+    width_percent: 25   # For vertical waveforms (10-50% of screen width)
+    
+    # Line Configuration
+    num_lines: 1  # Single solid line for bottom_default
+    line_thickness: 25  # Thicker line for better visibility (25 pixels minimum)
+    line_colors:  # Per-line colors (array of RGB), or null to use primary_color
+      - [0, 255, 0]      # Neon green (line 1)
+      - [0, 255, 100]    # Lime green (line 2)
+      - [0, 200, 50]     # Darker green (line 3)
+    
+    # Spacing Control (for vertical waveforms)
+    left_spacing: 0   # Pixels from left edge for left-side waveform
+    right_spacing: 0  # Pixels from right edge for right-side waveform
+    
+    # Advanced Features
+    opacity: 1.0  # 0.0-1.0 (transparency)
+    blend_mode: "normal"  # normal, screen, add, overlay (currently not used in chromakey pipeline)
+    waveform_style: "continuous"  # continuous, bars, dots, filled
+    randomize: false  # Randomize all settings per video (for variety)
+    
+    # New Advanced Features
+    orientation_offset: null  # 0-100 for horizontal waveforms (0=bottom, 100=top), null = use position
+    rotation: 0  # Rotation angle in degrees (0 = no rotation)
+    amplitude_multiplier: 1.0  # Multiplier for wave amplitude (beyond sensitivity)
+    num_instances: 1  # Number of waveform instances
+    instances_offset: 0  # Spacing between instances in pixels
+    instances_intersect: false  # Allow instances to intersect
 
-# Avatar / Talking Head (use --avatar flag)
-avatar:
-  engine: "sadtalker"  # Options: sadtalker (FREE), wav2lip, did (PREMIUM)
-  source_image: "src/assets/avatars/default_female.jpg"  # Path to avatar face image
+# Avatar / Talking Head (use --avatar flag) - DUPLICATE SECTION (removed)
+# Note: Avatar configuration is defined above at line 65
+# This section was overriding the source_image setting above
   wav2lip:
     model: "wav2lip_gan"  # Model type
     quality: "high"  # Options: high, fast
@@ -139,10 +177,10 @@ avatar:
 # Storage
 storage:
   base_dir: "./data"
-  scripts_dir: "./data/scripts"
-  outputs_dir: "./data/outputs"
-  cache_dir: "./data/cache"
-  models_dir: "./data/models"
+  scripts_dir: "./Creations/Scripts"  # Input script files
+  outputs_dir: "./Creations/MMedia"   # Multimedia output (videos, audio)
+  cache_dir: "./data/cache"           # Internal cache (TTS, music generation)
+  models_dir: "./data/models"         # Model files (SADTalker, Wav2Lip, etc.)
   
   # Cleanup old cache files
   auto_cleanup: true

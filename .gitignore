@@ -72,8 +72,13 @@ logs/
 # Testing
 .pytest_cache/
 .coverage
+coverage.xml
+coverage.json
 htmlcov/
 .tox/
+test_results*.txt
+report.html
+evaluation_tests_log.txt
 
 # Jupyter
 .ipynb_checkpoints/
@@ -88,6 +93,7 @@ Thumbs.db
 *.temp
 tmp/
 temp/
+.workflows/
 
 # Docker
 .dockerignore
@@ -97,3 +103,7 @@ celerybeat-schedule
 celerybeat.pid
 
 external/SadTalker/
+
+# Large model files (use Git LFS if needed)
+models/*.pt
+models/*.pth

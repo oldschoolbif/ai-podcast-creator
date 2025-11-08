@@ -1,0 +1,6 @@
+visualization:
+  style: waveform
+  waveform:
+    position: bottom
+    num_lines: 3
+    line_thickness: 6

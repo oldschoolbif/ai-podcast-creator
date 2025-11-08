@@ -1,0 +1,6 @@
+visualization:
+  style: waveform
+  waveform:
+    waveform_style: continuous
+    num_lines: 3
+    position: bottom

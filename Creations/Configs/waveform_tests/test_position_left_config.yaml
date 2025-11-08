@@ -1,0 +1,6 @@
+visualization:
+  style: waveform
+  waveform:
+    position: left
+    num_lines: 3
+    width_percent: 25
