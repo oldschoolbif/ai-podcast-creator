@@ -186,6 +186,174 @@ class TestWaveformGeneration:
         assert len(frames) >= 1
 
 
+class TestWaveformHelpers:
+    """Test helper utilities for waveform rendering."""
+
+    def test_get_orientation_manual_override(self, test_config_visualization):
+        """Custom orientation config should override automatic detection."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        test_config_visualization["visualization"]["waveform"] = {
+            "orientation": "vertical"
+        }
+        viz = AudioVisualizer(test_config_visualization)
+
+        # Even though "top" normally maps to horizontal, manual override wins
+        assert viz._get_orientation("top") == "vertical"
+
+    def test_get_orientation_auto_detection(self, test_config_visualization):
+        """Auto orientation should map left/right to vertical, others to horizontal."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        test_config_visualization["visualization"]["waveform"] = {}
+        viz = AudioVisualizer(test_config_visualization)
+
+        assert viz._get_orientation("left") == "vertical"
+        assert viz._get_orientation("right") == "vertical"
+        assert viz._get_orientation("bottom") == "horizontal"
+
+    def test_rotate_points_quarter_turn(self, test_config_visualization):
+        """Points should rotate 90 degrees around the origin."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        viz = AudioVisualizer(test_config_visualization)
+        points = [(1, 0), (0, 1)]
+        rotated = viz._rotate_points(points, center=(0, 0), angle_degrees=90)
+
+        assert rotated[0] == (0, 1)
+        # Allow small rounding differences
+        assert rotated[1][0] == -1
+        assert rotated[1][1] == 0
+
+
+class TestAdvancedWaveformRendering:
+    """Test advanced waveform rendering options."""
+
+    def test_amplitude_multiplier_propagates(self, monkeypatch, test_config_visualization):
+        """Amplitude multiplier should be applied before rendering (PIL fallback path)."""
+        from src.core import audio_visualizer
+        from src.core.audio_visualizer import AudioVisualizer
+
+        # Force PIL path to avoid OpenCV dependency
+        monkeypatch.setattr(audio_visualizer, "OPENCV_AVAILABLE", False)
+
+        test_config_visualization["video"]["resolution"] = [64, 36]
+        test_config_visualization["video"]["fps"] = 5
+        test_config_visualization["visualization"]["waveform"] = {
+            "anti_alias": False,
+            "amplitude_multiplier": 1.7,
+            "num_lines": 1,
+            "line_thickness": 4,
+        }
+
+        viz = AudioVisualizer(test_config_visualization)
+
+        captured_amplitudes = []
+
+        def fake_draw(self, draw, chunk, amplitude, width, height, position, base_thickness):
+            captured_amplitudes.append(amplitude)
+
+        monkeypatch.setattr(AudioVisualizer, "_draw_waveform_pil", fake_draw)
+
+        sr = 50
+        duration = 1.0
+        y = np.ones(int(sr * duration), dtype=np.float32)
+
+        frames = list(viz._generate_waveform_frames_streaming_chunked_from_array(y, sr, duration))
+
+        assert len(frames) == int(duration * viz.fps)
+        assert captured_amplitudes
+        # Peak and RMS are both 1.0 for the constant signal -> amplitude == multiplier
+        for amp in captured_amplitudes:
+            assert amp == pytest.approx(viz.amplitude_multiplier, rel=1e-3)
+
+    def test_opencv_rendering_multiline_configuration(self, monkeypatch, test_config_visualization):
+        """OpenCV path should honor multi-line, multi-position, and opacity settings."""
+        from types import SimpleNamespace
+
+        from src.core import audio_visualizer
+        from src.core.audio_visualizer import AudioVisualizer
+        import numpy as np
+
+        draw_calls = []
+
+        def fake_resize(frame, size, interpolation):
+            return np.zeros((size[1], size[0], 3), dtype=np.uint8)
+
+        def fake_polylines(frame, pts, isClosed, color, thickness, lineType):
+            draw_calls.append(
+                {
+                    "color": color,
+                    "thickness": thickness,
+                    "num_points": len(pts[0]) if pts else 0,
+                }
+            )
+
+        def fake_line(frame, pt1, pt2, color, thickness, lineType=None):
+            draw_calls.append(
+                {
+                    "color": color,
+                    "thickness": thickness,
+                    "num_points": 2,
+                }
+            )
+
+        fake_cv2 = SimpleNamespace(
+            INTER_LANCZOS4=4,
+            LINE_AA=16,
+            resize=fake_resize,
+            polylines=fake_polylines,
+            line=fake_line,
+        )
+
+        monkeypatch.setattr(audio_visualizer, "cv2", fake_cv2, raising=False)
+        monkeypatch.setattr(audio_visualizer, "OPENCV_AVAILABLE", True)
+
+        test_config_visualization["video"]["resolution"] = [96, 64]
+        test_config_visualization["video"]["fps"] = 4
+        test_config_visualization["visualization"]["waveform"] = {
+            "render_scale": 1.0,
+            "anti_alias": True,
+            "num_lines": 2,
+            "line_thickness": [3, 5],
+            "line_colors": [[10, 20, 30], [40, 50, 60]],
+            "position": "top,left",
+            "orientation_offset": 75,
+            "height_percent": 40,
+            "width_percent": 35,
+            "left_spacing": 6,
+            "right_spacing": 8,
+            "rotation": 15,
+            "num_instances": 2,
+            "instances_offset": 4,
+            "opacity": 0.5,
+            "amplitude_multiplier": 1.0,
+        }
+
+        viz = AudioVisualizer(test_config_visualization)
+
+        sr = 40
+        duration = 1.0
+        y = np.ones(int(sr * duration), dtype=np.float32)
+
+        frames = list(viz._generate_waveform_frames_streaming_chunked_from_array(y, sr, duration))
+
+        expected_frames = int(duration * viz.fps)
+        assert len(frames) == expected_frames
+        assert draw_calls, "OpenCV polylines should be invoked"
+
+        positions = [p.strip() for p in viz.position.split(",")]
+        expected_calls = expected_frames * len(positions) * viz.num_instances * viz.num_lines
+        assert len(draw_calls) >= expected_calls
+
+        # Colors should respect opacity scaling
+        expected_color = tuple(int(c * viz.opacity) for c in viz.line_colors[0])
+        assert draw_calls[0]["color"] == expected_color
+
+        expected_thickness = max(1, int(test_config_visualization["visualization"]["waveform"]["line_thickness"][0] * viz.render_scale))
+        assert draw_calls[0]["thickness"] == expected_thickness
+
+
 class TestSpectrumGeneration:
     """Test spectrum frame generation."""
 
@@ -549,6 +717,15 @@ class TestEdgeCases:
         # Verify directory doesn't exist yet
         assert not nested_dir.exists()
         
+        # Ensure ram_monitor module is imported so that patch lookup succeeds
+        ram_module = None
+        with patch.dict('sys.modules', {'psutil': MagicMock()}):
+            import importlib
+
+            utils_pkg = importlib.import_module('src.utils')
+            ram_module = importlib.import_module('src.utils.ram_monitor')
+            setattr(utils_pkg, 'ram_monitor', ram_module)
+        
         # Verify the directory creation code is executed
         # We'll just check that mkdir is called on the parent path
         # The actual fix is at line 385: output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -566,7 +743,7 @@ class TestEdgeCases:
                 # Mock threading and other dependencies
                 with patch('threading.Thread'), \
                      patch('src.utils.file_monitor.FileMonitor'), \
-                     patch('src.utils.ram_monitor.RAMMonitor'):
+                     patch.object(ram_module, 'RAMMonitor'):
                     # Mock frame generator
                     import numpy as np
                     def mock_frame_gen():
