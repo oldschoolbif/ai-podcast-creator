@@ -9,6 +9,7 @@ on:
 jobs:
   mutation-testing:
     name: Mutation Testing
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     
     steps:
@@ -48,6 +49,7 @@ jobs:
 
   type-checking:
     name: Type Checking with MyPy
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     
     steps:
@@ -71,6 +73,7 @@ jobs:
 
   performance-tests:
     name: Performance Testing
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     
     steps:
@@ -96,6 +99,7 @@ jobs:
 
   dependency-audit:
     name: Dependency Security Audit
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     
     steps:
@@ -123,6 +127,7 @@ jobs:
 
   test-coverage-trend:
     name: Coverage Trend Analysis
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     
     steps:
