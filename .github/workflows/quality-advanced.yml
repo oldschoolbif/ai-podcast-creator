@@ -167,7 +167,7 @@ jobs:
       run: |
         if [ -f coverage.json ]; then
           echo "📊 Coverage Summary:"
-        python3 <<'PYEOF'
+          python3 <<'PYEOF'
           import json
           try:
               with open('coverage.json') as f:
