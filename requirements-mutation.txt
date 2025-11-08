@@ -6,7 +6,7 @@ gTTS>=2.3.0,<3.0.0
 pydub==0.25.1
 librosa>=0.10.1,<0.11.0
 soundfile==0.12.1
-scipy>=1.11.0,<1.15.0
+scipy>=1.11.0,<1.16.0
 numpy>=1.24.0,<2.0.0
 moviepy==1.0.3
 opencv-python==4.8.1.78

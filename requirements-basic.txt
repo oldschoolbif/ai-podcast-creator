@@ -13,7 +13,7 @@ gTTS==2.5.0
 
 # Audio Processing
 pydub==0.25.1
-scipy==1.11.4
+scipy==1.15.3
 numpy==1.24.3
 
 # Video Processing
