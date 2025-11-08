@@ -31,7 +31,7 @@ tqdm==4.66.1
 pyyaml==6.0.1
 
 # GUI (Web Interface)
-gradio==4.8.0
+gradio==5.49.1
 
 # Development
 pytest==8.4.2
