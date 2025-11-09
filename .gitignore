@@ -79,6 +79,7 @@ htmlcov/
 test_results*.txt
 report.html
 evaluation_tests_log.txt
+.hypothesis/
 
 # Jupyter
 .ipynb_checkpoints/
