@@ -27,7 +27,7 @@ pydub==0.25.1
 librosa>=0.10.2,<0.11.0  # Upgraded to support numpy 1.23+
 soundfile==0.12.1
 scipy>=1.11.0,<1.16.0
-numpy>=1.23.0,<2.0.0  # Compatible with librosa 0.10.2+ and most ML libraries
+numpy>=1.23.0,<3.0.0  # Compatible with librosa 0.10.2+ and most ML libraries
 
 # Music Generation (Optional - requires 'av' package which has build issues on Windows)
 # Note: May have compatibility issues with Python 3.12+, test before using
