@@ -175,7 +175,7 @@
 ✅ librosa 0.11.0
 ✅ matplotlib 3.10.7
 ✅ pyttsx3 2.99
-✅ opencv-python 4.12.0
+✅ opencv-python 4.11.0
 ✅ numba 0.62.1
 ✅ scikit-learn 1.7.2
 ✅ All testing dependencies
