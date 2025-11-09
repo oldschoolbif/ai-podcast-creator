@@ -31,7 +31,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyyaml  # Install yaml early for conftest.py
         # Install core test dependencies FIRST (pytest must be available)
-        pip install numpy hypothesis sortedcontainers
+        pip install "numpy>=1.23,<2.0.0" hypothesis sortedcontainers
         pip install pytest pytest-asyncio pytest-cov pytest-xdist pytest-timeout pytest-benchmark
         # Install requirements - continue even if optional packages fail
         # Note: ffmpegcv[cuda] is commented out in requirements.txt to avoid pycuda build issues in CI

@@ -53,7 +53,7 @@ Complete reference of all tools, libraries, and utilities used in the AI Podcast
 | Library | Version | Purpose | License | Source |
 |---------|---------|---------|---------|--------|
 | **moviepy** | 1.0.3 | Video editing and composition | MIT | https://zulko.github.io/moviepy |
-| **opencv-python** | 4.8.1 | Computer vision and image processing | Apache 2.0 | https://opencv.org |
+| **opencv-python** | 4.11.0 | Computer vision and image processing | Apache 2.0 | https://opencv.org |
 | **pillow** | 10.1.0 | Image manipulation | PIL License | https://pillow.readthedocs.io |
 | **imageio** | 2.33.0 | Image and video I/O | BSD | https://imageio.readthedocs.io |
 | **imageio-ffmpeg** | 0.4.9 | FFmpeg backend for imageio | BSD | https://github.com/imageio/imageio-ffmpeg |
