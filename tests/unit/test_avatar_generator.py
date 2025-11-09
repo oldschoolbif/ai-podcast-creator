@@ -919,32 +919,37 @@ class TestAvatarGeneratorEdgeCases:
         test_config["avatar"]["sadtalker"] = {"checkpoint_dir": str(temp_dir)}
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
-        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
-            mock_gpu.return_value.gpu_available = True
-            mock_gpu.return_value.device_id = 0
-            mock_gpu.return_value.get_device.return_value = "cuda"
-            mock_gpu.return_value.clear_cache = MagicMock()
+        fake_torch = MagicMock()
+        fake_torch.cuda.is_available.return_value = True
+        fake_torch.no_grad = MagicMock()
 
-            # Mock successful generation with result file
-            result_file = temp_dir / "result.mp4"
-            mock_run.return_value = MagicMock(returncode=0, stdout="Success", stderr="")
-            mock_exists.return_value = True
-            mock_glob.return_value = [result_file]  # Has result file
+        with patch.dict("sys.modules", {"torch": fake_torch}):
+            with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+                mock_gpu.return_value.gpu_available = True
+                mock_gpu.return_value.device_id = 0
+                mock_gpu.return_value.get_device.return_value = "cuda"
+                mock_gpu.return_value.clear_cache = MagicMock()
 
-            generator = AvatarGenerator(test_config)
-            audio_path = temp_dir / "audio.wav"
-            output_path = temp_dir / "output.mp4"
-            audio_path.write_bytes(b"fake audio")
+                # Mock successful generation with result file
+                result_file = temp_dir / "result.mp4"
+                mock_run.return_value = MagicMock(returncode=0, stdout="Success", stderr="")
+                mock_exists.return_value = True
+                mock_glob.return_value = [result_file]  # Has result file
 
-            result = generator._generate_sadtalker(audio_path, output_path)
+                generator = AvatarGenerator(test_config)
+                audio_path = temp_dir / "audio.wav"
+                output_path = temp_dir / "output.mp4"
+                audio_path.write_bytes(b"fake audio")
 
-            # Should copy result file
-            assert mock_copy.called
-            # Should cleanup
-            assert mock_unlink.called
-            assert mock_rmdir.called
-            # Should clear GPU cache
-            mock_gpu.return_value.clear_cache.assert_called()
+                result = generator._generate_sadtalker(audio_path, output_path)
+
+                # Should copy result file
+                assert mock_copy.called
+                # Should cleanup
+                assert mock_unlink.called
+                assert mock_rmdir.called
+                # Should clear GPU cache
+                mock_gpu.return_value.clear_cache.assert_called()
 
     @patch("subprocess.run")
     def test_generate_wav2lip_error(self, mock_run, test_config, temp_dir):
@@ -1072,32 +1077,38 @@ class TestAvatarGeneratorEdgeCases:
         }
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
-        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
-            mock_gpu.return_value.gpu_available = True
-            mock_gpu.return_value.device_id = 0
-            mock_gpu.return_value.get_device.return_value = "cuda"
+        fake_torch = MagicMock()
+        fake_torch.cuda.is_available.return_value = True
+        fake_torch.no_grad = MagicMock()
 
-            # Mock successful generation
-            mock_run.return_value = MagicMock(returncode=0, stdout="Success", stderr="")
+        with patch.dict("sys.modules", {"torch": fake_torch}):
+            with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+                mock_gpu.return_value.gpu_available = True
+                mock_gpu.return_value.device_id = 0
+                mock_gpu.return_value.get_device.return_value = "cuda"
 
-            generator = AvatarGenerator(test_config)
-            audio_path = temp_dir / "audio.wav"
-            output_path = temp_dir / "output.mp4"
-            audio_path.write_bytes(b"fake audio")
+                # Mock successful generation
+                mock_run.return_value = MagicMock(returncode=0, stdout="Success", stderr="")
 
-            # Create temp dir structure
-            sadtalker_path = temp_dir / "sadtalker"
-            sadtalker_path.mkdir()
-            (sadtalker_path / "checkpoints").mkdir()
+                generator = AvatarGenerator(test_config)
+                audio_path = temp_dir / "audio.wav"
+                output_path = temp_dir / "output.mp4"
+                audio_path.write_bytes(b"fake audio")
 
-            with patch("pathlib.Path.exists", return_value=True):
-                with patch("pathlib.Path.glob", return_value=[temp_dir / "result.mp4"]):
-                    with patch("shutil.copy") as mock_copy:
-                        result = generator._generate_sadtalker(audio_path, output_path)
-                        
-                        # Verify still_mode was passed
-                        call_args = mock_run.call_args[0][0]
-                        assert "--still" in call_args
+                # Create temp dir structure
+                sadtalker_path = temp_dir / "sadtalker"
+                sadtalker_path.mkdir()
+                (sadtalker_path / "checkpoints").mkdir()
+
+                with patch("pathlib.Path.exists", return_value=True):
+                    with patch("pathlib.Path.glob", return_value=[temp_dir / "result.mp4"]):
+                        with patch("shutil.copy") as mock_copy:
+                            result = generator._generate_sadtalker(audio_path, output_path)
+                            
+                            # Verify still_mode was passed
+                            call_args = mock_run.call_args[0][0]
+                            assert "--still" in call_args
+                            assert mock_copy.called
 
     def test_generate_wav2lip_creates_script(self, test_config, temp_dir):
         """Test Wav2Lip creates inference script when needed (line 305)."""

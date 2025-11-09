@@ -7,7 +7,7 @@ Targeting all missing paths for 90%+ coverage.
 
 import sys
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -15,6 +15,41 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.core.tts_engine import TTSEngine
+
+
+def _install_torch_stub():
+    if "torch" in sys.modules:
+        return
+
+    torch_module = ModuleType("torch")
+    cuda_mock = MagicMock()
+    cuda_mock.is_available = MagicMock(return_value=False)
+    cuda_mock.get_device_properties = MagicMock(return_value=SimpleNamespace(total_memory=8 * 1024**3))
+    cuda_mock.get_device_capability = MagicMock(return_value=(7, 0))
+    cuda_mock.empty_cache = MagicMock()
+    cuda_mock.device = MagicMock()
+
+    torch_module.cuda = cuda_mock
+    torch_module.device = MagicMock()
+
+    backends_mock = MagicMock()
+    backends_mock.cudnn.benchmark = False
+    backends_mock.cudnn.enabled = True
+    torch_module.backends = backends_mock
+
+    class _NoGrad:
+        def __enter__(self):
+            return None
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            return False
+
+    torch_module.no_grad = MagicMock(return_value=_NoGrad())
+    torch_module.inference_mode = MagicMock(return_value=_NoGrad())
+    sys.modules["torch"] = torch_module
+
+
+_install_torch_stub()
 
 
 def make_config(tmp_path, engine="gtts"):
