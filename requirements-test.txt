@@ -1,7 +1,7 @@
 # Testing Dependencies for AI Podcast Creator
 
 # Core testing framework
-pytest==8.4.2
+pytest==9.0.0
 pytest-cov==7.0.0
 pytest-mock==3.15.1
 pytest-asyncio==1.2.0
@@ -9,13 +9,13 @@ pytest-timeout==2.4.0
 pytest-xdist==3.8.0  # Parallel test execution
 
 # Coverage reporting
-coverage[toml]==7.11.1
+coverage[toml]==7.11.3
 
 # Test utilities
 faker==22.0.0  # Generate fake data for testing
 freezegun==1.4.0  # Mock datetime
 responses==0.24.1  # Mock HTTP requests
-pytest-benchmark==5.2.2  # Performance benchmarking
+pytest-benchmark==5.2.3  # Performance benchmarking
 
 # Mocking and fixtures
 factory-boy==3.3.0  # Test data factories
