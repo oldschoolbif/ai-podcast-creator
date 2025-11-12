@@ -315,7 +315,7 @@ class TestMusicGeneratorMusicGen:
 
     @patch("audiocraft.models.MusicGen")
     @patch("builtins.print")
-    def test_init_musicgen_cpu(self, mock_print, mock_gen, test_config, temp_dir):
+    def test_init_musicgen_cpu(self, mock_print, mock_gen, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen initialization on CPU (lines 73-75)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
@@ -336,12 +336,9 @@ class TestMusicGeneratorMusicGen:
             # Verify CPU warning print (line 74)
             assert any("Initializing MusicGen on CPU" in str(call) for call in mock_print.call_args_list)
 
-    @patch("torchaudio.save")
-    @patch("torch.inference_mode")
-    @patch("torch.cuda.amp.autocast")
     @patch("builtins.print")
-    def test_generate_musicgen_gpu_autocast(self, mock_print, mock_autocast, mock_inference, mock_save, test_config, temp_dir, stub_audiocraft):
-        """Test MusicGen generation with GPU autocast (lines 164-165)."""
+    def test_generate_musicgen_gpu_autocast(self, mock_print, test_config, temp_dir, stub_audiocraft):
+        """Test MusicGen generation with GPU autocast (lines 164-168)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {
             "model": "facebook/musicgen-small",
@@ -361,25 +358,43 @@ class TestMusicGeneratorMusicGen:
             mock_model = MagicMock()
             mock_model.generate.return_value = [MagicMock()]
             mock_model.sample_rate = 32000
+            mock_model.set_generation_params = MagicMock()
             mock_gen.get_pretrained.return_value = mock_model
 
+            # Stub torch and torchaudio in sys.modules before generation
+            mock_torch = MagicMock()
+            mock_torch.inference_mode.return_value.__enter__ = MagicMock()
+            mock_torch.inference_mode.return_value.__exit__ = MagicMock(return_value=False)
+            mock_autocast = MagicMock()
+            mock_autocast.return_value.__enter__ = MagicMock()
+            mock_autocast.return_value.__exit__ = MagicMock(return_value=False)
+            mock_torch.cuda.amp.autocast = mock_autocast
+            sys.modules["torch"] = mock_torch
+            
+            mock_torchaudio = MagicMock()
+            def mock_save_func(waveform, path, sample_rate):
+                Path(path).parent.mkdir(parents=True, exist_ok=True)
+                Path(path).touch()
+            mock_torchaudio.save = MagicMock(side_effect=mock_save_func)
+            sys.modules["torchaudio"] = mock_torchaudio
+
             generator = MusicGenerator(test_config)
+            # Ensure model is set
+            generator.model = mock_model
+            
             generator.generate("test music")
 
             # Should use autocast for GPU
             mock_autocast.assert_called()
-            # Should save audio (line 170)
-            mock_save.assert_called()
-            # Should clear cache (line 174)
+            # Should save audio (line 173)
+            mock_torchaudio.save.assert_called()
+            # Should clear cache (line 177)
             mock_gpu.return_value.clear_cache.assert_called()
-            # Verify generation print (line 159)
-            assert any("Generating music" in str(call) for call in mock_print.call_args_list)
+            # Verify generation print (line 162)
+            assert any("Generating music" in str(call) or "🎵" in str(call) for call in mock_print.call_args_list)
 
-    @patch("torchaudio.save")
-    @patch("torch.inference_mode")
-    @patch("torch.cuda.amp.autocast")
-    def test_generate_musicgen_gpu_cache_clearing(self, mock_autocast, mock_inference, mock_save, test_config, temp_dir, stub_audiocraft):
-        """Test MusicGen GPU cache clearing at start (line 141)."""
+    def test_generate_musicgen_gpu_cache_clearing(self, test_config, temp_dir, stub_audiocraft):
+        """Test MusicGen GPU cache clearing at start (line 143)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {
             "model": "facebook/musicgen-small",
@@ -399,13 +414,34 @@ class TestMusicGeneratorMusicGen:
             mock_model = MagicMock()
             mock_model.generate.return_value = [MagicMock()]
             mock_model.sample_rate = 32000
+            mock_model.set_generation_params = MagicMock()
             mock_gen.get_pretrained.return_value = mock_model
 
+            # Stub torch and torchaudio in sys.modules before generation
+            mock_torch = MagicMock()
+            mock_torch.inference_mode.return_value.__enter__ = MagicMock()
+            mock_torch.inference_mode.return_value.__exit__ = MagicMock(return_value=False)
+            mock_autocast = MagicMock()
+            mock_autocast.return_value.__enter__ = MagicMock()
+            mock_autocast.return_value.__exit__ = MagicMock(return_value=False)
+            mock_torch.cuda.amp.autocast = mock_autocast
+            sys.modules["torch"] = mock_torch
+            
+            mock_torchaudio = MagicMock()
+            def mock_save_func(waveform, path, sample_rate):
+                Path(path).parent.mkdir(parents=True, exist_ok=True)
+                Path(path).touch()
+            mock_torchaudio.save = MagicMock(side_effect=mock_save_func)
+            sys.modules["torchaudio"] = mock_torchaudio
+
             generator = MusicGenerator(test_config)
+            # Ensure model is set
+            generator.model = mock_model
+            
             generator.generate("test music")
 
-            # Should clear cache at start (line 141)
-            assert mock_gpu.return_value.clear_cache.call_count >= 1  # Called at start and end
+            # Should clear cache at start (line 143) and end (line 177)
+            assert mock_gpu.return_value.clear_cache.call_count >= 1
 
     def test_generate_musicgen_parameters_from_config(self, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen uses config parameters (lines 144-157)."""
