@@ -178,6 +178,28 @@ def write_sine_wav(
     return output_path
 
 
+@pytest.fixture
+def benchmark(request):
+    """Provide benchmark fixture, skip if pytest-benchmark not available."""
+    # Check if pytest-benchmark plugin is available and registered
+    try:
+        import pytest_benchmark
+        # Check if the plugin is actually registered (not just installed)
+        if hasattr(request.config, 'pluginmanager'):
+            plugins = [name for name in request.config.pluginmanager.list_name_plugin()]
+            if 'pytest_benchmark' in plugins or 'benchmark' in plugins:
+                # Try to get the real benchmark fixture
+                try:
+                    return request.getfixturevalue("_pytest_benchmark_benchmark")
+                except pytest.FixtureLookupError:
+                    pass
+    except ImportError:
+        pass
+    
+    # Skip test if benchmark not available (e.g., when PYTEST_DISABLE_PLUGIN_AUTOLOAD=1)
+    pytest.skip("pytest-benchmark not available (plugin disabled or not installed)")
+
+
 def create_valid_mp3_file(output_path: Path, duration_seconds: float = 1.0) -> Path:
     """Create a lightweight MP3 file for tests.
 
