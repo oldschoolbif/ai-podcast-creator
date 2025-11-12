@@ -229,18 +229,27 @@ class TestGPUIntegration:
 
     def test_gpu_fallback_to_cpu(self, test_config, temp_dir):
         """Test modules gracefully fall back to CPU when GPU unavailable."""
-        # Mock GPU as unavailable
+        # Mock GPU as unavailable - patch where it's imported
         from unittest.mock import patch
         
-        with patch("src.utils.gpu_utils.get_gpu_manager") as mock_gpu:
+        # Patch get_gpu_manager in both modules where it's used
+        with (
+            patch("src.core.tts_engine.get_gpu_manager") as mock_gpu_tts,
+            patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu_avatar,
+        ):
             mock_manager = MagicMock()
             mock_manager.gpu_available = False
             mock_manager.get_device.return_value = "cpu"
-            mock_gpu.return_value = mock_manager
+            mock_gpu_tts.return_value = mock_manager
+            mock_gpu_avatar.return_value = mock_manager
             
             # TTS engine should work with CPU
             test_config["tts"] = {"engine": "gtts"}
             test_config["storage"]["cache_dir"] = str(temp_dir)
+            
+            # Re-import to get patched version
+            from src.core.tts_engine import TTSEngine
+            from src.core.avatar_generator import AvatarGenerator
             
             engine = TTSEngine(test_config)
             assert engine.device == "cpu"

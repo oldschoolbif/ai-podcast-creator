@@ -48,12 +48,11 @@ class TestMusicGeneratorInit:
         assert generator.engine_type == "library"
 
 
-@pytest.mark.skipif("audiocraft" not in sys.modules, reason="audiocraft not installed")
 class TestMusicGeneratorMusicGen:
     """Test MusicGen generation."""
 
     @pytest.mark.gpu
-    def test_generate_musicgen_gpu(self, test_config, temp_dir, skip_if_no_gpu):
+    def test_generate_musicgen_gpu(self, test_config, temp_dir, skip_if_no_gpu, stub_audiocraft):
         """Test MusicGen generation with GPU."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {
@@ -65,11 +64,14 @@ class TestMusicGeneratorMusicGen:
         }
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
+        output_path = temp_dir / "test_music.wav"
+        
         with (
             patch("audiocraft.models.MusicGen") as mock_gen,
             patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
             patch("torch.inference_mode"),
-            patch("torchaudio.save"),
+            patch("torchaudio.save") as mock_save,
+            patch("pathlib.Path.exists", return_value=True),
         ):
 
             mock_gpu.return_value.gpu_available = True
@@ -80,6 +82,12 @@ class TestMusicGeneratorMusicGen:
             mock_gen.get_pretrained.return_value = mock_model
             mock_model.generate.return_value = MagicMock()
             mock_model.sample_rate = 32000
+            
+            # Mock torchaudio.save to create the file
+            def mock_save_func(waveform, path, sample_rate):
+                Path(path).parent.mkdir(parents=True, exist_ok=True)
+                Path(path).touch()
+            mock_save.side_effect = mock_save_func
 
             generator = MusicGenerator(test_config)
             result = generator.generate("upbeat background music")
@@ -549,11 +557,10 @@ class TestMusicGeneratorMusicGen:
             assert result is None  # Should handle gracefully
 
 
-@pytest.mark.skipif("audiocraft" not in sys.modules, reason="audiocraft not installed")
 class TestMusicGeneratorCacheKey:
     """Test cache key generation."""
 
-    def test_cache_key_generation(self, test_config):
+    def test_cache_key_generation(self, test_config, stub_audiocraft):
         """Test cache key is consistent."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "test"}
@@ -569,7 +576,7 @@ class TestMusicGeneratorCacheKey:
 
             assert key1 == key2
 
-    def test_cache_key_different_descriptions(self, test_config):
+    def test_cache_key_different_descriptions(self, test_config, stub_audiocraft):
         """Test different descriptions give different keys."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "test"}
@@ -594,8 +601,7 @@ class TestMusicGeneratorCacheKey:
         ("energetic rock", str),
     ],
 )
-@pytest.mark.skipif("audiocraft" not in sys.modules, reason="audiocraft not installed")
-def test_music_descriptions(test_config, temp_dir, description, expected_type):
+def test_music_descriptions(test_config, temp_dir, description, expected_type, stub_audiocraft):
     """Test various music descriptions."""
     test_config["music"]["engine"] = "musicgen"
     test_config["music"]["musicgen"] = {"model": "test", "duration": 5}

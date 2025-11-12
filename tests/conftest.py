@@ -11,16 +11,18 @@ import random
 import shutil
 import socket
 import subprocess
+import sys
 import wave
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable, Iterator
+from unittest.mock import MagicMock
 
 import pytest
 
 try:  # Optional dependency for time freezing.
     from freezegun import freeze_time as _freeze_time  # type: ignore
-except ImportError:  # pragma: no cover - freezegun is optional.
+except (ImportError, AttributeError):  # pragma: no cover - freezegun is optional or incompatible.
     _freeze_time = None  # type: ignore
 
 
@@ -416,6 +418,30 @@ def skip_if_no_gpu():
     
     if not torch.cuda.is_available():
         pytest.skip("CUDA GPU not available")
+
+
+@pytest.fixture
+def stub_audiocraft(monkeypatch):
+    """Stub audiocraft module if not available to allow tests with mocks to run."""
+    if "audiocraft" not in sys.modules:
+        # Create a minimal stub for audiocraft
+        stub_audiocraft_module = MagicMock()
+        stub_audiocraft_module.models = MagicMock()
+        stub_audiocraft_module.models.MusicGen = MagicMock()
+        monkeypatch.setitem(sys.modules, "audiocraft", stub_audiocraft_module)
+    yield
+
+
+@pytest.fixture
+def stub_tts(monkeypatch):
+    """Stub TTS (Coqui) module if not available to allow tests with mocks to run."""
+    if "TTS" not in sys.modules:
+        # Create a minimal stub for TTS
+        stub_tts_module = MagicMock()
+        stub_tts_module.api = MagicMock()
+        stub_tts_module.api.TTS = MagicMock()
+        monkeypatch.setitem(sys.modules, "TTS", stub_tts_module)
+    yield
 
 
 @pytest.fixture
