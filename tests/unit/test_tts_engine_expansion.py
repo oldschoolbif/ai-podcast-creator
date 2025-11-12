@@ -4,7 +4,9 @@ Targeting 80%+ coverage through comprehensive edge case testing
 """
 
 import sys
+from contextlib import ExitStack
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -24,6 +26,26 @@ def make_tts_config(tmp_path):
             "gtts_tld": "com",
         },
     }
+
+
+def test_project_root_helper_inserts_repo_root_at_front():
+    """Verify the helper keeps the repository root at the front of sys.path."""
+    from src.core import tts_engine
+
+    project_root = tts_engine.PROJECT_ROOT
+    original_sys_path = list(sys.path)
+
+    try:
+        while project_root in sys.path:
+            sys.path.remove(project_root)
+
+        assert project_root not in sys.path
+
+        tts_engine._ensure_project_root_on_path()
+
+        assert sys.path[0] == project_root
+    finally:
+        sys.path[:] = original_sys_path
 
 
 class TestTTSEngineEdgeCases:
@@ -229,6 +251,61 @@ class TestTTSEngineInitializationPaths:
 
         assert engine.cache_dir.exists()
         assert engine.cache_dir == cache_dir
+
+    def test_missing_tts_config_defaults_to_gtts(self, tmp_path):
+        """When no TTS section is provided, default to gTTS with availability flag."""
+        from src.core.tts_engine import TTSEngine
+
+        cfg = make_tts_config(tmp_path)
+        cfg.pop("tts")
+
+        with patch("src.core.tts_engine.get_gpu_manager") as mock_gpu, patch.dict(
+            sys.modules, {"gtts": SimpleNamespace(gTTS=MagicMock())}
+        ):
+            mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+
+            engine = TTSEngine(cfg)
+
+        assert engine.engine_type == "gtts"
+        assert getattr(engine, "gtts_available", False) is True
+
+    @pytest.mark.parametrize(
+        ("engine", "expected_method"),
+        [
+            ("gtts", "_init_gtts"),
+            ("coqui", "_init_coqui"),
+            ("elevenlabs", "_init_elevenlabs"),
+            ("azure", "_init_azure"),
+            ("piper", "_init_piper"),
+        ],
+    )
+    def test_init_dispatch_routes_to_expected_engine(self, engine, expected_method, tmp_path):
+        """Ensure engine selection invokes the matching init helper exactly once."""
+        from src.core.tts_engine import TTSEngine
+
+        cfg = make_tts_config(tmp_path)
+        cfg["tts"]["engine"] = engine
+        cfg["tts"].setdefault("coqui", {"model": "demo-model"})
+        cfg["tts"].setdefault("elevenlabs", {"api_key": "fake-key"})
+        cfg["tts"].setdefault("azure", {"api_key": "fake", "region": "westus"})
+
+        with ExitStack() as stack:
+            mock_gpu = stack.enter_context(patch("src.core.tts_engine.get_gpu_manager"))
+            mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+
+            patches = {}
+            for method in ["_init_gtts", "_init_coqui", "_init_elevenlabs", "_init_azure", "_init_piper", "_init_pyttsx3"]:
+                patches[method] = stack.enter_context(patch.object(TTSEngine, method))
+
+            TTSEngine(cfg)
+
+        for name, mocked in patches.items():
+            if name == expected_method:
+                assert mocked.called, f"Expected {name} to be called for engine '{engine}'"
+            else:
+                assert not mocked.called, f"Did not expect {name} when engine='{engine}'"
 
 
 class TestTTSEngineCoquiPaths:

@@ -5,7 +5,7 @@ Splits video files into time-based chunks.
 
 import subprocess
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 
 def chunk_video(video_path: Path, chunk_duration_minutes: int, output_dir: Optional[Path] = None) -> List[Path]:

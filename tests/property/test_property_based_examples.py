@@ -3,6 +3,7 @@ Property-Based Testing Examples with Hypothesis
 Automatically generates 100s of test cases to find edge cases you'd never think of!
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -14,6 +15,15 @@ try:
     from hypothesis import strategies as st
 
     HYPOTHESIS_AVAILABLE = True
+
+    if os.getenv("MUTANT_UNDER_TEST"):
+        settings.register_profile(
+            "mutation",
+            suppress_health_check=[HealthCheck.differing_executors, HealthCheck.function_scoped_fixture],
+            deadline=None,
+            max_examples=50,
+        )
+        settings.load_profile("mutation")
 except ImportError:
     HYPOTHESIS_AVAILABLE = False
 

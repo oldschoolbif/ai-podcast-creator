@@ -12,6 +12,7 @@ import sys
 import types
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -208,4 +209,58 @@ def test_description_to_prompt_variations(monkeypatch):
     prompt_neutral = generator._description_to_prompt("Seasoned storyteller")
     assert prompt_neutral.startswith("professional person")
     assert "professional portrait" in prompt_neutral
+
+
+def test_generate_import_error(monkeypatch, tmp_path):
+    """Generating without diffusers installed should raise ImportError."""
+    config = {"storage": {"cache_dir": str(tmp_path / "cache")}}
+    monkeypatch.setattr(
+        "src.core.face_generator.get_gpu_manager",
+        lambda: DummyGPU(False, "cpu", {}),
+    )
+
+    original_import = __import__
+
+    def fake_import(name, *args, **kwargs):
+        if name.startswith("diffusers"):
+            raise ImportError("diffusers missing")
+        return original_import(name, *args, **kwargs)
+
+    generator = FaceGenerator(config)
+
+    with patch("builtins.__import__", side_effect=fake_import):
+        with pytest.raises(ImportError):
+            generator.generate(description="conference host")
+
+
+def test_generate_pipeline_exception(monkeypatch, tmp_path):
+    """Runtime errors from the pipeline should propagate upward."""
+    config = {"storage": {"cache_dir": str(tmp_path / "cache")}}
+
+    class FaultyPipeline:
+        def __init__(self):
+            self.init_kwargs = {}
+
+        @classmethod
+        def from_pretrained(cls, *args, **kwargs):
+            instance = cls()
+            instance.init_kwargs = kwargs
+            return instance
+
+        def to(self, device):
+            return self
+
+        def __call__(self, **kwargs):
+            raise RuntimeError("pipeline failed")
+
+    _install_stubs(monkeypatch, FaultyPipeline)
+    monkeypatch.setattr(
+        "src.core.face_generator.get_gpu_manager",
+        lambda: DummyGPU(True, "cuda", {"use_fp16": True}),
+    )
+
+    generator = FaceGenerator(config)
+
+    with pytest.raises(RuntimeError, match="pipeline failed"):
+        generator.generate(description="dynamic presenter")
 

@@ -65,6 +65,7 @@ markers = [
     "gpu: marks tests that require GPU",
     "performance: marks performance/load tests",
     "chaos: marks chaos engineering tests",
+    "no_cpu_patch: bypass metrics CPU/RAM patch fixture for fallback testing",
 ]
 filterwarnings = [
     "error",
@@ -128,16 +129,9 @@ exclude = [
 
 [tool.mutmut]
 paths_to_mutate = [
-    "src/core/tts_engine.py",
-    "src/core/video_composer.py",
-    "src/core/audio_mixer.py",
-    "src/core/script_parser.py",
-    "src/utils/config.py",
+    "src",  # src/ is the project package root
 ]
-tests_dir = "tests"
+# Cursor-auto: wrapper enforces pytest -n 26 -q --maxfail=1 --tb=short; disable via PY_PARALLEL=0.
 runner = "python scripts/mutmut_pytest_wrapper.py"
-backup = false
-# Optimize for speed
-# Only mutate fast-to-test files, skip slow modules during mutation
-use_coverage = true  # Skip mutations on uncovered lines (faster)
+use_coverage = true
 

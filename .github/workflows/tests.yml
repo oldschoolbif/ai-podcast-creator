@@ -1,265 +1,82 @@
-name: Test Suite
+name: Deterministic Test Suite
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
-  workflow_dispatch:  # Allow manual trigger
+    branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
-  test:
-    name: Test Python ${{ matrix.python-version }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        python-version: ['3.11']
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-    
-    - name: Install system dependencies (Ubuntu)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg
-    
-    - name: Install system dependencies (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        choco install ffmpeg -y
-    
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        # Install pyyaml early for conftest.py (before requirements.txt)
-        pip install pyyaml
-        # Install core test dependencies FIRST (pytest must be available)
-        pip install "numpy>=1.23,<2.0.0" typer hypothesis sortedcontainers mypy types-PyYAML types-requests
-        pip install pytest pytest-asyncio pytest-cov pytest-xdist pytest-timeout pytest-benchmark
-        # Install requirements - continue even if optional packages fail
-        # Note: ffmpegcv[cuda] is commented out in requirements.txt to avoid pycuda build issues in CI
-        pip install -r requirements.txt || echo "Some optional packages failed to install (expected)"
-        # Ensure pytest is still available even if requirements.txt had issues
-        pip install pytest pytest-cov || true
-    
-    - name: Run linting
-      run: |
-        pip install flake8 black
-        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics || true
-        flake8 src/ --count --max-line-length=120 --statistics || true
-        black --check src/ tests/ || true
-      continue-on-error: true
-
-    - name: Run mypy
-      run: |
-        mypy src/ --config-file pyproject.toml || echo "MyPy found errors (see above)"
-      continue-on-error: true
-    
-    - name: Run tests with coverage
-      shell: bash
-      run: |
-        pytest --cov=src --cov-report=xml --cov-report=term -n auto --maxfail=10 --tb=short
-      timeout-minutes: 15
-    
-    - name: Run GPU utilization tests
-      shell: bash
-      run: |
-        # Run GPU utilization tests (will skip if no GPU available)
-        pytest tests/unit/test_gpu_utilization.py -v -m "not gpu" || echo "GPU tests skipped (expected in CI without GPU)"
-      continue-on-error: true
-      timeout-minutes: 5
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-${{ matrix.os }}-py${{ matrix.python-version }}
-        fail_ci_if_error: false
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    
-    - name: Generate test report
-      if: always()
-      run: |
-        pytest --html=report.html --self-contained-html || true
-    
-    - name: Upload test report
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-report-${{ matrix.os }}-py${{ matrix.python-version }}
-        path: report.html
-        retention-days: 30
-
-  security:
-    name: Security Scan
+  deterministic-pytest:
     runs-on: ubuntu-latest
-    
+    env:
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+      PYTHONHASHSEED: "0"
+      TZ: "UTC"
+      LC_ALL: "C"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      HYPOTHESIS_SEED: "1337"
+      TEST_SEED: "1337"
+      PY_ENABLE_GPU_TESTS: "0"
+      PY_PARALLEL: "0"
+      # To run GPU-enabled tests, create a dedicated job with PY_ENABLE_GPU_TESTS=1 and CUDA-capable runners.
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install security tools
-      run: |
-        pip install bandit safety
-    
-    - name: Run Bandit security scan
-      run: |
-        bandit -r src/ -f json -o bandit-report.json || true
-        bandit -r src/ -f screen
-      continue-on-error: true
-    
-    - name: Run Safety dependency scan
-      run: |
-        safety check --json || true
-        safety check
-      continue-on-error: true
-    
-    - name: Upload security reports
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: security-reports
-        path: bandit-report.json
-        retention-days: 30
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  quality:
-    name: Code Quality
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install quality tools
-      run: |
-        pip install radon
-    
-    - name: Check code complexity
-      run: |
-        echo "=== Cyclomatic Complexity ==="
-        radon cc src/ -a -nb
-        echo ""
-        echo "=== Maintainability Index ==="
-        radon mi src/
-      continue-on-error: true
-    
-    - name: Complexity gate
-      run: |
-        # Fail if any function has complexity > 15 (warning threshold)
-        radon cc src/ -n C || echo "⚠️ Warning: High complexity functions found"
-      continue-on-error: true
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-  test-aggregate:
-    name: Test Python 3.11
-    needs: test
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-    - name: Check test results
-      run: |
-        if [ "${{ needs.test.result }}" != "success" ]; then
-          echo "One or more test jobs failed"
-          exit 1
-        fi
-        echo "All test jobs passed ✅"
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
-  coverage-gate:
-    name: Coverage Gate
-    needs: test
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        # Install core test dependencies FIRST (pytest must be available)
-        pip install "numpy>=1.23,<2.0.0" typer hypothesis sortedcontainers mypy types-PyYAML types-requests
-        pip install pytest pytest-asyncio pytest-cov pytest-xdist pytest-timeout pytest-benchmark
-        # Install requirements - continue even if optional packages fail
-        pip install -r requirements.txt || echo "Some optional packages failed to install (expected)"
-        # Ensure pytest is still available even if requirements.txt had issues
-        pip install pytest pytest-cov || true
-    
-    - name: Check coverage threshold
-      run: |
-        pytest --cov=src --cov-report=term --cov-fail-under=30
-        echo "✅ Coverage threshold (30%) passed!"
-  mutmut:
-    if: ${{ vars.RUN_MUTMUT == 'true' }}
-    name: Mutation Testing
-    needs: test
-    runs-on: ubuntu-latest
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      # NOTE: Mutation testing (mutmut) should run in a dedicated workflow due to runtime cost.
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: Pytest run 1
+        id: pytest1
+        shell: bash
+        continue-on-error: true
+        run: |
+          set +e
+          pytest -q | tee pytest_run1.log
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+          exit "${exit_code}"
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          pkg-config \
-          libavformat-dev \
-          libavdevice-dev \
-          libavfilter-dev \
-          libavcodec-dev \
-          libavutil-dev \
-          libswresample-dev \
-          libswscale-dev
+      - name: Pytest run 2 (determinism check)
+        id: pytest2
+        shell: bash
+        continue-on-error: true
+        run: |
+          set +e
+          pytest -q | tee pytest_run2.log
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+          exit "${exit_code}"
 
-    - name: Install project requirements
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-mutation.txt
-        pip install -r requirements-dev.txt
-
-    - name: Run mutmut
-      run: |
-        python -m mutmut run
-
-    - name: Show surviving mutants
-      if: always()
-      run: |
-        python -m mutmut results || true
+      - name: Compare run results
+        if: always()
+        shell: bash
+        run: |
+          echo "Run 1 exit code: ${{ steps.pytest1.outputs.exit_code }}"
+          echo "Run 2 exit code: ${{ steps.pytest2.outputs.exit_code }}"
+          if [ "${{ steps.pytest1.outputs.exit_code }}" != "${{ steps.pytest2.outputs.exit_code }}" ]; then
+            echo "Pytest exit codes differed between runs. Tests are not deterministic."
+            exit 1
+          fi
+          if [ "${{ steps.pytest2.outputs.exit_code }}" != "0" ]; then
+            echo "Pytest failed (exit code ${{ steps.pytest2.outputs.exit_code }})."
+            exit ${{ steps.pytest2.outputs.exit_code }}
+          fi

@@ -346,6 +346,7 @@ def test_pyttsx3_generate_success(tmp_path):
 
 
 @pytest.mark.unit
+@pytest.mark.network
 def test_edge_generate_async_success(tmp_path):
     from src.core.tts_engine import TTSEngine
 

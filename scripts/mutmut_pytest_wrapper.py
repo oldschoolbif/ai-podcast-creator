@@ -1,80 +1,121 @@
-"""Wrapper to run pytest for mutmut without argument mangling issues."""
+"""Deterministic pytest wrapper for mutmut with dynamic exclusions."""
 
 from __future__ import annotations
 
+import math
 import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import List
 
 
-def main() -> None:
-    """Execute pytest and propagate its exit code.
+PYTEST_FLAGS = ["-q", "--maxfail=1", "--tb=short"]
+GPU_ENV = "PY_ENABLE_GPU_TESTS"
+PARALLEL_ENV = "PY_PARALLEL"
+SAFE_CORES_ENV = "PY_SAFE_CORES"
+RESOURCE_MONITOR_ENV = "PY_MONITOR_RESOURCES"
+TARGETS_ENV = "PYTEST_TARGETS"
+SCRIPT_DIR = Path(__file__).resolve().parent
 
-    Mutmut 3.3.1 currently passes the tests directory as individual characters
-    (``t``, ``e``, ``s``, ``t``, ``s``) when ``tests_dir`` is configured via
-    ``pyproject.toml``. Rather than rely on that argument list, we ignore the
-    received CLI arguments and invoke ``pytest`` directly, letting
-    ``pytest.ini`` control discovery and global options.
-    """
 
-    project_root = Path(__file__).resolve().parent.parent
+def _build_command() -> list[str]:
+    cmd: List[str] = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "-m",
+        _marker_expression(),
+    ]
+    cmd.extend(_parallel_args())
+    cmd.extend(_target_args())
+    cmd.extend(PYTEST_FLAGS)
+    return cmd
+
+
+def _prepare_env() -> dict[str, str]:
     env = os.environ.copy()
-    current_pythonpath = env.get("PYTHONPATH", "")
-    segments = [str(project_root)]
-    if current_pythonpath:
-        segments.append(current_pythonpath)
-    env["PYTHONPATH"] = os.pathsep.join(segments)
+    project_root = Path(__file__).resolve().parent.parent
+    existing = env.get("PYTHONPATH")
+    path_parts = [str(project_root)]
+    if existing:
+        path_parts.append(existing)
+    env["PYTHONPATH"] = os.pathsep.join(path_parts)
+    return env
 
-    # Optimize for mutation testing: fast execution with parallel support
-    # Skip slow/integration/e2e tests by default, but allow GPU tests
-    # Use parallel execution with pytest-xdist if available
-    cmd = [sys.executable, "-m", "pytest"]
-    
-    # Determine test selection based on environment
-    # By default, skip slow/integration/e2e but include GPU tests (they're fast with GPU)
-    include_gpu = os.getenv("MUTMUT_INCLUDE_GPU", "1") == "1"
-    include_slow = os.getenv("MUTMUT_SLOW_TESTS", "0") == "1"
-    
-    if include_slow:
-        # Full suite - just skip e2e tests (they're hardest to run repeatedly)
-        test_marker = "not e2e"
-    elif include_gpu:
-        # Fast mode: Include GPU tests (they're fast when GPU is available)
-        # Skip: slow, integration, e2e, performance
-        test_marker = "not slow and not integration and not e2e and not performance"
-    else:
-        # Fastest mode: Skip everything slow including GPU
-        test_marker = "not slow and not integration and not e2e and not gpu and not performance"
-    
-    cmd.extend([
-        "-m", test_marker,
-        "--maxfail=3",  # Allow a few failures (tests may have platform differences)
-        "--tb=short",  # Short tracebacks (less output)
-        "-q",  # Quiet mode (less output)
-    ])
-    
-    # Enable parallel execution if pytest-xdist is available
-    # This uses all CPU cores to run tests in parallel
-    try:
-        import pytest_xdist
-        import multiprocessing
-        # Use all available CPU cores for parallel test execution
-        num_workers = os.getenv("MUTMUT_WORKERS", str(multiprocessing.cpu_count()))
-        cmd.extend(["-n", num_workers])
-    except ImportError:
-        # pytest-xdist not available, run sequentially
-        pass
-    
-    if os.getenv("MUTMUT_DEBUG", "0") == "1":
-        print("[mutmut] PYTHONPATH=", env.get("PYTHONPATH"))
-        print("[mutmut] Command:", " ".join(cmd))
-    
+
+def main() -> int:
+    env = _prepare_env()
+    _maybe_run_resource_check(env)
+    cmd = _build_command()
     result = subprocess.run(cmd, env=env)
-    sys.exit(result.returncode)
+    return result.returncode
+
+
+def _marker_expression() -> str:
+    parts: List[str] = ["not slow", "not integration", "not e2e", "not performance"]
+    if os.getenv(GPU_ENV, "0") != "1":
+        parts.append("not gpu")
+    return " and ".join(parts)
+
+
+def _parallel_args() -> list[str]:
+    if os.getenv(PARALLEL_ENV, "1") == "0":
+        return []
+
+    safe_value = os.getenv(SAFE_CORES_ENV)
+    safe = None
+    if safe_value:
+        try:
+            safe = int(safe_value)
+        except ValueError:
+            safe = None
+    if safe is None:
+        safe = _compute_safe_cores()
+
+    if safe > 1:
+        return ["-n", str(safe)]
+    return []
+
+
+def _compute_safe_cores() -> int:
+    total = os.cpu_count() or 1
+    try:
+        import psutil  # type: ignore
+    except ImportError:
+        pass
+    else:
+        total = psutil.cpu_count(logical=True) or total
+
+    safe = max(1, int(math.floor(total * 0.85)))
+    if safe % 2 == 1:
+        safe = max(1, safe - 1)
+    return max(1, safe)
+
+
+def _maybe_run_resource_check(env: dict[str, str]) -> None:
+    if env.get(RESOURCE_MONITOR_ENV, "0") != "1":
+        return
+
+    checker = SCRIPT_DIR / "system_resource_check.py"
+    if not checker.exists():
+        return
+
+    subprocess.run(
+        [sys.executable, str(checker)],
+        env=env,
+        check=False,
+    )
+
+
+def _target_args() -> list[str]:
+    targets = os.getenv(TARGETS_ENV)
+    if not targets:
+        return []
+    if os.getenv("MUTMUT_DEBUG", "0") == "1":
+        print(f"[mutmut-wrapper] targeting: {targets}")
+    return targets.split()
 
 
 if __name__ == "__main__":
-    main()
-
-
+    raise SystemExit(main())
