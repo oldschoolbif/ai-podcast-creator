@@ -120,7 +120,7 @@ class TestMusicGeneratorMusicGen:
 
             assert result is not None
 
-    def test_generate_with_cache_hit(self, test_config, temp_dir):
+    def test_generate_with_cache_hit(self, test_config, temp_dir, stub_audiocraft):
         """Test that cached music is returned if exists."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "test", "duration": 5}
@@ -141,7 +141,7 @@ class TestMusicGeneratorMusicGen:
             result = generator.generate("test music")
             assert result == cached_file
 
-    def test_generate_with_list_input(self, test_config, temp_dir):
+    def test_generate_with_list_input(self, test_config, temp_dir, stub_audiocraft):
         """Test generation with list of music cues."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "test", "duration": 5}
