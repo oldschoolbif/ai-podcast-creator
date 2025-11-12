@@ -633,16 +633,26 @@ class TestMusicGeneratorMusicGen:
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
         with (
-            patch("audiocraft.models.MusicGen", side_effect=ImportError),
             patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
         ):
-
             mock_gpu.return_value.gpu_available = False
+            mock_gpu.return_value.get_device.return_value = "cpu"
+            mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": False}
 
-            generator = MusicGenerator(test_config)
-            result = generator.generate("test music")
+            # Stub torch in sys.modules
+            mock_torch = MagicMock()
+            mock_torch.__version__ = "2.1.0"
+            sys.modules["torch"] = mock_torch
 
-            assert result is None  # Should handle gracefully
+            # Patch MusicGen.get_pretrained to raise ImportError
+            with patch("audiocraft.models.MusicGen.get_pretrained", side_effect=ImportError("Model not available")):
+                generator = MusicGenerator(test_config)
+                # Model should be None due to ImportError
+                assert generator.model is None
+                
+                result = generator.generate("test music")
+                # Should return None when model is not available
+                assert result is None
 
 
 class TestMusicGeneratorCacheKey:
