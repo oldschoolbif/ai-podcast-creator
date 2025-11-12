@@ -170,7 +170,7 @@ class TestMusicGeneratorMusicGen:
 
             assert result is not None
 
-    def test_generate_with_empty_input(self, test_config):
+    def test_generate_with_empty_input(self, test_config, stub_audiocraft):
         """Test generation with empty input (line 114)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "test"}
