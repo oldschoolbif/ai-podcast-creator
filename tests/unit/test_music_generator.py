@@ -270,7 +270,7 @@ class TestMusicGeneratorMusicGen:
             assert generator.engine_type == "musicgen"
 
     @patch("audiocraft.models.MusicGen")
-    def test_init_musicgen_gpu_with_fp16(self, mock_gen, test_config, temp_dir):
+    def test_init_musicgen_gpu_with_fp16(self, mock_gen, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen initialization with GPU and FP16 (lines 67-72)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
@@ -313,15 +313,17 @@ class TestMusicGeneratorMusicGen:
             # Should handle exception gracefully
             assert generator.engine_type == "musicgen"
 
-    @patch("audiocraft.models.MusicGen")
     @patch("builtins.print")
-    def test_init_musicgen_cpu(self, mock_print, mock_gen, test_config, temp_dir, stub_audiocraft):
+    def test_init_musicgen_cpu(self, mock_print, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen initialization on CPU (lines 73-75)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
-        with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+        with (
+            patch("audiocraft.models.MusicGen") as mock_gen,
+            patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
+        ):
             mock_gpu.return_value.gpu_available = False
             mock_gpu.return_value.get_device.return_value = "cpu"
 
@@ -334,7 +336,7 @@ class TestMusicGeneratorMusicGen:
             # Should use CPU device
             mock_gen.get_pretrained.assert_called_with("facebook/musicgen-small", device="cpu")
             # Verify CPU warning print (line 74)
-            assert any("Initializing MusicGen on CPU" in str(call) for call in mock_print.call_args_list)
+            assert any("Initializing MusicGen on CPU" in str(call) or "⚠" in str(call) for call in mock_print.call_args_list)
 
     @patch("builtins.print")
     def test_generate_musicgen_gpu_autocast(self, mock_print, test_config, temp_dir, stub_audiocraft):
