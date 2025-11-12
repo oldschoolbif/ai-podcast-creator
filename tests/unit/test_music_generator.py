@@ -281,6 +281,11 @@ class TestMusicGeneratorMusicGen:
             mock_gpu.return_value.get_device.return_value = "cuda"
             mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": True}
 
+            # Stub torch in sys.modules (imported locally in _init_musicgen)
+            mock_torch = MagicMock()
+            mock_torch.__version__ = "2.1.0"
+            sys.modules["torch"] = mock_torch
+
             mock_model = MagicMock()
             mock_model.lm = MagicMock()
             mock_gen.get_pretrained.return_value = mock_model

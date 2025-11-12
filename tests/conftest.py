@@ -424,11 +424,14 @@ def skip_if_no_gpu():
 def stub_audiocraft(monkeypatch):
     """Stub audiocraft module if not available to allow tests with mocks to run."""
     if "audiocraft" not in sys.modules:
-        # Create a minimal stub for audiocraft
-        stub_audiocraft_module = MagicMock()
-        stub_audiocraft_module.models = MagicMock()
-        stub_audiocraft_module.models.MusicGen = MagicMock()
+        # Create a minimal stub for audiocraft with proper module structure
+        import types
+        stub_audiocraft_module = types.ModuleType("audiocraft")
+        stub_models_module = types.ModuleType("audiocraft.models")
+        stub_audiocraft_module.models = stub_models_module
+        stub_models_module.MusicGen = MagicMock()
         monkeypatch.setitem(sys.modules, "audiocraft", stub_audiocraft_module)
+        monkeypatch.setitem(sys.modules, "audiocraft.models", stub_models_module)
     yield
 
 
