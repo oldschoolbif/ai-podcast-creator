@@ -292,7 +292,7 @@ class TestMusicGeneratorMusicGen:
             mock_model.lm.half.assert_called()
 
     @patch("audiocraft.models.MusicGen")
-    def test_init_musicgen_gpu_fp16_exception(self, mock_gen, test_config, temp_dir):
+    def test_init_musicgen_gpu_fp16_exception(self, mock_gen, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen when FP16 fails (lines 71-72)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
