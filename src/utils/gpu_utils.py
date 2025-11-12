@@ -43,7 +43,8 @@ class GPUManager:
                 torch.cuda.empty_cache()
 
                 print(f"[OK] GPU Detected: {self.gpu_name} ({self.gpu_memory:.1f} GB)")
-                print(f"[OK] CUDA Version: {torch.version.cuda}")
+                if hasattr(torch, 'version') and hasattr(torch.version, 'cuda'):
+                    print(f"[OK] CUDA Version: {torch.version.cuda}")
                 print(f"[OK] cuDNN Enabled: {torch.backends.cudnn.enabled}")
 
             else:
