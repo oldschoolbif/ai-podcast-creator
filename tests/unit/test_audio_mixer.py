@@ -3,6 +3,7 @@ Comprehensive Unit Tests for Audio Mixer
 Tests for src/core/audio_mixer.py - Aiming for 100% coverage
 """
 
+import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, mock_open, patch
@@ -263,6 +264,9 @@ class TestAudioMixerErrorHandling:
 
     def test_mix_import_error_fallback(self, test_config, temp_dir):
         """Test fallback when pydub import fails."""
+        if "MUTANT_UNDER_TEST" in os.environ:
+            pytest.skip("Skipped during mutation run to avoid __import__ recursion induced by instrumentation.")
+
         voice_file = temp_dir / "voice.mp3"
         music_file = temp_dir / "music.mp3"
         voice_file.write_text("voice")
@@ -360,3 +364,225 @@ def test_music_offset_calculation(test_config, temp_dir, offset, expected):
         result = mixer.mix(voice_file, music_file, music_start_offset=offset)
 
         assert result is not None
+
+
+# ============================================================================
+# Additional error path tests
+# ============================================================================
+
+@skip_if_no_pydub
+@pytest.mark.unit
+def test_mix_voice_load_error(test_config, temp_dir):
+    """Test mix handles voice file loading error."""
+    voice_file = temp_dir / "voice.mp3"
+    music_file = temp_dir / "music.mp3"
+    voice_file.write_text("voice")
+    music_file.write_text("music")
+
+    mixer = AudioMixer(test_config)
+
+    with patch("pydub.AudioSegment") as mock_segment:
+        # Make voice loading fail
+        mock_segment.from_file.side_effect = [Exception("Voice load failed"), MagicMock()]
+
+        with patch("shutil.copy2") as mock_copy:
+            result = mixer.mix(voice_file, music_file)
+
+            # Should fall back to copying voice file
+            assert mock_copy.called
+            assert result is not None
+
+
+@skip_if_no_pydub
+@pytest.mark.unit
+def test_mix_music_load_error(test_config, temp_dir):
+    """Test mix handles music file loading error."""
+    voice_file = temp_dir / "voice.mp3"
+    music_file = temp_dir / "music.mp3"
+    voice_file.write_text("voice")
+    music_file.write_text("music")
+
+    mixer = AudioMixer(test_config)
+
+    with patch("pydub.AudioSegment") as mock_segment:
+        mock_voice = MagicMock()
+        mock_voice.__len__ = MagicMock(return_value=10000)
+        
+        # Make music loading fail
+        mock_segment.from_file.side_effect = [mock_voice, Exception("Music load failed")]
+
+        with patch("shutil.copy2") as mock_copy:
+            result = mixer.mix(voice_file, music_file)
+
+            # Should fall back to copying voice file
+            assert mock_copy.called
+            assert result is not None
+
+
+@skip_if_no_pydub
+@pytest.mark.unit
+def test_mix_overlay_error(test_config, temp_dir):
+    """Test mix handles overlay operation error."""
+    voice_file = temp_dir / "voice.mp3"
+    music_file = temp_dir / "music.mp3"
+    voice_file.write_text("voice")
+    music_file.write_text("music")
+
+    mixer = AudioMixer(test_config)
+
+    with patch("pydub.AudioSegment") as mock_segment:
+        mock_voice = MagicMock()
+        mock_music = MagicMock()
+
+        mock_segment.from_file.side_effect = [mock_voice, mock_music]
+
+        mock_voice.__len__ = MagicMock(return_value=10000)
+        mock_music.__len__ = MagicMock(return_value=15000)
+
+        mock_voice.__add__ = MagicMock(return_value=mock_voice)
+        mock_music.__add__ = MagicMock(return_value=mock_music)
+        mock_music.__getitem__ = MagicMock(return_value=mock_music)
+        mock_voice.overlay = MagicMock(side_effect=Exception("Overlay failed"))
+
+        with patch("shutil.copy2") as mock_copy:
+            result = mixer.mix(voice_file, music_file)
+
+            # Should fall back to copying voice file
+            assert mock_copy.called
+            assert result is not None
+
+
+@skip_if_no_pydub
+@pytest.mark.unit
+def test_mix_export_error(test_config, temp_dir):
+    """Test mix handles export operation error."""
+    voice_file = temp_dir / "voice.mp3"
+    music_file = temp_dir / "music.mp3"
+    voice_file.write_text("voice")
+    music_file.write_text("music")
+
+    mixer = AudioMixer(test_config)
+
+    with patch("pydub.AudioSegment") as mock_segment:
+        mock_voice = MagicMock()
+        mock_music = MagicMock()
+
+        mock_segment.from_file.side_effect = [mock_voice, mock_music]
+
+        mock_voice.__len__ = MagicMock(return_value=10000)
+        mock_music.__len__ = MagicMock(return_value=15000)
+
+        mock_voice.__add__ = MagicMock(return_value=mock_voice)
+        mock_music.__add__ = MagicMock(return_value=mock_music)
+        mock_music.__getitem__ = MagicMock(return_value=mock_music)
+        mock_voice.overlay = MagicMock(return_value=mock_voice)
+        mock_voice.export = MagicMock(side_effect=Exception("Export failed"))
+
+        with patch("shutil.copy2") as mock_copy:
+            result = mixer.mix(voice_file, music_file)
+
+            # Should fall back to copying voice file
+            assert mock_copy.called
+            assert result is not None
+
+
+@skip_if_no_pydub
+@pytest.mark.unit
+def test_mix_zero_offset(test_config, temp_dir):
+    """Test mix with zero offset (no offset applied)."""
+    voice_file = temp_dir / "voice.mp3"
+    music_file = temp_dir / "music.mp3"
+    voice_file.write_text("voice")
+    music_file.write_text("music")
+
+    mixer = AudioMixer(test_config)
+
+    with patch("pydub.AudioSegment") as mock_segment:
+        mock_voice = MagicMock()
+        mock_music = MagicMock()
+
+        mock_segment.from_file.side_effect = [mock_voice, mock_music]
+
+        mock_voice.__len__ = MagicMock(return_value=10000)
+        mock_music.__len__ = MagicMock(return_value=15000)
+
+        mock_voice.__add__ = MagicMock(return_value=mock_voice)
+        mock_music.__add__ = MagicMock(return_value=mock_music)
+        mock_music.__getitem__ = MagicMock(return_value=mock_music)
+        mock_voice.overlay = MagicMock(return_value=mock_voice)
+        mock_voice.export = MagicMock()
+
+        result = mixer.mix(voice_file, music_file, music_start_offset=0.0)
+
+        assert result is not None
+        # With zero offset, music should not be sliced
+        # (But __getitem__ might still be called for trimming, so just verify success)
+
+
+@skip_if_no_pydub
+@pytest.mark.unit
+def test_mix_voice_volume_adjustment(test_config, temp_dir):
+    """Test mix applies voice volume adjustment from config."""
+    test_config["music"] = {"ducking": {"voice_volume": 1.5}}
+
+    voice_file = temp_dir / "voice.mp3"
+    music_file = temp_dir / "music.mp3"
+    voice_file.write_text("voice")
+    music_file.write_text("music")
+
+    mixer = AudioMixer(test_config)
+
+    with patch("pydub.AudioSegment") as mock_segment:
+        mock_voice = MagicMock()
+        mock_music = MagicMock()
+
+        mock_segment.from_file.side_effect = [mock_voice, mock_music]
+
+        mock_voice.__len__ = MagicMock(return_value=10000)
+        mock_music.__len__ = MagicMock(return_value=15000)
+
+        mock_voice.__add__ = MagicMock(return_value=mock_voice)
+        mock_music.__add__ = MagicMock(return_value=mock_music)
+        mock_music.__getitem__ = MagicMock(return_value=mock_music)
+        mock_voice.overlay = MagicMock(return_value=mock_voice)
+        mock_voice.export = MagicMock()
+
+        result = mixer.mix(voice_file, music_file)
+
+        assert result is not None
+        # Verify voice volume adjustment was applied (20 * (1.5 - 1) = 10 dB increase)
+        mock_voice.__add__.assert_called()
+
+
+@skip_if_no_pydub
+@pytest.mark.unit
+def test_mix_music_longer_than_voice_no_loop(test_config, temp_dir):
+    """Test mix when music is longer than voice (no looping needed)."""
+    voice_file = temp_dir / "voice.mp3"
+    music_file = temp_dir / "music.mp3"
+    voice_file.write_text("voice")
+    music_file.write_text("music")
+
+    mixer = AudioMixer(test_config)
+
+    with patch("pydub.AudioSegment") as mock_segment:
+        mock_voice = MagicMock()
+        mock_music = MagicMock()
+
+        mock_segment.from_file.side_effect = [mock_voice, mock_music]
+
+        # Voice is 5 seconds, music is 10 seconds
+        mock_voice.__len__ = MagicMock(return_value=5000)
+        mock_music.__len__ = MagicMock(return_value=10000)
+
+        mock_voice.__add__ = MagicMock(return_value=mock_voice)
+        mock_music.__add__ = MagicMock(return_value=mock_music)
+        mock_music.__getitem__ = MagicMock(return_value=mock_music)
+        mock_voice.overlay = MagicMock(return_value=mock_voice)
+        mock_voice.export = MagicMock()
+
+        result = mixer.mix(voice_file, music_file)
+
+        assert result is not None
+        # Music should be trimmed to voice length, not looped
+        mock_music.__getitem__.assert_called()

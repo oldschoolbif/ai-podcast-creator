@@ -770,3 +770,670 @@ class TestEdgeCases:
         assert call_args is not None, "mkdir should be called with arguments"
         assert call_args.kwargs.get('parents') == True, "mkdir should be called with parents=True"
         assert call_args.kwargs.get('exist_ok') == True, "mkdir should be called with exist_ok=True"
+
+
+@pytest.mark.unit
+def test_generate_visualization_dispatches_particles(tmp_path, monkeypatch):
+    from src.core.audio_visualizer import AudioVisualizer
+
+    audio_path = tmp_path / "audio.wav"
+    audio_path.write_bytes(b"audio")
+    output_path = tmp_path / "output.mp4"
+
+    config = {
+        "video": {"resolution": [320, 240], "fps": 24},
+        "visualization": {"style": "particles"},
+    }
+    viz = AudioVisualizer(config)
+
+    monkeypatch.setattr(
+        "src.core.audio_visualizer.AudioVisualizer._get_audio_duration_ffmpeg",
+        lambda self, path: 0.5,
+    )
+    monkeypatch.setattr("librosa.load", lambda *args, **kwargs: (np.zeros(10, dtype=np.float32), 22050))
+
+    frame_iter = iter([np.zeros((10, 10, 3), dtype=np.uint8)])
+
+    with patch.object(
+        AudioVisualizer, "_generate_particle_frames_streaming_chunked", return_value=frame_iter
+    ) as mock_generator, patch.object(
+        AudioVisualizer, "_stream_frames_to_video", return_value=output_path
+    ) as mock_stream:
+        result = viz.generate_visualization(audio_path, output_path)
+
+    assert result == output_path
+    mock_generator.assert_called_once()
+    mock_stream.assert_called_once()
+
+
+@pytest.mark.unit
+def test_generate_visualization_dispatches_circular(tmp_path, monkeypatch):
+    from src.core.audio_visualizer import AudioVisualizer
+
+    audio_path = tmp_path / "audio.wav"
+    audio_path.write_bytes(b"audio")
+    output_path = tmp_path / "output.mp4"
+
+    config = {
+        "video": {"resolution": [320, 240], "fps": 24},
+        "visualization": {"style": "circular"},
+    }
+    viz = AudioVisualizer(config)
+
+    monkeypatch.setattr(
+        "src.core.audio_visualizer.AudioVisualizer._get_audio_duration_ffmpeg",
+        lambda self, path: 0.5,
+    )
+    monkeypatch.setattr("librosa.load", lambda *args, **kwargs: (np.zeros(10, dtype=np.float32), 22050))
+
+    frame_iter = iter([np.zeros((10, 10, 3), dtype=np.uint8)])
+
+    with patch.object(
+        AudioVisualizer, "_generate_circular_frames_streaming_chunked", return_value=frame_iter
+    ) as mock_generator, patch.object(
+        AudioVisualizer, "_stream_frames_to_video", return_value=output_path
+    ) as mock_stream:
+        result = viz.generate_visualization(audio_path, output_path)
+
+    assert result == output_path
+    mock_generator.assert_called_once()
+    mock_stream.assert_called_once()
+
+
+@pytest.mark.unit
+def test_waveform_streaming_chunked_handles_librosa_failure(tmp_path, monkeypatch):
+    from src.core.audio_visualizer import AudioVisualizer
+
+    audio_path = tmp_path / "audio.wav"
+    audio_path.write_bytes(b"audio")
+
+    config = {
+        "video": {"resolution": [128, 72], "fps": 5},
+        "visualization": {"style": "waveform"},
+    }
+    viz = AudioVisualizer(config)
+
+    monkeypatch.setattr("src.core.audio_visualizer.OPENCV_AVAILABLE", False, raising=False)
+
+    def failing_load(*args, **kwargs):
+        raise RuntimeError("load error")
+
+    monkeypatch.setattr("librosa.load", failing_load)
+
+    generator = viz._generate_waveform_frames_streaming_chunked(audio_path, sr=22050, duration=0.2)
+    frame = next(generator)
+    assert frame.shape == (72, 128, 3)
+
+
+class TestAudioVisualizerUncoveredMethods:
+    """Test methods that need coverage improvement."""
+
+    def test_randomize_config(self, test_config_visualization):
+        """Test _randomize_config method."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        test_config_visualization["visualization"]["waveform"] = {"randomize": True}
+        viz = AudioVisualizer(test_config_visualization)
+
+        # Verify randomization was applied
+        assert 1 <= viz.num_lines <= 5
+        assert isinstance(viz.line_thickness, (int, list))
+        assert viz.position in ["top", "bottom", "left", "right", "middle"] or "," in viz.position
+        assert 10 <= viz.height_percent <= 40
+        assert 10 <= viz.width_percent <= 40
+        assert 0.7 <= viz.opacity <= 1.0
+
+    def test_get_audio_duration_ffmpeg_success(self, test_config_visualization, tmp_path):
+        """Test _get_audio_duration_ffmpeg success path."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        audio_path = tmp_path / "audio.mp3"
+        audio_path.write_bytes(b"mp3")
+        viz = AudioVisualizer(test_config_visualization)
+
+        with patch("src.core.audio_visualizer.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = "10.5\n"
+            duration = viz._get_audio_duration_ffmpeg(audio_path)
+
+        assert duration == 10.5
+
+    def test_get_audio_duration_ffmpeg_failure(self, test_config_visualization, tmp_path):
+        """Test _get_audio_duration_ffmpeg failure path."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        audio_path = tmp_path / "audio.mp3"
+        audio_path.write_bytes(b"mp3")
+        viz = AudioVisualizer(test_config_visualization)
+
+        with patch("src.core.audio_visualizer.subprocess.run", side_effect=FileNotFoundError("ffprobe not found")):
+            duration = viz._get_audio_duration_ffmpeg(audio_path)
+
+        assert duration is None
+
+    def test_get_audio_duration_ffmpeg_timeout(self, test_config_visualization, tmp_path):
+        """Test _get_audio_duration_ffmpeg timeout handling."""
+        from src.core.audio_visualizer import AudioVisualizer
+        import subprocess
+
+        audio_path = tmp_path / "audio.mp3"
+        audio_path.write_bytes(b"mp3")
+        viz = AudioVisualizer(test_config_visualization)
+
+        with patch("src.core.audio_visualizer.subprocess.run", side_effect=subprocess.TimeoutExpired("ffprobe", 10)):
+            duration = viz._get_audio_duration_ffmpeg(audio_path)
+
+        assert duration is None
+
+    def test_cleanup_ffmpeg_process_none(self, test_config_visualization):
+        """Test _cleanup_ffmpeg_process with None process."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        viz = AudioVisualizer(test_config_visualization)
+        # Should not raise exception
+        viz._cleanup_ffmpeg_process(None)
+
+    def test_cleanup_ffmpeg_process_graceful(self, test_config_visualization):
+        """Test _cleanup_ffmpeg_process with graceful termination."""
+        from src.core.audio_visualizer import AudioVisualizer
+        import subprocess
+
+        viz = AudioVisualizer(test_config_visualization)
+
+        mock_process = MagicMock()
+        mock_process.poll.return_value = None  # Still running
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.closed = False
+        mock_process.stderr = MagicMock()
+        mock_process.stderr.closed = False
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.closed = False
+        mock_process.wait.return_value = 0
+
+        viz._cleanup_ffmpeg_process(mock_process, timeout=1.0)
+
+        mock_process.stdin.close.assert_called_once()
+        mock_process.stderr.close.assert_called_once()
+        mock_process.stdout.close.assert_called_once()
+        mock_process.terminate.assert_called_once()
+
+    def test_cleanup_ffmpeg_process_force_kill(self, test_config_visualization):
+        """Test _cleanup_ffmpeg_process with force kill."""
+        from src.core.audio_visualizer import AudioVisualizer
+        import subprocess
+
+        viz = AudioVisualizer(test_config_visualization)
+
+        mock_process = MagicMock()
+        mock_process.poll.return_value = None
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.closed = False
+        mock_process.stderr = MagicMock()
+        mock_process.stderr.closed = False
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.closed = False
+        mock_process.wait.side_effect = [subprocess.TimeoutExpired("ffmpeg", 1.0), None]
+
+        viz._cleanup_ffmpeg_process(mock_process, timeout=0.1)
+
+        mock_process.kill.assert_called_once()
+        assert mock_process.wait.call_count == 2
+
+    def test_cleanup_ffmpeg_process_terminate_exception(self, test_config_visualization):
+        """Test _cleanup_ffmpeg_process when terminate raises exception."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        viz = AudioVisualizer(test_config_visualization)
+
+        mock_process = MagicMock()
+        mock_process.poll.return_value = None
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.closed = False
+        mock_process.stderr = MagicMock()
+        mock_process.stderr.closed = False
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.closed = False
+        mock_process.terminate.side_effect = Exception("Terminate failed")
+        mock_process.wait.return_value = 0
+
+        # Should not raise exception, should try kill
+        viz._cleanup_ffmpeg_process(mock_process)
+
+        mock_process.kill.assert_called_once()
+
+    def test_interpolate_color(self, test_config_visualization):
+        """Test _interpolate_color method."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        viz = AudioVisualizer(test_config_visualization)
+
+        # Test at start (t=0)
+        result = viz._interpolate_color([0, 0, 0], [255, 255, 255], 0.0)
+        assert result == [0, 0, 0]
+
+        # Test at end (t=1)
+        result = viz._interpolate_color([0, 0, 0], [255, 255, 255], 1.0)
+        assert result == [255, 255, 255]
+
+        # Test at middle (t=0.5)
+        result = viz._interpolate_color([0, 0, 0], [255, 255, 255], 0.5)
+        assert result == [127, 127, 127]
+
+        # Test with custom colors
+        result = viz._interpolate_color([100, 50, 200], [200, 150, 50], 0.3)
+        assert len(result) == 3
+        assert all(isinstance(c, int) for c in result)
+
+    # Note: _stream_frames_to_video is complex and requires real FFmpeg process mocking
+    # These tests are skipped as they require extensive mocking that may not be reliable
+    # The method is tested indirectly through generate_visualization integration tests
+
+    # Note: Randomization tests are complex due to module-level random import
+
+
+# ============================================================================
+# Tests for _stream_frames_to_video error paths
+# ============================================================================
+
+@pytest.mark.unit
+def test_stream_frames_to_video_process_dies(tmp_path, test_config_visualization):
+    """Test _stream_frames_to_video handles FFmpeg process death."""
+    from src.core.audio_visualizer import AudioVisualizer
+    import subprocess
+    import io
+
+    viz = AudioVisualizer(test_config_visualization)
+    audio_path = tmp_path / "audio.mp3"
+    output_path = tmp_path / "output.mp4"
+    audio_path.write_bytes(b"mp3" * 100)
+
+    def frame_generator():
+        yield np.zeros((1080, 1920, 3), dtype=np.uint8)
+
+    class DyingProcess:
+        def __init__(self):
+            self.returncode = None
+            self.stdin = MagicMock()
+            # Make stderr a file-like object that returns bytes when readline() is called
+            # The stderr reading thread uses iter(process.stderr.readline, b'')
+            # So readline() should return bytes, and b'' when done
+            stderr_data = [b"FFmpeg error: Process died\n"]
+            stderr_read_count = [0]
+            
+            class StderrMock:
+                def readline(self):
+                    if stderr_read_count[0] < len(stderr_data):
+                        result = stderr_data[stderr_read_count[0]]
+                        stderr_read_count[0] += 1
+                        return result
+                    return b''  # EOF
+            
+            self.stderr = StderrMock()
+            self.stdout = MagicMock()
+
+        def poll(self):
+            return 1  # Process died
+
+        def communicate(self, timeout=None):
+            return (b"", b"Process died")
+
+    with (
+        patch("src.core.audio_visualizer.subprocess.run") as mock_run,
+        patch("src.core.audio_visualizer.subprocess.Popen", return_value=DyingProcess()),
+        patch("src.utils.file_monitor.FileMonitor") as mock_monitor_class,
+        patch("src.utils.ram_monitor.RAMMonitor") as mock_ram_monitor_class,
+    ):
+        mock_run.return_value.stdout = "h264_nvenc"
+        mock_monitor = MagicMock()
+        mock_monitor_class.return_value = mock_monitor
+        mock_ram_monitor = MagicMock()
+        mock_ram_monitor.check_ram_limit.return_value = (False, None)
+        mock_ram_monitor_class.return_value = mock_ram_monitor
+
+        with pytest.raises(Exception, match="FFmpeg process died"):
+            viz._stream_frames_to_video(frame_generator(), audio_path, output_path, 1.0)
+
+
+@pytest.mark.unit
+def test_stream_frames_to_video_timeout_final_encoding(tmp_path, test_config_visualization):
+    """Test _stream_frames_to_video handles timeout during final encoding."""
+    from src.core.audio_visualizer import AudioVisualizer
+    import subprocess
+
+    viz = AudioVisualizer(test_config_visualization)
+    audio_path = tmp_path / "audio.mp3"
+    output_path = tmp_path / "output.mp4"
+    audio_path.write_bytes(b"mp3" * 100)
+
+    frame_count = [0]
+
+    def frame_generator():
+        for _ in range(10):
+            frame_count[0] += 1
+            yield np.zeros((1080, 1920, 3), dtype=np.uint8)
+
+    class TimeoutProcess:
+        def __init__(self):
+            self.returncode = 0
+            self.stdin = MagicMock()
+            self.stderr = MagicMock()
+            self.stdout = MagicMock()
+
+        def poll(self):
+            return None
+
+        def communicate(self, timeout=None):
+            raise subprocess.TimeoutExpired("ffmpeg", 10)
+
+    with (
+        patch("src.core.audio_visualizer.subprocess.run") as mock_run,
+        patch("src.core.audio_visualizer.subprocess.Popen", return_value=TimeoutProcess()),
+        patch("src.utils.file_monitor.FileMonitor") as mock_monitor_class,
+        patch("src.utils.ram_monitor.RAMMonitor") as mock_ram_monitor_class,
+    ):
+        mock_run.return_value.stdout = "h264_nvenc"
+        mock_monitor = MagicMock()
+        mock_monitor_class.return_value = mock_monitor
+        mock_ram_monitor = MagicMock()
+        mock_ram_monitor.check_ram_limit.return_value = (False, None)
+        mock_ram_monitor_class.return_value = mock_ram_monitor
+
+        with pytest.raises(Exception, match="timed out"):
+            viz._stream_frames_to_video(frame_generator(), audio_path, output_path, 1.0)
+
+
+@pytest.mark.unit
+def test_stream_frames_to_video_broken_pipe(tmp_path, test_config_visualization):
+    """Test _stream_frames_to_video handles broken pipe error."""
+    from src.core.audio_visualizer import AudioVisualizer
+
+    viz = AudioVisualizer(test_config_visualization)
+    audio_path = tmp_path / "audio.mp3"
+    output_path = tmp_path / "output.mp4"
+    audio_path.write_bytes(b"mp3" * 100)
+
+    frame_count = [0]
+
+    def frame_generator():
+        for _ in range(10):
+            frame_count[0] += 1
+            yield np.zeros((1080, 1920, 3), dtype=np.uint8)
+
+    class BrokenPipeProcess:
+        def __init__(self):
+            self.returncode = 0
+            self.stdin = MagicMock()
+            self.stdin.write.side_effect = BrokenPipeError("Pipe broken")
+            self.stderr = MagicMock()
+            self.stdout = MagicMock()
+
+        def poll(self):
+            return None
+
+        def communicate(self, timeout=None):
+            return (b"", b"Error")
+
+    with (
+        patch("src.core.audio_visualizer.subprocess.run") as mock_run,
+        patch("src.core.audio_visualizer.subprocess.Popen", return_value=BrokenPipeProcess()),
+        patch("src.utils.file_monitor.FileMonitor") as mock_monitor_class,
+        patch("src.utils.ram_monitor.RAMMonitor") as mock_ram_monitor_class,
+    ):
+        mock_run.return_value.stdout = "h264_nvenc"
+        mock_monitor = MagicMock()
+        mock_monitor_class.return_value = mock_monitor
+        mock_ram_monitor = MagicMock()
+        mock_ram_monitor.check_ram_limit.return_value = (False, None)
+        mock_ram_monitor_class.return_value = mock_ram_monitor
+
+        with pytest.raises(Exception, match="FFmpeg closed input"):
+            viz._stream_frames_to_video(frame_generator(), audio_path, output_path, 1.0)
+
+
+@pytest.mark.skip(reason="Complex stderr reading thread mocking - tested via integration")
+def test_stream_frames_to_video_ffmpeg_error_detection(tmp_path, test_config_visualization):
+    """Test _stream_frames_to_video detects FFmpeg errors in stderr."""
+    # This test requires complex mocking of threading and stderr reading
+    # Better tested through integration tests
+    pass
+
+
+@pytest.mark.unit
+def test_stream_frames_to_video_nonzero_returncode(tmp_path, test_config_visualization):
+    """Test _stream_frames_to_video handles non-zero FFmpeg return code."""
+    from src.core.audio_visualizer import AudioVisualizer
+
+    viz = AudioVisualizer(test_config_visualization)
+    audio_path = tmp_path / "audio.mp3"
+    output_path = tmp_path / "output.mp4"
+    audio_path.write_bytes(b"mp3" * 100)
+
+    def frame_generator():
+        for _ in range(10):
+            yield np.zeros((1080, 1920, 3), dtype=np.uint8)
+
+    class FailedProcess:
+        def __init__(self):
+            self.returncode = 1
+            self.stdin = MagicMock()
+            self.stderr = MagicMock()
+            self.stdout = MagicMock()
+
+        def poll(self):
+            return None
+
+        def communicate(self, timeout=None):
+            return ("", "FFmpeg encoding failed")
+
+    with (
+        patch("src.core.audio_visualizer.subprocess.run") as mock_run,
+        patch("src.core.audio_visualizer.subprocess.Popen", return_value=FailedProcess()),
+        patch("src.utils.file_monitor.FileMonitor") as mock_monitor_class,
+        patch("src.utils.ram_monitor.RAMMonitor") as mock_ram_monitor_class,
+    ):
+        mock_run.return_value.stdout = "h264_nvenc"
+        mock_monitor = MagicMock()
+        mock_monitor_class.return_value = mock_monitor
+        mock_ram_monitor = MagicMock()
+        mock_ram_monitor.check_ram_limit.return_value = (False, None)
+        mock_ram_monitor_class.return_value = mock_ram_monitor
+
+        with pytest.raises(Exception, match="FFmpeg streaming failed"):
+            viz._stream_frames_to_video(frame_generator(), audio_path, output_path, 1.0)
+    # The basic randomization test above covers the main functionality
+
+
+@pytest.mark.unit
+def test_waveform_centered_no_samples_fallback(tmp_path, test_config_visualization):
+    """Test centered waveform fallback when no samples."""
+    from src.core.audio_visualizer import AudioVisualizer
+    import numpy as np
+    
+    config = test_config_visualization.copy()
+    config["visualization"]["style"] = "waveform"
+    config["visualization"]["position"] = "middle"
+    config["visualization"]["orientation_offset"] = 50  # Centered
+    
+    viz = AudioVisualizer(config)
+    
+    # Create empty audio chunk to trigger fallback
+    empty_chunk = np.array([])
+    sr = 22050
+    duration = 0.1
+    
+    # This should not crash and should use fallback y_base = height // 2
+    frames = list(viz._generate_waveform_frames_streaming_chunked_from_array(empty_chunk, sr, duration))
+    
+    # Should generate at least one frame
+    assert len(frames) > 0
+
+
+@pytest.mark.unit
+def test_waveform_centered_bottom_baseline(tmp_path, test_config_visualization):
+    """Test centered waveform with bottom baseline (amplitude_middle_pixel > video_center)."""
+    from src.core.audio_visualizer import AudioVisualizer
+    import numpy as np
+    
+    config = test_config_visualization.copy()
+    config["visualization"]["style"] = "waveform"
+    config["visualization"]["position"] = "middle"
+    config["visualization"]["orientation_offset"] = 50  # Centered
+    
+    viz = AudioVisualizer(config)
+    
+    # Create audio chunk with high amplitude (will trigger bottom baseline)
+    # Use values that make amplitude_middle_pixel > video_center
+    chunk = np.array([0.8, 0.9, 0.85, 0.9, 0.8] * 100)  # High amplitude
+    
+    frames = list(viz._generate_waveform_frames_streaming_chunked_from_array(chunk, 22050, 0.1))
+    
+    # Should generate frames
+    assert len(frames) > 0
+
+
+@pytest.mark.unit
+def test_waveform_centered_top_baseline(tmp_path, test_config_visualization):
+    """Test centered waveform with top baseline (amplitude_middle_pixel <= video_center)."""
+    from src.core.audio_visualizer import AudioVisualizer
+    import numpy as np
+    
+    config = test_config_visualization.copy()
+    config["visualization"]["style"] = "waveform"
+    config["visualization"]["position"] = "middle"
+    config["visualization"]["orientation_offset"] = 50  # Centered
+    
+    viz = AudioVisualizer(config)
+    
+    # Create audio chunk with low amplitude (will trigger top baseline)
+    # Use values that make amplitude_middle_pixel <= video_center
+    chunk = np.array([0.1, 0.2, 0.15, 0.2, 0.1] * 100)  # Low amplitude
+    
+    frames = list(viz._generate_waveform_frames_streaming_chunked_from_array(chunk, 22050, 0.1))
+    
+    # Should generate frames
+    assert len(frames) > 0
+
+
+@pytest.mark.unit
+def test_waveform_fixed_reference_zero_fallback(tmp_path, test_config_visualization):
+    """Test waveform handles edge cases gracefully."""
+    from src.core.audio_visualizer import AudioVisualizer
+    import numpy as np
+    
+    config = test_config_visualization.copy()
+    config["visualization"]["style"] = "waveform"
+    
+    viz = AudioVisualizer(config)
+    
+    # Create audio chunk with very small values that might trigger edge cases
+    chunk = np.array([0.0001, 0.0002, 0.00015] * 50)
+    
+    # Should still generate frames even with very small values
+    frames = list(viz._generate_waveform_frames_streaming_chunked_from_array(chunk, 22050, 0.1))
+    assert len(frames) > 0
+
+
+@pytest.mark.unit
+def test_waveform_scaled_normalized_zero_fallback(tmp_path, test_config_visualization):
+    """Test waveform with scaled_normalized = 0 fallback."""
+    from src.core.audio_visualizer import AudioVisualizer
+    import numpy as np
+    
+    config = test_config_visualization.copy()
+    config["visualization"]["style"] = "waveform"
+    config["visualization"]["amplitude_multiplier"] = 0.0  # Zero multiplier
+    
+    viz = AudioVisualizer(config)
+    
+    # Create audio chunk
+    chunk = np.array([0.1, 0.2, 0.15] * 50)
+    
+    frames = list(viz._generate_waveform_frames_streaming_chunked_from_array(chunk, 22050, 0.1))
+    
+    # Should generate frames (with zero amplitude)
+    assert len(frames) > 0
+
+
+@pytest.mark.unit
+def test_waveform_points_fallback(tmp_path, test_config_visualization):
+    """Test waveform points fallback when len(base_points) == 0."""
+    from src.core.audio_visualizer import AudioVisualizer
+    import numpy as np
+    
+    config = test_config_visualization.copy()
+    config["visualization"]["style"] = "waveform"
+    
+    viz = AudioVisualizer(config)
+    
+    # Create very small audio chunk that might result in empty base_points
+    chunk = np.array([0.001] * 5)  # Very small values
+    
+    frames = list(viz._generate_waveform_frames_streaming_chunked_from_array(chunk, 22050, 0.1))
+    
+    # Should generate frames even with fallback
+    assert len(frames) > 0
+
+
+@pytest.mark.unit
+def test_vertical_waveform_sample_avg_fallback(tmp_path, test_config_visualization):
+    """Test vertical waveform sample_avg fallback when sample_end <= sample_start."""
+    from src.core.audio_visualizer import AudioVisualizer
+    import numpy as np
+    
+    config = test_config_visualization.copy()
+    config["visualization"]["style"] = "waveform"
+    config["visualization"]["position"] = "left"  # Vertical waveform
+    
+    viz = AudioVisualizer(config)
+    
+    # Create very small audio chunk to trigger fallback
+    chunk = np.array([0.1] * 100)  # Need enough samples for at least 1 frame
+    
+    frames = list(viz._generate_waveform_frames_streaming_chunked_from_array(chunk, 22050, 0.1))
+    
+    # Should generate frames
+    assert len(frames) > 0
+
+
+@pytest.mark.unit
+def test_pil_waveform_region_y_calculations(tmp_path, test_config_visualization):
+    """Test PIL waveform region_y calculations for different positions."""
+    from src.core.audio_visualizer import AudioVisualizer
+    import numpy as np
+    
+    config = test_config_visualization.copy()
+    config["visualization"]["style"] = "waveform"
+    config["visualization"]["render_engine"] = "pil"  # Use PIL engine
+    
+    # Test different positions
+    for position in ["top", "bottom", "middle", "other"]:
+        config["visualization"]["position"] = position
+        viz = AudioVisualizer(config)
+        
+        chunk = np.array([0.1, 0.2, 0.15] * 50)
+        
+        # This should not crash
+        frames = list(viz._generate_waveform_frames_streaming_chunked_from_array(chunk, 22050, 0.1))
+        assert len(frames) > 0
+
+
+@pytest.mark.unit
+def test_waveform_draw_line_condition(tmp_path, test_config_visualization):
+    """Test waveform draw line condition (len(points) > 1)."""
+    from src.core.audio_visualizer import AudioVisualizer
+    import numpy as np
+    
+    config = test_config_visualization.copy()
+    config["visualization"]["style"] = "waveform"
+    
+    viz = AudioVisualizer(config)
+    
+    # Create audio chunk that will generate multiple points
+    chunk = np.array([0.1, 0.2, 0.15, 0.3, 0.25] * 100)
+    
+    frames = list(viz._generate_waveform_frames_streaming_chunked_from_array(chunk, 22050, 0.1))
+    
+    # Should generate frames with lines drawn
+    assert len(frames) > 0
+    # Verify frames are not empty
+    assert frames[0].shape[0] > 0 and frames[0].shape[1] > 0

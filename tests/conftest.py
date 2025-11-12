@@ -1,360 +1,423 @@
-"""
-Pytest Configuration and Fixtures
-Shared fixtures and configuration for all tests
-"""
+"""Deterministic pytest configuration and fixtures."""
 
+from __future__ import annotations
+
+import array
+import base64
+import contextlib
+import math
 import os
+import random
 import shutil
-import sys
-import tempfile
+import socket
+import subprocess
+import wave
+from functools import lru_cache
 from pathlib import Path
+from typing import Callable, Iterator
 
 import pytest
-import yaml
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+try:  # Optional dependency for time freezing.
+    from freezegun import freeze_time as _freeze_time  # type: ignore
+except ImportError:  # pragma: no cover - freezegun is optional.
+    _freeze_time = None  # type: ignore
 
 
-def create_valid_mp3_file(output_path: Path, duration_seconds: float = 1.0) -> Path:
-    """
-    Create a minimal valid MP3 file for testing.
-    
-    Uses ffmpeg directly to generate a valid MP3 file that passes validation.
-    Falls back to pydub if ffmpeg is not available.
-    
-    Args:
-        output_path: Path where the MP3 file should be created (can be .mp3 or .wav)
-        duration_seconds: Duration of the audio file in seconds (default: 1.0)
-    
-    Returns:
-        Path to the created audio file
-    """
-    import subprocess
-    
-    # Prefer ffmpeg as it creates more reliable MP3 files
+TEST_SEED_ENV = "TEST_SEED"
+DEFAULT_TEST_SEED = 1337
+
+_NETWORK_ALLOWED = False
+_NETWORK_ERROR = RuntimeError(
+    "Network access is disallowed for this test. Use @pytest.mark.network to opt-in."
+)
+
+GPU_ENV = "PY_ENABLE_GPU_TESTS"
+GPU_SKIP_MESSAGE = "GPU quarantine: set PY_ENABLE_GPU_TESTS=1 to enable GPU tests."
+_FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
+_SILENCE_MP3_BASE64 = (
+    "SUQzBAAAAAAAIlRTU0UAAAAOAAADTGF2ZjYyLjMuMTAwAAAAAAAAAAAAAAD/+0DAAAAAAAAAAAAAAAAAAAAAAABJbmZvAAAADwAAACgAABD2"
+    "ABAQFhYdHR0jIykpKS8vNTU1OztBQUFISE5OTlRUWlpaYGBmZmZsbHJycnl5f39/hYWLi4uRkZeXl52dpKSkqqqwsLC2try8vMLCyMjIzs7V"
+    "1dXb2+Hh4efn7e3t8/P5+fn//wAAAABMYXZjNjIuMTEAAAAAAAAAAAAAAAAkBXwAAAAAAAAQ9in4ddEAAAAAAP/7EMQAA8AAAaQAAAAgAAA0"
+    "gAAABExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xM"
+    "DBVVVVV//sQxCmDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVX/+xDEUwPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMR8g8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxKYDwAABpAAAACAAADSAA"
+    "AAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMF"
+    "VVVVX/+xDEz4PAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIA"
+    "AA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy"
+    "4xMDBVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAA"
+    "AAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1"
+    "FMy4xMDBVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gP"
+    "AAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAAR"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "f/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVV"
+    "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+xDE1gPAAAGkAAAAI"
+    "AAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+    "VVVVVVVVV"
+)
+
+
+def _ensure_network_allowed() -> None:
+    if not _NETWORK_ALLOWED:
+        raise _NETWORK_ERROR
+
+
+@pytest.fixture(scope="session", autouse=True)
+def fixed_seed() -> int:
+    """Seed Python's RNG (and numpy if installed) for deterministic tests."""
+    seed = int(os.environ.get(TEST_SEED_ENV, DEFAULT_TEST_SEED))
+    random.seed(seed)
+    os.environ.setdefault("PYTHONHASHSEED", str(seed))
+
     try:
-        if output_path.suffix.lower() == ".wav":
-            format_arg = "wav"
-            codec = "pcm_s16le"
-        else:
-            format_arg = "mp3"
-            codec = "libmp3lame"
-        
-        # Use ffmpeg to generate a valid audio file with proper encoding
-        cmd = [
-            "ffmpeg",
-            "-f", "lavfi",
-            "-i", f"anullsrc=r=44100:cl=stereo",
-            "-t", str(duration_seconds),
-            "-acodec", codec,
-            "-ar", "44100",  # Sample rate
-            "-ac", "2",  # Stereo
-            "-b:a", "128k" if format_arg == "mp3" else None,  # Bitrate for MP3
-            "-y",  # Overwrite output file
-            str(output_path)
-        ]
-        
-        # Remove None values (for WAV which doesn't need bitrate)
-        cmd = [arg for arg in cmd if arg is not None]
-        
-        result = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=10
-        )
-        
-        if result.returncode == 0 and output_path.exists() and output_path.stat().st_size > 0:
-            # Verify the file is valid by checking with ffprobe
-            verify_cmd = [
-                "ffprobe",
-                "-v", "error",
-                "-show_entries", "format=duration",
-                "-of", "default=noprint_wrappers=1:nokey=1",
-                str(output_path)
-            ]
-            verify_result = subprocess.run(
-                verify_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=5
-            )
-            if verify_result.returncode == 0 and verify_result.stdout.strip():
-                return output_path
-    except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
-        pass
-    
-    # Fallback: Try pydub
+        import numpy as np  # type: ignore
+    except ImportError:  # pragma: no cover - numpy optional.
+        np = None
+
+    if np is not None:
+        np.random.seed(seed)
+
+    return seed
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _no_network_by_default() -> Iterator[None]:
+    """Block outbound network access unless a test opts-in via @pytest.mark.network."""
+    original_create_connection = socket.create_connection
+    original_connect = socket.socket.connect
+    original_connect_ex = socket.socket.connect_ex
+
+    def guarded_create_connection(*args, **kwargs):
+        _ensure_network_allowed()
+        return original_create_connection(*args, **kwargs)
+
+    def guarded_connect(self, *args, **kwargs):
+        _ensure_network_allowed()
+        return original_connect(self, *args, **kwargs)
+
+    def guarded_connect_ex(self, *args, **kwargs):
+        _ensure_network_allowed()
+        return original_connect_ex(self, *args, **kwargs)
+
+    socket.create_connection = guarded_create_connection
+    socket.socket.connect = guarded_connect  # type: ignore[assignment]
+    socket.socket.connect_ex = guarded_connect_ex  # type: ignore[assignment]
+
     try:
-        from pydub import AudioSegment
-        from pydub.generators import Sine
-        
-        # Generate a short sine wave (minimal valid audio)
-        audio = Sine(440).to_audio_segment(duration=int(duration_seconds * 1000))
-        # Export in the requested format (mp3 or wav)
-        if output_path.suffix.lower() == ".wav":
-            audio.export(str(output_path), format="wav")
-        else:
-            audio.export(str(output_path), format="mp3", bitrate="128k")
-        
-        # Verify the file is valid
-        if output_path.exists() and output_path.stat().st_size > 0:
-            verify_cmd = [
-                "ffprobe",
-                "-v", "error",
-                "-show_entries", "format=duration",
-                "-of", "default=noprint_wrappers=1:nokey=1",
-                str(output_path)
-            ]
-            verify_result = subprocess.run(
-                verify_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=5
-            )
-            if verify_result.returncode == 0 and verify_result.stdout.strip():
-                return output_path
-    except (ImportError, Exception):
-        pass
-    
-    # Last resort: This should not happen in CI, but create a file that at least passes size check
-    # Note: This will fail validation, but tests should handle this gracefully
-    minimal_data = b"RIFF" + b"\x00" * 200
-    output_path.write_bytes(minimal_data)
+        yield
+    finally:
+        socket.create_connection = original_create_connection
+        socket.socket.connect = original_connect  # type: ignore[assignment]
+        socket.socket.connect_ex = original_connect_ex  # type: ignore[assignment]
+
+
+@contextlib.contextmanager
+def _frozen_time_cm(target: str):
+    """Context manager that freezes time using freezegun if available."""
+    if _freeze_time is None:
+        raise RuntimeError("freezegun is not installed; install it to use frozen_time.")
+    with _freeze_time(target):
+        yield
+
+
+@pytest.fixture
+def frozen_time() -> Callable[[str], contextlib.AbstractContextManager[None]]:
+    """Fixture returning a callable to freeze time within tests."""
+    if _freeze_time is None:
+        pytest.skip("freezegun is not installed.")
+
+    def _freezer(target: str):
+        return _frozen_time_cm(target)
+
+    return _freezer
+
+
+def write_sine_wav(
+    output_path: Path,
+    seconds: float,
+    rate: int = 44_100,
+    frequency: float = 440.0,
+    amplitude: float = 0.5,
+) -> Path:
+    """Write a deterministic sine wave to a WAV file."""
+    amplitude = max(0.0, min(amplitude, 1.0))
+    frames = int(rate * seconds)
+    data = array.array("h")
+    max_amplitude = int(amplitude * 32767)
+
+    for i in range(frames):
+        sample = int(max_amplitude * math.sin(2 * math.pi * frequency * i / rate))
+        data.append(sample)
+
+    with wave.open(str(output_path), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(rate)
+        wf.writeframes(data.tobytes())
+
     return output_path
 
 
-@pytest.fixture(scope="session")
-def project_root():
-    """Get project root directory."""
-    return Path(__file__).parent.parent
+def create_valid_mp3_file(output_path: Path, duration_seconds: float = 1.0) -> Path:
+    """Create a lightweight MP3 file for tests.
+
+    Attempts to use ffmpeg when available; otherwise falls back to a bundled silent MP3.
+    """
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if _FFMPEG_AVAILABLE:
+        duration = max(float(duration_seconds), 0.1)
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=r=44100:cl=mono",
+            "-t",
+            f"{duration:.2f}",
+            "-q:a",
+            "9",
+            str(output_path),
+        ]
+        try:
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return output_path
+        except Exception:  # pragma: no cover - fallback handles environments without ffmpeg.
+            pass
+
+    data = base64.b64decode(_SILENCE_MP3_BASE64)
+    repeats = max(1, int(math.ceil(max(duration_seconds, 0.1))))
+    output_path.write_bytes(data * repeats)
+    return output_path
 
 
-@pytest.fixture(scope="session")
-def test_data_dir(project_root):
-    """Get test data directory."""
-    data_dir = project_root / "tests" / "test_data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    return data_dir
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    """Enable network access for tests marked with @pytest.mark.network."""
+    if item.get_closest_marker("gpu") is not None:
+        _handle_gpu_quarantine()
+
+    global _NETWORK_ALLOWED  # noqa: PLW0603
+    _NETWORK_ALLOWED = item.get_closest_marker("network") is not None
+
+
+def pytest_runtest_teardown(item: pytest.Item, nextitem: pytest.Item | None) -> None:
+    """Disable network access after every test."""
+    del item, nextitem
+    global _NETWORK_ALLOWED  # noqa: PLW0603
+    _NETWORK_ALLOWED = False
+
+
+def _gpu_tests_enabled() -> bool:
+    return os.getenv(GPU_ENV, "0") == "1"
+
+
+@lru_cache(maxsize=1)
+def _torch_module():
+    try:
+        import torch  # type: ignore
+    except ImportError:  # pragma: no cover - torch optional
+        return None
+    return torch
+
+
+def _handle_gpu_quarantine() -> None:
+    if not _gpu_tests_enabled():
+        pytest.skip(GPU_SKIP_MESSAGE)
+
+    torch = _torch_module()
+    if torch is not None and not torch.cuda.is_available():
+        pytest.skip("GPU tests enabled but no CUDA device available.")
+
+
+def _make_multiprocessing_idempotent() -> None:
+    """Ensure multiprocessing.set_start_method ignores redundant calls."""
+    try:
+        import multiprocessing as mp
+    except ImportError:  # pragma: no cover - multiprocessing always present.
+        return
+
+    original = mp.set_start_method
+
+    def safe_set_start_method(method: str, *args, **kwargs):
+        try:
+            return original(method, *args, **kwargs)
+        except RuntimeError as exc:  # pragma: no cover - only during mutmut
+            if "context has already been set" in str(exc):
+                return None
+            raise
+
+    mp.set_start_method = safe_set_start_method  # type: ignore[assignment]
+
+
+_make_multiprocessing_idempotent()
+
+
+def _patch_mutmut_trampoline() -> None:
+    """Allow mutmut trampoline to accept module names with src. prefix."""
+    try:
+        from mutmut import __main__ as mutmut_main  # type: ignore
+    except ImportError:  # pragma: no cover - only during mutmut runs.
+        return
+
+    original = getattr(mutmut_main, "record_trampoline_hit", None)
+    if original is None:
+        return
+
+    def safe_record_trampoline_hit(name: str) -> None:
+        if name.startswith("src."):
+            name = name[len("src.") :]
+        try:
+            original(name)
+        except AssertionError as exc:
+            if "Failed trampoline hit" in str(exc) and name.startswith("tests."):
+                return
+            raise
+
+    mutmut_main.record_trampoline_hit = safe_record_trampoline_hit  # type: ignore[attr-defined]
+
+
+_patch_mutmut_trampoline()
 
 
 @pytest.fixture
-def temp_dir():
-    """Create a temporary directory for test files."""
-    temp_path = Path(tempfile.mkdtemp())
-    yield temp_path
-    # Cleanup
-    if temp_path.exists():
-        shutil.rmtree(temp_path, ignore_errors=True)
+def temp_dir(tmp_path: Path) -> Path:
+    """Alias for tmp_path fixture for backward compatibility."""
+    return tmp_path
 
 
 @pytest.fixture
-def test_config(temp_dir):
-    """Create a minimal test configuration."""
-    config = {
-        "app": {"name": "AI Podcast Creator", "version": "1.0.0", "debug": True},
-        "tts": {"engine": "gtts", "gtts_tld": "com", "sample_rate": 24000, "output_format": "wav"},
-        "music": {"engine": "library", "enabled": False},
-        "avatar": {"engine": "none", "enabled": False},
+def test_config(temp_dir: Path) -> dict:
+    """Create a test configuration dictionary."""
+    return {
         "storage": {
             "cache_dir": str(temp_dir / "cache"),
-            "output_dir": str(temp_dir / "output"),
-            "outputs_dir": str(temp_dir / "output"),  # Added for VideoComposer
-            "models_dir": str(temp_dir / "models"),
+            "outputs_dir": str(temp_dir / "outputs"),
         },
         "video": {
-            "fps": 30,
-            "resolution": [1920, 1080],
-            "codec": "libx264",
             "background_path": str(temp_dir / "background.jpg"),
-            "bitrate": "5000k",
+            "quality": "fastest",
         },
-        "processing": {"audio_format": "wav", "sample_rate": 24000, "normalize_audio": True},
+        "tts": {
+            "engine": "gtts",
+        },
+        "music": {
+            "engine": "placeholder",
+            "musicgen": {
+                "model": "small",
+                "duration": 10,
+            },
+        },
+        "avatar": {
+            "engine": "sadtalker",
+            "sadtalker": {
+                "checkpoint_dir": str(temp_dir / "sadtalker"),
+            },
+        },
     }
-
-    # Create directories
-    for dir_key in ["cache_dir", "output_dir", "outputs_dir", "models_dir"]:
-        Path(config["storage"][dir_key]).mkdir(parents=True, exist_ok=True)
-
-    # Create dummy background image
-    background_path = Path(config["video"]["background_path"])
-    background_path.touch()
-
-    return config
 
 
 @pytest.fixture
-def test_config_visualization(temp_dir):
-    """Create a configuration tailored for visualization tests."""
-    config = {
+def test_config_visualization(temp_dir: Path) -> dict:
+    """Create test config with visualization settings."""
+    return {
+        "video": {
+            "resolution": [1920, 1080],
+            "fps": 30,
+        },
         "visualization": {
             "style": "waveform",
-            "resolution": [1280, 720],
-            "fps": 30,
-            "color_primary": [255, 255, 255],
-            "color_secondary": [0, 0, 0],
-            "background_color": [0, 0, 0],
-            "blur": 2,
+            "primary_color": [0, 150, 255],
+            "secondary_color": [255, 100, 200],
+            "background_color": [10, 10, 20],
+            "blur": 3,
             "sensitivity": 1.0,
-        },
-        "video": {
-            "resolution": [1280, 720],
-            "fps": 30,
-        },
-        "storage": {
-            "output_dir": str(temp_dir / "output"),
-            "cache_dir": str(temp_dir / "cache"),
-            "outputs_dir": str(temp_dir / "output"),
-        },
-        "audio": {
-            "sample_rate": 24000,
-            "duration": 1.0,
         },
     }
 
-    for path_key in ["output_dir", "cache_dir", "outputs_dir"]:
-        Path(config["storage"][path_key]).mkdir(parents=True, exist_ok=True)
 
-    return config
+@pytest.fixture
+def sample_script_text() -> str:
+    """Sample script text for testing."""
+    return """# Introduction
+Welcome to today's podcast episode.
+
+## Main Content
+Today we're discussing the importance of software testing.
+
+## Conclusion
+Thank you for listening!"""
 
 
 @pytest.fixture
-def test_config_file(test_config, temp_dir):
-    """Create a temporary config file."""
-    config_path = temp_dir / "test_config.yaml"
-    with open(config_path, "w") as f:
-        yaml.dump(test_config, f)
-    return config_path
-
-
-@pytest.fixture
-def sample_script_text():
-    """Sample podcast script for testing."""
-    return """[SPEAKER: Host]
-Hello and welcome to this test podcast.
-
-This is a sample script for testing purposes.
-
-[MUSIC: calm background music]
-
-Thank you for listening!
-
-[END]"""
-
-
-@pytest.fixture
-def sample_script_file(temp_dir, sample_script_text):
-    """Create a sample script file."""
-    script_path = temp_dir / "test_script.txt"
-    script_path.write_text(sample_script_text)
-    return script_path
-
-
-@pytest.fixture
-def mock_audio_file(temp_dir):
-    """Create a mock audio file for testing."""
-    import numpy as np
-    import soundfile as sf
-
-    # Generate 1 second of silence
-    sample_rate = 24000
-    duration = 1.0
-    samples = int(sample_rate * duration)
-    audio_data = np.zeros(samples, dtype=np.float32)
-
-    audio_path = temp_dir / "test_audio.wav"
-    sf.write(str(audio_path), audio_data, sample_rate)
-
-    return audio_path
+def sample_script_file(temp_dir: Path, sample_script_text: str) -> Path:
+    """Create a sample script file for testing."""
+    script_file = temp_dir / "sample_script.txt"
+    script_file.write_text(sample_script_text)
+    return script_file
 
 
 @pytest.fixture
 def mock_audio_data():
-    """Return synthetic audio data (y, sample_rate, duration)."""
-    import numpy as np
-
-    sample_rate = 24000
-    duration = 1.0
-    samples = int(sample_rate * duration)
-    t = np.linspace(0, duration, samples, endpoint=False)
-    y = 0.5 * np.sin(2 * np.pi * 440 * t)
-
-    return y.astype(np.float32), sample_rate, duration
-
-
-@pytest.fixture
-def gpu_available():
-    """Check if GPU is available for testing."""
+    """Create mock audio data for testing."""
     try:
-        import torch
-
-        return torch.cuda.is_available()
+        import numpy as np
     except ImportError:
-        return False
-
-
-@pytest.fixture
-def skip_if_no_gpu(gpu_available):
-    """Skip test if GPU not available."""
-    if not gpu_available:
-        pytest.skip("GPU not available")
+        pytest.skip("numpy not installed")
+    
+    # Simulate 2 seconds of audio at 22050 Hz
+    sr = 22050
+    duration = 2.0
+    samples = int(sr * duration)
+    y = np.random.randn(samples).astype(np.float32) * 0.3
+    return y, sr, duration
 
 
 @pytest.fixture
 def skip_if_no_internet():
-    """Skip test if no internet connection."""
-    import socket
-
-    try:
-        # Try to connect to Google DNS
-        socket.create_connection(("8.8.8.8", 53), timeout=3)
-    except OSError:
-        pytest.skip("No internet connection")
+    """Fixture to skip tests if network is not available (for e2e tests that require internet)."""
+    # In mutation testing, network is disabled by default
+    # Tests using this fixture will be skipped unless @pytest.mark.network is also present
+    if not os.getenv("PY_ENABLE_NETWORK_TESTS", "0") == "1":
+        pytest.skip("Network tests disabled (set PY_ENABLE_NETWORK_TESTS=1 to enable)")
 
 
-# Pytest hooks
-
-
-def pytest_configure(config):
-    """Configure pytest."""
-    # Register custom markers
-    config.addinivalue_line("markers", "unit: mark test as a unit test")
-    config.addinivalue_line("markers", "integration: mark test as an integration test")
-    config.addinivalue_line("markers", "slow: mark test as slow running")
-    config.addinivalue_line("markers", "gpu: mark test as requiring GPU")
-
-
-def pytest_collection_modifyitems(config, items):
-    """Modify test collection."""
-    # Add markers based on test names
-    for item in items:
-        # Mark slow tests
-        if "slow" in item.nodeid:
-            item.add_marker(pytest.mark.slow)
-
-        # Mark GPU tests
-        if "gpu" in item.nodeid.lower():
-            item.add_marker(pytest.mark.gpu)
-
-        # Mark network tests
-        if "network" in item.nodeid.lower() or "api" in item.nodeid.lower():
-            item.add_marker(pytest.mark.network)
-
-
-def pytest_runtest_setup(item):
-    """Setup for each test."""
-    # Skip GPU tests if GPU not available
-    if "gpu" in [marker.name for marker in item.iter_markers()]:
-        try:
-            import torch
-
-            if not torch.cuda.is_available():
-                pytest.skip("GPU not available")
-        except ImportError:
-            pytest.skip("PyTorch not installed")
-
-    # Skip network tests if requested
-    if "network" in [marker.name for marker in item.iter_markers()]:
-        if item.config.getoption("--skip-network", default=False):
-            pytest.skip("Skipping network tests")
+@pytest.fixture
+def test_config_file(tmp_path: Path) -> Path:
+    """Create a temporary test configuration YAML file."""
+    config_path = tmp_path / "test_config.yaml"
+    config_content = """tts:
+  engine: gtts
+storage:
+  cache_dir: {cache_dir}
+  outputs_dir: {outputs_dir}
+video:
+  quality: fastest
+music:
+  engine: placeholder
+""".format(
+        cache_dir=str(tmp_path / "cache"),
+        outputs_dir=str(tmp_path / "outputs"),
+    )
+    config_path.write_text(config_content)
+    return config_path

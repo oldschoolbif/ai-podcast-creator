@@ -9,8 +9,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-# Add parent directory to path for GPU utils
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+PROJECT_ROOT = str(Path(__file__).resolve().parents[2])
+
+
+def _ensure_project_root_on_path() -> None:
+    """Ensure the repository root is at the front of sys.path for imports."""
+    if sys.path[:1] == [PROJECT_ROOT]:
+        return
+    if PROJECT_ROOT in sys.path:
+        sys.path.remove(PROJECT_ROOT)
+    sys.path.insert(0, PROJECT_ROOT)
+
+
+_ensure_project_root_on_path()
 from src.utils.gpu_utils import get_gpu_manager
 
 
@@ -219,7 +230,7 @@ class TTSEngine:
                 return output_path
             except Exception as e:
                 if attempt < max_retries - 1:
-                    print(f"⚠ gTTS attempt {attempt + 1} failed: {e}, retrying...")
+                    print(f"[WARN] gTTS attempt {attempt + 1} failed: {e}, retrying...")
                     time.sleep(1)
                 else:
                     raise Exception(f"gTTS failed after {max_retries} attempts: {e}")
