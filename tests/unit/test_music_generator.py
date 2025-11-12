@@ -359,6 +359,17 @@ class TestMusicGeneratorMusicGen:
         }
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
+        # Stub torch in sys.modules BEFORE initialization (needed for _init_musicgen)
+        mock_torch = MagicMock()
+        mock_torch.__version__ = "2.1.0"
+        mock_torch.inference_mode.return_value.__enter__ = MagicMock()
+        mock_torch.inference_mode.return_value.__exit__ = MagicMock(return_value=False)
+        mock_autocast = MagicMock()
+        mock_autocast.return_value.__enter__ = MagicMock()
+        mock_autocast.return_value.__exit__ = MagicMock(return_value=False)
+        mock_torch.cuda.amp.autocast = mock_autocast
+        sys.modules["torch"] = mock_torch
+
         with (
             patch("audiocraft.models.MusicGen") as mock_gen,
             patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
@@ -367,22 +378,13 @@ class TestMusicGeneratorMusicGen:
             mock_gpu.return_value.gpu_available = True
             mock_gpu.return_value.get_device.return_value = "cuda"
             mock_gpu.return_value.clear_cache = MagicMock()
+            mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": False}
 
             mock_model = MagicMock()
             mock_model.generate.return_value = [MagicMock()]
             mock_model.sample_rate = 32000
             mock_model.set_generation_params = MagicMock()
             mock_gen.get_pretrained.return_value = mock_model
-
-            # Stub torch and torchaudio in sys.modules before generation
-            mock_torch = MagicMock()
-            mock_torch.inference_mode.return_value.__enter__ = MagicMock()
-            mock_torch.inference_mode.return_value.__exit__ = MagicMock(return_value=False)
-            mock_autocast = MagicMock()
-            mock_autocast.return_value.__enter__ = MagicMock()
-            mock_autocast.return_value.__exit__ = MagicMock(return_value=False)
-            mock_torch.cuda.amp.autocast = mock_autocast
-            sys.modules["torch"] = mock_torch
             
             mock_torchaudio = MagicMock()
             def mock_save_func(waveform, path, sample_rate):
@@ -415,6 +417,17 @@ class TestMusicGeneratorMusicGen:
         }
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
+        # Stub torch in sys.modules BEFORE initialization (needed for _init_musicgen)
+        mock_torch = MagicMock()
+        mock_torch.__version__ = "2.1.0"
+        mock_torch.inference_mode.return_value.__enter__ = MagicMock()
+        mock_torch.inference_mode.return_value.__exit__ = MagicMock(return_value=False)
+        mock_autocast = MagicMock()
+        mock_autocast.return_value.__enter__ = MagicMock()
+        mock_autocast.return_value.__exit__ = MagicMock(return_value=False)
+        mock_torch.cuda.amp.autocast = mock_autocast
+        sys.modules["torch"] = mock_torch
+
         with (
             patch("audiocraft.models.MusicGen") as mock_gen,
             patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
@@ -423,22 +436,13 @@ class TestMusicGeneratorMusicGen:
             mock_gpu.return_value.gpu_available = True
             mock_gpu.return_value.get_device.return_value = "cuda"
             mock_gpu.return_value.clear_cache = MagicMock()
+            mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": False}
 
             mock_model = MagicMock()
             mock_model.generate.return_value = [MagicMock()]
             mock_model.sample_rate = 32000
             mock_model.set_generation_params = MagicMock()
             mock_gen.get_pretrained.return_value = mock_model
-
-            # Stub torch and torchaudio in sys.modules before generation
-            mock_torch = MagicMock()
-            mock_torch.inference_mode.return_value.__enter__ = MagicMock()
-            mock_torch.inference_mode.return_value.__exit__ = MagicMock(return_value=False)
-            mock_autocast = MagicMock()
-            mock_autocast.return_value.__enter__ = MagicMock()
-            mock_autocast.return_value.__exit__ = MagicMock(return_value=False)
-            mock_torch.cuda.amp.autocast = mock_autocast
-            sys.modules["torch"] = mock_torch
             
             mock_torchaudio = MagicMock()
             def mock_save_func(waveform, path, sample_rate):
