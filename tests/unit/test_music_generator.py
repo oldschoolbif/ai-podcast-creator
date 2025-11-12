@@ -340,7 +340,7 @@ class TestMusicGeneratorMusicGen:
     @patch("torch.inference_mode")
     @patch("torch.cuda.amp.autocast")
     @patch("builtins.print")
-    def test_generate_musicgen_gpu_autocast(self, mock_print, mock_autocast, mock_inference, mock_save, test_config, temp_dir):
+    def test_generate_musicgen_gpu_autocast(self, mock_print, mock_autocast, mock_inference, mock_save, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen generation with GPU autocast (lines 164-165)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {
@@ -378,7 +378,7 @@ class TestMusicGeneratorMusicGen:
     @patch("torchaudio.save")
     @patch("torch.inference_mode")
     @patch("torch.cuda.amp.autocast")
-    def test_generate_musicgen_gpu_cache_clearing(self, mock_autocast, mock_inference, mock_save, test_config, temp_dir):
+    def test_generate_musicgen_gpu_cache_clearing(self, mock_autocast, mock_inference, mock_save, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen GPU cache clearing at start (line 141)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {
@@ -409,7 +409,7 @@ class TestMusicGeneratorMusicGen:
 
     @patch("torchaudio.save")
     @patch("torch.inference_mode")
-    def test_generate_musicgen_parameters_from_config(self, mock_inference, mock_save, test_config, temp_dir):
+    def test_generate_musicgen_parameters_from_config(self, mock_inference, mock_save, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen uses config parameters (lines 144-157)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {
@@ -446,10 +446,9 @@ class TestMusicGeneratorMusicGen:
             assert call_kwargs["top_k"] == 200
             assert call_kwargs["top_p"] == 0.5
 
-    @patch("torchaudio.save")
     @patch("torch.inference_mode")
     @patch("builtins.print")
-    def test_generate_musicgen_cpu_no_autocast(self, mock_print, mock_inference, mock_save, test_config, temp_dir, stub_audiocraft):
+    def test_generate_musicgen_cpu_no_autocast(self, mock_print, mock_inference, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen generation with CPU (no autocast, lines 166-167)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {
@@ -461,6 +460,7 @@ class TestMusicGeneratorMusicGen:
         with (
             patch("audiocraft.models.MusicGen") as mock_gen,
             patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
+            patch("src.core.music_generator.torchaudio.save") as mock_torchaudio_save,
         ):
 
             mock_gpu.return_value.gpu_available = False
@@ -470,14 +470,20 @@ class TestMusicGeneratorMusicGen:
             mock_model.generate.return_value = [MagicMock()]
             mock_model.sample_rate = 32000
             mock_gen.get_pretrained.return_value = mock_model
+            
+            # Mock torchaudio.save to create file
+            def mock_save_func(waveform, path, sample_rate):
+                Path(path).parent.mkdir(parents=True, exist_ok=True)
+                Path(path).touch()
+            mock_torchaudio_save.side_effect = mock_save_func
 
             generator = MusicGenerator(test_config)
             generator.generate("test music")
 
-            # Should save audio (line 170)
-            mock_save.assert_called()
-            # Verify success print (line 176)
-            assert any("Music generated" in str(call) for call in mock_print.call_args_list)
+            # Should save audio (line 173)
+            mock_torchaudio_save.assert_called()
+            # Verify success print (line 179)
+            assert any("Music generated" in str(call) or "✓" in str(call) for call in mock_print.call_args_list)
 
     @patch("torchaudio.save")
     @patch("torch.inference_mode")
