@@ -94,7 +94,7 @@ class TestMusicGeneratorMusicGen:
 
             assert result is not None
 
-    def test_generate_musicgen_cpu(self, test_config, temp_dir):
+    def test_generate_musicgen_cpu(self, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen generation with CPU."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small", "duration": 5}
