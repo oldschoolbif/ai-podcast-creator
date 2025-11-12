@@ -225,13 +225,17 @@ class TestMusicGeneratorMusicGen:
             # Verify GPU initialization print (line 52)
             assert any("Initializing MusicGen on GPU" in str(call) for call in mock_print.call_args_list)
 
-    @patch("torch.__version__", "1.9.0")  # Old version without compile
     @patch("audiocraft.models.MusicGen")
-    def test_init_musicgen_gpu_no_torch_compile(self, mock_gen, test_config, temp_dir):
+    def test_init_musicgen_gpu_no_torch_compile(self, mock_gen, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen initialization when torch.compile not available (line 59)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
         test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        # Stub torch with old version (no compile)
+        mock_torch = MagicMock()
+        mock_torch.__version__ = "1.9.0"  # Old version without compile
+        sys.modules["torch"] = mock_torch
 
         with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
             mock_gpu.return_value.gpu_available = True
@@ -246,15 +250,20 @@ class TestMusicGeneratorMusicGen:
             assert generator.engine_type == "musicgen"
             # Should not fail even without torch.compile
 
-    @patch("torch.compile")
     @patch("audiocraft.models.MusicGen")
-    def test_init_musicgen_gpu_torch_compile_exception(self, mock_gen, mock_compile, test_config, temp_dir):
+    def test_init_musicgen_gpu_torch_compile_exception(self, mock_gen, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen when torch.compile fails (lines 63-64)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small"}
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
-        with patch("torch.__version__", "2.1.0"), patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+        # Stub torch with version 2.1.0 (has compile)
+        mock_torch = MagicMock()
+        mock_torch.__version__ = "2.1.0"
+        mock_torch.compile = MagicMock(side_effect=Exception("Compile failed"))
+        sys.modules["torch"] = mock_torch
+
+        with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
             mock_gpu.return_value.gpu_available = True
             mock_gpu.return_value.get_device.return_value = "cuda"
             mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": False}
@@ -262,7 +271,6 @@ class TestMusicGeneratorMusicGen:
             mock_model = MagicMock()
             mock_model.lm = MagicMock()
             mock_gen.get_pretrained.return_value = mock_model
-            mock_compile.side_effect = Exception("Compile failed")
 
             generator = MusicGenerator(test_config)
 
