@@ -403,6 +403,22 @@ def skip_if_no_internet():
 
 
 @pytest.fixture
+def skip_if_no_gpu():
+    """Fixture to skip tests if GPU is not available."""
+    # Check if GPU tests are enabled
+    if not _gpu_tests_enabled():
+        pytest.skip("GPU tests disabled (set PY_ENABLE_GPU_TESTS=1 to enable)")
+    
+    # Check if CUDA is actually available
+    torch = _torch_module()
+    if torch is None:
+        pytest.skip("PyTorch not installed")
+    
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA GPU not available")
+
+
+@pytest.fixture
 def test_config_file(tmp_path: Path) -> Path:
     """Create a temporary test configuration YAML file."""
     config_path = tmp_path / "test_config.yaml"

@@ -1,136 +1,218 @@
-# GPU Utilization Testing Guide
+# GPU Testing Guide
 
-## Overview
+## What is CUDA?
 
-GPU utilization tests ensure that components properly utilize GPU resources when available. These tests are integrated into the CI pipeline and can be run locally.
+**CUDA** (Compute Unified Device Architecture) is NVIDIA's parallel computing platform and programming model that allows developers to use NVIDIA GPUs for general-purpose computing beyond just graphics.
 
-## Test Structure
+### Key Points:
+- **CUDA** = NVIDIA's GPU computing platform
+- Allows GPUs to accelerate computation-intensive tasks
+- Used for AI/ML workloads (PyTorch, TensorFlow, etc.)
+- Requires:
+  - NVIDIA GPU hardware
+  - CUDA Toolkit installed
+  - CUDA-enabled libraries (PyTorch with CUDA support)
 
-### Unit Tests (`tests/unit/test_gpu_utilization.py`)
+### In This Project:
+- GPU acceleration speeds up:
+  - **TTS (Coqui XTTS)**: 5x faster
+  - **Music (MusicGen)**: 10x faster  
+  - **Avatar (SadTalker)**: 12x faster
+- Overall: **10-12x speedup** for podcast generation
 
-Tests cover:
-1. **GPU Utilization Tracking** - Metrics correctly track GPU usage before/after components
-2. **CPU/RAM Tracking** - System resource monitoring
-3. **GPU Manager** - `get_utilization()` method works correctly
-4. **Component GPU Usage** - Components that should use GPU are tracked
-5. **GPU Utilization Thresholds** - Components meet minimum GPU usage requirements
-6. **Real GPU Integration** - Tests with actual GPU hardware (skip if unavailable)
+---
 
-## Running Tests
+## When Do GPU Tests Run?
 
-### Local Testing (with GPU)
+### Current Configuration
+
+GPU tests are **quarantined** (disabled by default) and only run when explicitly enabled:
+
+#### 1. **CI/CD (GitHub Actions)**
+- **Status**: ❌ **Disabled** (GPU tests skipped)
+- **Reason**: GitHub Actions runners don't have NVIDIA GPUs
+- **Configuration**: `PY_ENABLE_GPU_TESTS=0` in `.github/workflows/tests.yml`
+- **Result**: All `@pytest.mark.gpu` tests are automatically skipped
+
+#### 2. **Local Development (Manual)**
+- **Status**: ✅ **Can be enabled** on machines with NVIDIA GPUs
+- **How to enable**:
+  ```bash
+  # Windows PowerShell
+  $env:PY_ENABLE_GPU_TESTS="1"
+  pytest tests/unit -m gpu
+  
+  # Linux/Mac
+  export PY_ENABLE_GPU_TESTS=1
+  pytest tests/unit -m gpu
+  ```
+
+#### 3. **Dedicated GPU CI (Future)**
+- **Status**: ⚠️ **Not yet configured**
+- **Would require**: 
+  - Self-hosted runners with NVIDIA GPUs, OR
+  - Cloud GPU runners (GitHub doesn't provide GPU runners)
+  - Services like: AWS EC2 (g4dn), Google Cloud (GPU instances), Azure (NC-series)
+
+---
+
+## How GPU Tests Are Skipped
+
+### Test Marking
+Tests that require GPU are marked with `@pytest.mark.gpu`:
+
+```python
+@pytest.mark.gpu
+def test_generate_sadtalker_gpu(self, test_config, temp_dir, skip_if_no_gpu):
+    """Test SadTalker with GPU acceleration."""
+    # This test only runs if PY_ENABLE_GPU_TESTS=1 AND CUDA is available
+```
+
+### Skip Logic (in `tests/conftest.py`)
+
+```python
+def _handle_gpu_quarantine() -> None:
+    # Step 1: Check if GPU tests are enabled via environment variable
+    if not _gpu_tests_enabled():  # Checks PY_ENABLE_GPU_TESTS == "1"
+        pytest.skip("GPU quarantine: set PY_ENABLE_GPU_TESTS=1 to enable GPU tests.")
+    
+    # Step 2: Check if CUDA is actually available
+    torch = _torch_module()
+    if torch is not None and not torch.cuda.is_available():
+        pytest.skip("GPU tests enabled but no CUDA device available.")
+```
+
+### Skip Conditions:
+1. ❌ `PY_ENABLE_GPU_TESTS != "1"` → Skip (default in CI)
+2. ❌ PyTorch not installed → Skip
+3. ❌ CUDA not available → Skip
+4. ✅ `PY_ENABLE_GPU_TESTS=1` AND CUDA available → **Run test**
+
+---
+
+## GPU Tests in This Project
+
+### Test Files with GPU Tests:
+- `tests/unit/test_gpu_utils.py` - 17 GPU tests
+- `tests/unit/test_gpu_utils_real.py` - 4 GPU tests
+- `tests/unit/test_avatar_generator.py` - 2 GPU tests
+- `tests/unit/test_music_generator.py` - 1 GPU test
+- `tests/unit/test_tts_engine_coverage.py` - 1 GPU test
+- `tests/integration/test_pipeline.py` - 2 GPU tests
+- **Total**: ~27 GPU-marked tests
+
+### What They Test:
+- GPU detection and initialization
+- CUDA availability checks
+- GPU memory management
+- GPU-accelerated TTS generation
+- GPU-accelerated music generation
+- GPU-accelerated avatar generation
+- Performance optimizations (FP16, cuDNN, etc.)
+
+---
+
+## Running GPU Tests Locally
+
+### Prerequisites:
+1. **NVIDIA GPU** (6GB+ VRAM recommended)
+2. **CUDA Toolkit** installed
+3. **CUDA-enabled PyTorch** installed
+4. **Environment variable** set
+
+### Step-by-Step:
 
 ```bash
-# Run all GPU utilization tests
-pytest tests/unit/test_gpu_utilization.py -v
+# 1. Verify GPU is detected
+python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 
-# Run only non-GPU tests (mocked)
-pytest tests/unit/test_gpu_utilization.py -v -m "not gpu"
+# 2. Enable GPU tests
+export PY_ENABLE_GPU_TESTS=1  # Linux/Mac
+# OR
+$env:PY_ENABLE_GPU_TESTS="1"  # Windows PowerShell
 
-# Run only real GPU tests (requires GPU)
-pytest tests/unit/test_gpu_utilization.py -v -m "gpu"
+# 3. Run GPU tests
+pytest tests/unit -m gpu -v
+
+# 4. Run specific GPU test file
+pytest tests/unit/test_gpu_utils.py -m gpu -v
+
+# 5. Run all tests (GPU tests will run if enabled)
+pytest tests/unit -v
 ```
 
-### CI Pipeline
+### Expected Output:
+```
+tests/unit/test_gpu_utils.py::test_gpu_detection PASSED
+tests/unit/test_avatar_generator.py::test_generate_sadtalker_gpu PASSED
+...
+```
 
-GPU utilization tests are automatically run in CI:
-- Tests that don't require GPU run on all runners
-- Tests requiring real GPU are skipped (marked with `continue-on-error: true`)
-- Tests verify GPU utilization tracking logic works correctly
+---
 
-## Expected GPU Utilization by Component
+## Why GPU Tests Are Disabled in CI
 
-| Component | Expected GPU % | Notes |
-|-----------|---------------|-------|
-| `script_parsing` | 0% | Text parsing, CPU-only |
-| `tts_generation` | 40-80% | Coqui TTS (if Python < 3.12), otherwise cloud-based (0%) |
-| `audio_mixing` | 0% | pydub is CPU-based |
-| `avatar_generation` | 80-100% | SadTalker/Wav2Lip should heavily utilize GPU |
-| `video_composition` | 20-40% | NVENC encoding (if successful), otherwise CPU fallback |
+### Current CI Setup:
+- **Runner**: `ubuntu-latest` (GitHub-hosted)
+- **GPU**: ❌ None available
+- **Cost**: Free tier doesn't include GPU runners
 
-## Test Coverage
+### Options for GPU CI:
 
-### Mocked Tests (Always Run)
-
-- GPU utilization tracking before/after components
-- CPU and RAM usage tracking
-- GPU manager `get_utilization()` method
-- Component GPU usage expectations
-- Metrics JSON export with GPU data
-
-### Real GPU Tests (Skip if No GPU)
-
-- Actual GPU utilization during tensor operations
-- Real GPU metrics collection
-- Integration with actual GPU hardware
-
-## Adding New GPU Tests
-
-When adding new GPU-accelerated components:
-
-1. **Add test case** in `test_gpu_utilization.py`:
-   ```python
-   def test_new_component_uses_gpu(self, tmp_path):
-       """Test that new component uses GPU."""
-       # ... test implementation
-   ```
-
-2. **Update component list** in `test_component_should_use_gpu`:
-   ```python
-   ("new_component", True),  # Should use GPU
-   ```
-
-3. **Add threshold test** if component should use significant GPU:
-   ```python
-   ("new_component", 50.0),  # Minimum 50% GPU utilization
-   ```
-
-## CI Integration
-
-GPU tests are integrated into `.github/workflows/tests.yml`:
-
+#### Option 1: Self-Hosted Runners (Recommended)
 ```yaml
-- name: Run GPU utilization tests
-  shell: bash
-  run: |
-    pytest tests/unit/test_gpu_utilization.py -v -m "not gpu"
-  continue-on-error: true
+# .github/workflows/gpu-tests.yml
+jobs:
+  gpu-tests:
+    runs-on: self-hosted  # Your own machine with GPU
+    env:
+      PY_ENABLE_GPU_TESTS: "1"
 ```
 
-**Note:** Tests are set to `continue-on-error: true` because:
-- CI runners may not have GPU available
-- Real GPU tests will be skipped automatically
-- Mocked tests validate the tracking logic works correctly
+#### Option 2: Cloud GPU Runners
+- **AWS EC2**: g4dn instances (~$0.50/hour)
+- **Google Cloud**: GPU instances (~$0.70/hour)
+- **Azure**: NC-series (~$0.90/hour)
 
-## Troubleshooting
+#### Option 3: Keep Disabled (Current)
+- ✅ Tests are written and ready
+- ✅ Can be run manually on GPU machines
+- ✅ CI focuses on CPU compatibility
+- ✅ GPU functionality tested during manual QA
 
-### Tests Fail Locally
+---
 
-**Issue:** `test_real_gpu_utilization_tracking` fails
-**Solution:** This is expected if no GPU is available. The test is marked with `@pytest.mark.skipif` and will skip automatically.
+## Recommendations
 
-**Issue:** `test_component_minimum_gpu_utilization` fails
-**Solution:** Check that the component is actually using GPU. Verify:
-- GPU environment variables are set
-- CUDA is available
-- Component is calling GPU operations
+### For Development:
+1. **Run GPU tests locally** before committing GPU-related changes
+2. **Document GPU requirements** in test docstrings
+3. **Use mocking** for GPU tests that don't require actual GPU (already done)
 
-### CI Tests Fail
+### For CI/CD:
+1. **Current approach is fine** - GPU tests are optional
+2. **Consider self-hosted runner** if you have a GPU machine
+3. **Add GPU test job** that runs on schedule (nightly) rather than every PR
 
-**Issue:** Tests fail in CI
-**Solution:** Check that mocked GPU tests are passing. Real GPU tests are expected to skip in CI.
+### For Contributors:
+- GPU tests are **optional** - don't worry if they're skipped
+- Focus on **CPU compatibility** - all code should work without GPU
+- GPU is an **optimization**, not a requirement
 
-## Best Practices
+---
 
-1. **Always Mock GPU Tests** - Don't require real GPU for unit tests
-2. **Mark Real GPU Tests** - Use `@pytest.mark.skipif` for hardware-dependent tests
-3. **Test Tracking Logic** - Verify metrics collection works even without GPU
-4. **Document Expectations** - Update this guide when adding new GPU components
+## Summary
 
-## Related Files
+| Environment | GPU Tests Run? | How to Enable |
+|------------|----------------|---------------|
+| **GitHub Actions CI** | ❌ No | Not possible (no GPU runners) |
+| **Local (no GPU)** | ❌ No | N/A (CUDA not available) |
+| **Local (with GPU)** | ✅ Yes | `PY_ENABLE_GPU_TESTS=1` |
+| **Self-hosted CI** | ✅ Yes | Configure runner + env var |
+| **Cloud GPU CI** | ✅ Yes | Configure cloud runner + env var |
 
-- `tests/unit/test_gpu_utilization.py` - GPU utilization test suite
-- `src/utils/metrics.py` - Metrics tracking implementation
-- `src/utils/gpu_utils.py` - GPU detection and utilities
-- `.github/workflows/tests.yml` - CI pipeline configuration
+**Current Status**: GPU tests are **quarantined** (disabled by default) and run only when:
+1. `PY_ENABLE_GPU_TESTS=1` is set
+2. CUDA is available on the system
 
+This is the **correct approach** for projects where GPU is optional but beneficial.
