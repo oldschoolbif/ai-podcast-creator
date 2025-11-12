@@ -86,9 +86,9 @@ class TestCompleteWorkflows:
 
     def test_audio_to_video_workflow(self, test_config, temp_dir):
         """Test audio-to-video workflow."""
-        # Create valid MP3 file for happy path test
         audio_file = temp_dir / "podcast_audio.mp3"
-        create_valid_mp3_file(audio_file, duration_seconds=10.5)
+        # Use helper to create valid MP3 file instead of fake bytes
+        create_valid_mp3_file(audio_file, duration_seconds=5.0)
 
         # Configure video composer
         test_config["storage"]["outputs_dir"] = str(temp_dir)
@@ -111,7 +111,10 @@ class TestCompleteWorkflows:
         mock_moviepy.editor.ColorClip = MagicMock(return_value=mock_video)
         mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_video)
 
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+        with (
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+        ):
             video_path = composer.compose(audio_file, output_name="e2e_test")
 
             assert video_path.suffix == ".mp4"
@@ -145,7 +148,7 @@ class TestCompleteWorkflows:
         cached_path = tts.cache_dir / f"{cache_key}.mp3"
         cached_path.parent.mkdir(parents=True, exist_ok=True)
         # Create valid MP3 file for happy path test
-        create_valid_mp3_file(cached_path, duration_seconds=15.0)
+        cached_path.write_bytes(b"cached audio content" * 200)
 
         audio_path = tts.generate(parsed["text"])
 
@@ -170,7 +173,10 @@ class TestCompleteWorkflows:
         mock_moviepy.editor.ColorClip = MagicMock(return_value=mock_video)
         mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_video)
 
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+        with (
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+        ):
             video_path = composer.compose(audio_path, output_name=parsed["metadata"]["title"])
 
             # Verify final output
@@ -444,7 +450,10 @@ class TestConfigurationWorkflows:
             mock_moviepy.editor.ColorClip = MagicMock(return_value=mock_video)
             mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_video)
 
-            with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+            with (
+                patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+                patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+            ):
                 output = composer.compose(audio_file, output_name=name)
 
                 assert name in str(output)

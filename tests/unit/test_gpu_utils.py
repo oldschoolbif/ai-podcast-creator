@@ -265,15 +265,25 @@ class TestGetTorchDevice:
 
     def test_get_torch_device_no_torch(self):
         """Test get_torch_device when torch not available."""
-        # Don't mock torch - let ImportError happen naturally
-        with patch.dict("sys.modules", {}, clear=False):
-            # Remove torch if it exists
-            if "torch" in sys.modules:
-                del sys.modules["torch"]
-            manager = GPUManager()
-            result = manager.get_torch_device()
-            # Should return "cpu" string when torch unavailable
-            assert result == "cpu"
+        # Mock torch import to raise ImportError
+        original_import = __import__
+        def mock_import(name, *args, **kwargs):
+            if name == "torch":
+                raise ImportError("No module named 'torch'")
+            return original_import(name, *args, **kwargs)
+        
+        with patch("builtins.__import__", side_effect=mock_import):
+            # Remove torch from sys.modules if present
+            torch_backup = sys.modules.pop("torch", None)
+            try:
+                manager = GPUManager()
+                result = manager.get_torch_device()
+                # Should return "cpu" string when torch unavailable
+                assert result == "cpu"
+            finally:
+                # Restore torch if it was there
+                if torch_backup is not None:
+                    sys.modules["torch"] = torch_backup
 
 
 class TestOptimizeForInference:
@@ -524,20 +534,26 @@ class TestPytorchNotInstalled:
 
     def test_init_without_pytorch(self, capsys):
         """Test initialization when PyTorch not available."""
-        # Don't mock torch - let ImportError happen naturally
-        if "torch" in sys.modules:
-            original_torch = sys.modules["torch"]
-            del sys.modules["torch"]
-        try:
-            manager = GPUManager()
-            assert manager.gpu_available == False
-            assert manager.device == "cpu"
-            captured = capsys.readouterr()
-            assert "PyTorch not installed" in captured.out
-        finally:
-            # Restore torch if it was there
-            if "original_torch" in locals():
-                sys.modules["torch"] = original_torch
+        # Mock torch import to raise ImportError
+        original_import = __import__
+        def mock_import(name, *args, **kwargs):
+            if name == "torch":
+                raise ImportError("No module named 'torch'")
+            return original_import(name, *args, **kwargs)
+        
+        with patch("builtins.__import__", side_effect=mock_import):
+            # Remove torch from sys.modules if present
+            torch_backup = sys.modules.pop("torch", None)
+            try:
+                manager = GPUManager()
+                assert manager.gpu_available == False
+                assert manager.device == "cpu"
+                captured = capsys.readouterr()
+                assert "PyTorch not installed" in captured.out
+            finally:
+                # Restore torch if it was there
+                if torch_backup is not None:
+                    sys.modules["torch"] = torch_backup
 
     def test_get_torch_device_import_error(self):
         """Test get_torch_device when torch can't be imported."""
