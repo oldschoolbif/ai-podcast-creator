@@ -449,7 +449,7 @@ class TestMusicGeneratorMusicGen:
     @patch("torchaudio.save")
     @patch("torch.inference_mode")
     @patch("builtins.print")
-    def test_generate_musicgen_cpu_no_autocast(self, mock_print, mock_inference, mock_save, test_config, temp_dir):
+    def test_generate_musicgen_cpu_no_autocast(self, mock_print, mock_inference, mock_save, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen generation with CPU (no autocast, lines 166-167)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {
@@ -482,7 +482,7 @@ class TestMusicGeneratorMusicGen:
     @patch("torchaudio.save")
     @patch("torch.inference_mode")
     @patch("builtins.print")
-    def test_generate_musicgen_exception_handling(self, mock_print, mock_inference, mock_save, test_config, temp_dir):
+    def test_generate_musicgen_exception_handling(self, mock_print, mock_inference, mock_save, test_config, temp_dir, stub_audiocraft):
         """Test MusicGen generation exception handling (lines 179-181)."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {
@@ -538,7 +538,7 @@ class TestMusicGeneratorMusicGen:
             # Library returns touched file path
             assert result is not None
 
-    def test_generate_musicgen_model_not_available(self, test_config, temp_dir):
+    def test_generate_musicgen_model_not_available(self, test_config, temp_dir, stub_audiocraft):
         """Test when MusicGen model is not available."""
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "test"}
