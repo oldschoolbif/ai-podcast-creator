@@ -230,7 +230,8 @@ class GPUManager:
                 pass
         
         # If all methods fail, return zeros
-        return {"gpu_percent": 0.0, "memory_percent": 0.0}
+        zero_dict = {"gpu_percent": 0.0, "memory_percent": 0.0}
+        return zero_dict
 
     def set_device(self, device_id: int = 0):
         """Set active GPU device."""
