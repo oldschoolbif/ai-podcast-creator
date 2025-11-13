@@ -74,18 +74,27 @@ jobs:
         if: always()
         shell: bash
         run: |
+          set -x  # Enable debug output
+          
           # Get exit codes, defaulting to empty string if not set
           exit_code_1="${{ steps.pytest1.outputs.exit_code }}"
           exit_code_2="${{ steps.pytest2.outputs.exit_code }}"
           
-          echo "Run 1 exit code: '${exit_code_1}'"
-          echo "Run 2 exit code: '${exit_code_2}'"
+          echo "=== Debug Information ==="
+          echo "Run 1 exit code (raw): '${{ steps.pytest1.outputs.exit_code }}'"
+          echo "Run 2 exit code (raw): '${{ steps.pytest2.outputs.exit_code }}'"
+          echo "Run 1 exit code (var): '${exit_code_1}'"
+          echo "Run 2 exit code (var): '${exit_code_2}'"
+          echo "Run 1 outcome: ${{ steps.pytest1.outcome }}"
+          echo "Run 2 outcome: ${{ steps.pytest2.outcome }}"
+          echo "Run 1 conclusion: ${{ steps.pytest1.conclusion }}"
+          echo "Run 2 conclusion: ${{ steps.pytest2.conclusion }}"
           
           # Check if exit codes are set (not empty)
           if [ -z "${exit_code_1}" ] || [ -z "${exit_code_2}" ]; then
             echo "ERROR: Exit codes not captured properly"
-            echo "Run 1 status: ${{ steps.pytest1.outcome }}"
-            echo "Run 2 status: ${{ steps.pytest2.outcome }}"
+            echo "exit_code_1 is empty: $([ -z "${exit_code_1}" ] && echo 'YES' || echo 'NO')"
+            echo "exit_code_2 is empty: $([ -z "${exit_code_2}" ] && echo 'YES' || echo 'NO')"
             exit 1
           fi
           
