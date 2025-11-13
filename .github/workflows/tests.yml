@@ -47,4 +47,10 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          pytest -q
+          # Show pytest version and Python version for debugging
+          python --version
+          pytest --version
+          echo ""
+          echo "=== Running pytest ==="
+          # Run with verbose output to see actual errors
+          pytest -v --tb=short || pytest -v --tb=long
