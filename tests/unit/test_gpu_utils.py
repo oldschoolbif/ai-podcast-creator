@@ -729,6 +729,48 @@ def test_get_utilization_invalid_output():
         assert utilization["memory_percent"] == 0.0
 
 @pytest.mark.unit
+def test_get_utilization_returncode_nonzero():
+    """Test get_utilization handles non-zero returncode from nvidia-smi."""
+    import subprocess
+    
+    mock_torch = _create_mock_torch(cuda_available=True)
+    mock_result = MagicMock()
+    mock_result.returncode = 1
+    mock_result.stdout = "85, 60"
+    
+    with (
+        patch.dict("sys.modules", {"torch": mock_torch}),
+        patch("subprocess.run", return_value=mock_result),
+    ):
+        manager = GPUManager()
+        utilization = manager.get_utilization()
+        
+        # Should fall back to pynvml or return zeros
+        assert utilization["gpu_percent"] == 0.0
+        assert utilization["memory_percent"] == 0.0
+
+@pytest.mark.unit
+def test_get_utilization_stdout_empty():
+    """Test get_utilization handles empty stdout from nvidia-smi."""
+    import subprocess
+    
+    mock_torch = _create_mock_torch(cuda_available=True)
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = ""
+    
+    with (
+        patch.dict("sys.modules", {"torch": mock_torch}),
+        patch("subprocess.run", return_value=mock_result),
+    ):
+        manager = GPUManager()
+        utilization = manager.get_utilization()
+        
+        # Should fall back to pynvml or return zeros
+        assert utilization["gpu_percent"] == 0.0
+        assert utilization["memory_percent"] == 0.0
+
+@pytest.mark.unit
 def test_get_utilization_pynvml_fallback():
     """Test get_utilization uses pynvml fallback when nvidia-smi fails."""
     import subprocess
