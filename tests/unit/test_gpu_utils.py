@@ -927,3 +927,27 @@ def test_get_utilization_pynvml_exception():
         # Should return zeros when pynvml fails
         assert utilization["gpu_percent"] == 0.0
         assert utilization["memory_percent"] == 0.0
+
+@pytest.mark.unit
+def test_get_utilization_pynvml_runtime_error():
+    """Test get_utilization handles pynvml RuntimeError (not ImportError)."""
+    import subprocess
+    
+    mock_torch = _create_mock_torch(cuda_available=True)
+    
+    # Mock nvidia-smi to fail, then pynvml to raise RuntimeError (not ImportError)
+    # This ensures the Exception branch (not ImportError) in except clause is covered
+    mock_nvml = MagicMock()
+    mock_nvml.nvmlInit.side_effect = RuntimeError("pynvml runtime error")
+    
+    with (
+        patch.dict("sys.modules", {"torch": mock_torch}),
+        patch("subprocess.run", side_effect=FileNotFoundError("nvidia-smi not found")),
+        patch.dict("sys.modules", {"pynvml": mock_nvml}),
+    ):
+        manager = GPUManager()
+        utilization = manager.get_utilization()
+        
+        # Should return zeros when pynvml raises RuntimeError
+        assert utilization["gpu_percent"] == 0.0
+        assert utilization["memory_percent"] == 0.0
