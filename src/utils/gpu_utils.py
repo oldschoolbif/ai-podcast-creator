@@ -199,10 +199,14 @@ class GPUManager:
                 timeout=2
             )
             
-            if result.returncode == 0 and result.stdout.strip():
+            returncode_ok = result.returncode == 0
+            stdout_not_empty = bool(result.stdout.strip())
+            if returncode_ok and stdout_not_empty:
                 # Parse output: "XX, YY" where XX is GPU utilization, YY is memory utilization
-                match = re.search(r'(\d+)\s*,\s*(\d+)', result.stdout.strip())
-                if match:
+                stdout_content = result.stdout.strip()
+                match = re.search(r'(\d+)\s*,\s*(\d+)', stdout_content)
+                match_found = match is not None
+                if match_found:
                     gpu_match = match.group(1)
                     memory_match = match.group(2)
                     gpu_percent = float(gpu_match)
