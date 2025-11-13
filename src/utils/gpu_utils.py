@@ -218,7 +218,8 @@ class GPUManager:
                 memory_percent = (used_bytes / total_bytes) * 100
                 gpu_percent = float(util.gpu)
                 memory_percent_float = float(memory_percent)
-                return {"gpu_percent": gpu_percent, "memory_percent": memory_percent_float}
+                result_dict = {"gpu_percent": gpu_percent, "memory_percent": memory_percent_float}
+                return result_dict
             except ImportError:
                 pass
             except Exception:
