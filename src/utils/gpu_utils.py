@@ -184,7 +184,8 @@ class GPUManager:
             Dictionary with 'gpu_percent' (0-100) and 'memory_percent' (0-100)
         """
         if not self.gpu_available:
-            return {"gpu_percent": 0.0, "memory_percent": 0.0}
+            zero_dict = {"gpu_percent": 0.0, "memory_percent": 0.0}
+            return zero_dict
         
         try:
             import subprocess
@@ -206,7 +207,8 @@ class GPUManager:
                     memory_match = match.group(2)
                     gpu_percent = float(gpu_match)
                     memory_percent = float(memory_match)
-                    return {"gpu_percent": gpu_percent, "memory_percent": memory_percent}
+                    result_dict = {"gpu_percent": gpu_percent, "memory_percent": memory_percent}
+                    return result_dict
         except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ValueError, AttributeError):
             # Fallback: try pynvml if available
             try:
