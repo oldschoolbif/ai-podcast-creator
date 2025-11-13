@@ -51,5 +51,6 @@ jobs:
           pytest --version
           echo ""
           echo "=== Running pytest ==="
-          # Run with verbose output to see actual errors
-          pytest -v --tb=short || pytest -v --tb=long
+          # Override pytest.ini -q with -v for verbose output
+          # Use --override-ini to ensure verbose output shows
+          pytest --override-ini="addopts=-v --tb=short" || pytest --override-ini="addopts=-v --tb=long"
