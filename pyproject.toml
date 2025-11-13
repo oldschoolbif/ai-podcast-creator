@@ -47,7 +47,7 @@ ensure_newline_before_comments = true
 skip_glob = ["venv/*", "*.egg-info/*"]
 
 [tool.pytest.ini_options]
-minversion = "8.0"
+minversion = "7.0"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
