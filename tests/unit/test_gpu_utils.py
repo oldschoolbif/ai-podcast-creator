@@ -829,6 +829,57 @@ def test_get_utilization_pynvml_fallback_different_values():
             sys.modules["pynvml"] = pynvml_backup
 
 @pytest.mark.unit
+def test_get_utilization_pynvml_fallback_float_values():
+    """Test get_utilization pynvml fallback with float values to ensure both float() calls are covered."""
+    import subprocess
+    
+    mock_torch = _create_mock_torch(cuda_available=True)
+    
+    # Mock nvidia-smi to fail, then pynvml to succeed with float values
+    # This ensures both float(util.gpu) and float(memory_percent) are tested
+    mock_nvml = MagicMock()
+    mock_nvml.nvmlInit.return_value = None
+    mock_handle = MagicMock()
+    mock_nvml.nvmlDeviceGetHandleByIndex.return_value = mock_handle
+    
+    mock_util = MagicMock()
+    mock_util.gpu = 33.5  # Float value to test float() conversion
+    mock_nvml.nvmlDeviceGetUtilizationRates.return_value = mock_util
+    
+    mock_mem_info = MagicMock()
+    mock_mem_info.used = 4 * (1024**3)  # 4GB
+    mock_mem_info.total = 10 * (1024**3)  # 10GB = 40%
+    mock_nvml.nvmlDeviceGetMemoryInfo.return_value = mock_mem_info
+    
+    # Remove pynvml from sys.modules first to ensure clean import
+    pynvml_backup = sys.modules.pop("pynvml", None)
+    
+    try:
+        with (
+            patch.dict("sys.modules", {"torch": mock_torch}),
+            patch("subprocess.run", side_effect=FileNotFoundError("nvidia-smi not found")),
+            patch.dict("sys.modules", {"pynvml": mock_nvml}),
+        ):
+            manager = GPUManager()
+            utilization = manager.get_utilization()
+            
+            # Should return values from pynvml
+            assert utilization["gpu_percent"] == 33.5
+            assert utilization["memory_percent"] == 40.0  # 4GB / 10GB = 40%
+            
+            # Verify both float() conversions in line 217 execute
+            # This ensures the return statement dictionary is fully covered
+            assert isinstance(utilization["gpu_percent"], float)
+            assert isinstance(utilization["memory_percent"], float)
+            # Verify the exact return statement structure is tested
+            assert "gpu_percent" in utilization
+            assert "memory_percent" in utilization
+    finally:
+        # Restore pynvml if it was there
+        if pynvml_backup is not None:
+            sys.modules["pynvml"] = pynvml_backup
+
+@pytest.mark.unit
 def test_get_utilization_pynvml_import_error():
     """Test get_utilization handles pynvml ImportError."""
     import subprocess
