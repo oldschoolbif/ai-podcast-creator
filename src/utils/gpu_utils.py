@@ -217,7 +217,9 @@ class GPUManager:
                 gpu_percent = float(util.gpu)
                 memory_percent_float = float(memory_percent)
                 return {"gpu_percent": gpu_percent, "memory_percent": memory_percent_float}
-            except (ImportError, Exception):
+            except ImportError:
+                pass
+            except Exception:
                 pass
         
         # If all methods fail, return zeros
