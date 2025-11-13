@@ -213,7 +213,9 @@ class GPUManager:
                 handle = pynvml.nvmlDeviceGetHandleByIndex(0)
                 util = pynvml.nvmlDeviceGetUtilizationRates(handle)
                 mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-                memory_percent = (mem_info.used / mem_info.total) * 100
+                used_bytes = mem_info.used
+                total_bytes = mem_info.total
+                memory_percent = (used_bytes / total_bytes) * 100
                 gpu_percent = float(util.gpu)
                 memory_percent_float = float(memory_percent)
                 return {"gpu_percent": gpu_percent, "memory_percent": memory_percent_float}

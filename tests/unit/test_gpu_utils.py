@@ -867,13 +867,15 @@ def test_get_utilization_pynvml_fallback_float_values():
             assert utilization["gpu_percent"] == 33.5
             assert utilization["memory_percent"] == 40.0  # 4GB / 10GB = 40%
             
-            # Verify both float() conversions in line 217 execute
+            # Verify both float() conversions execute (lines 217-218)
             # This ensures the return statement dictionary is fully covered
             assert isinstance(utilization["gpu_percent"], float)
             assert isinstance(utilization["memory_percent"], float)
-            # Verify the exact return statement structure is tested
+            # Verify the exact return statement structure is tested (line 219)
             assert "gpu_percent" in utilization
             assert "memory_percent" in utilization
+            # Verify memory calculation happened (line 216)
+            assert utilization["memory_percent"] == 40.0  # 4GB / 10GB = 40%
     finally:
         # Restore pynvml if it was there
         if pynvml_backup is not None:
