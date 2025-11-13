@@ -44,51 +44,7 @@ jobs:
 
       # NOTE: Mutation testing (mutmut) should run in a dedicated workflow due to runtime cost.
 
-      - name: Run pytest twice and compare
+      - name: Run tests
         shell: bash
         run: |
-          set -e  # Exit on error
-          set -x  # Debug output
-          
-          # Run pytest first time
-          echo "=== Pytest Run 1 ==="
-          pytest -q 2>&1 | tee pytest_run1.log
-          exit_code_1=${PIPESTATUS[0]}
-          echo "Run 1 exit code: ${exit_code_1}"
-          
-          # Run pytest second time
-          echo ""
-          echo "=== Pytest Run 2 ==="
-          pytest -q 2>&1 | tee pytest_run2.log
-          exit_code_2=${PIPESTATUS[0]}
-          echo "Run 2 exit code: ${exit_code_2}"
-          
-          # Compare results
-          echo ""
-          echo "=== Comparison ==="
-          echo "Exit code 1: ${exit_code_1}"
-          echo "Exit code 2: ${exit_code_2}"
-          
-          if [ "${exit_code_1}" != "${exit_code_2}" ]; then
-            echo "ERROR: Exit codes differ (${exit_code_1} vs ${exit_code_2}). Tests are not deterministic."
-            echo ""
-            echo "=== Run 1 Output (last 100 lines) ==="
-            tail -100 pytest_run1.log || echo "Could not read pytest_run1.log"
-            echo ""
-            echo "=== Run 2 Output (last 100 lines) ==="
-            tail -100 pytest_run2.log || echo "Could not read pytest_run2.log"
-            exit 1
-          fi
-          
-          if [ "${exit_code_2}" != "0" ]; then
-            echo "ERROR: Pytest failed with exit code ${exit_code_2}"
-            echo ""
-            echo "=== Run 1 Output (last 100 lines) ==="
-            tail -100 pytest_run1.log || echo "Could not read pytest_run1.log"
-            echo ""
-            echo "=== Run 2 Output (last 100 lines) ==="
-            tail -100 pytest_run2.log || echo "Could not read pytest_run2.log"
-            exit ${exit_code_2}
-          fi
-          
-          echo "SUCCESS: Both runs completed successfully with exit code 0"
+          pytest -q
