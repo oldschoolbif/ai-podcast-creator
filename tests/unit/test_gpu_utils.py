@@ -52,12 +52,19 @@ class TestGPUManager:
         mock_torch.version.cuda = "12.1"
         mock_torch.backends.cudnn.enabled = True
         
-        with patch.dict("sys.modules", {"torch": mock_torch}):
-            manager = GPUManager()
+        # Remove torch from sys.modules if present to ensure clean patching
+        torch_backup = sys.modules.pop("torch", None)
+        try:
+            with patch.dict("sys.modules", {"torch": mock_torch}):
+                manager = GPUManager()
 
-            assert manager.gpu_available == False
-            assert manager.device == "cpu"
-            assert manager.cuda_available == False
+                assert manager.gpu_available == False
+                assert manager.device == "cpu"
+                assert manager.cuda_available == False
+        finally:
+            # Restore torch if it was there
+            if torch_backup is not None:
+                sys.modules["torch"] = torch_backup
 
     @pytest.mark.gpu
     def test_init_with_gpu(self):
