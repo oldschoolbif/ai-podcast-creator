@@ -54,7 +54,8 @@ jobs:
           exit_code=${PIPESTATUS[0]}
           echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
           echo "Pytest run 1 completed with exit code: ${exit_code}"
-          exit "${exit_code}"
+          # Always exit 0 to allow continue-on-error to work, but capture real exit code
+          exit 0
 
       - name: Pytest run 2 (determinism check)
         id: pytest2
@@ -66,7 +67,8 @@ jobs:
           exit_code=${PIPESTATUS[0]}
           echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
           echo "Pytest run 2 completed with exit code: ${exit_code}"
-          exit "${exit_code}"
+          # Always exit 0 to allow continue-on-error to work, but capture real exit code
+          exit 0
 
       - name: Compare run results
         if: always()
