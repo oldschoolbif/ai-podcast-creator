@@ -46,31 +46,8 @@ use_parentheses = true
 ensure_newline_before_comments = true
 skip_glob = ["venv/*", "*.egg-info/*"]
 
-[tool.pytest.ini_options]
-minversion = "7.0"
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-    "-ra",
-    "--strict-markers",
-    "--showlocals",
-]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
-    "e2e: marks tests as end-to-end tests",
-    "gpu: marks tests that require GPU",
-    "performance: marks performance/load tests",
-    "chaos: marks chaos engineering tests",
-    "no_cpu_patch: bypass metrics CPU/RAM patch fixture for fallback testing",
-]
-filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning",
-    "ignore::pytest.PytestUnraisableExceptionWarning",
-]
+# pytest configuration moved to pytest.ini to avoid conflicts
+# pytest.ini takes precedence when both files exist
 
 # Coverage configuration is in .coveragerc
 
