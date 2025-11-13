@@ -1265,7 +1265,7 @@ class VideoComposer:
                     stderr_thread_running = True
                     
                     def read_stderr():
-                        nonlocal stderr_lines, stderr_thread_running
+                        nonlocal stderr_thread_running
                         try:
                             for line in process.stderr:
                                 stderr_lines.append(line)
@@ -1385,7 +1385,7 @@ class VideoComposer:
                     stderr_thread_running = True
                     
                     def read_stderr():
-                        nonlocal stderr_lines, stderr_thread_running
+                        nonlocal stderr_thread_running
                         try:
                             for line in process.stderr:
                                 stderr_lines.append(line)
@@ -1609,7 +1609,7 @@ class VideoComposer:
                 stderr_thread_running = True
                 
                 def read_stderr():
-                    nonlocal stderr_lines, stderr_thread_running
+                    nonlocal stderr_thread_running
                     try:
                         for line in process.stderr:
                             stderr_lines.append(line)
