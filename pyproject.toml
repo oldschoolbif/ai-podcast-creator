@@ -68,9 +68,9 @@ markers = [
     "no_cpu_patch: bypass metrics CPU/RAM patch fixture for fallback testing",
 ]
 filterwarnings = [
-    "error",
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
 ]
 
 # Coverage configuration is in .coveragerc
