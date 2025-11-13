@@ -214,7 +214,9 @@ class GPUManager:
                 util = pynvml.nvmlDeviceGetUtilizationRates(handle)
                 mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
                 memory_percent = (mem_info.used / mem_info.total) * 100
-                return {"gpu_percent": float(util.gpu), "memory_percent": float(memory_percent)}
+                gpu_percent = float(util.gpu)
+                memory_percent_float = float(memory_percent)
+                return {"gpu_percent": gpu_percent, "memory_percent": memory_percent_float}
             except (ImportError, Exception):
                 pass
         
