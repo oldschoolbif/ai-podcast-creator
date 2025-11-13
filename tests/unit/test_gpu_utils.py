@@ -727,3 +727,37 @@ def test_get_utilization_invalid_output():
         # Should return zeros on invalid output
         assert utilization["gpu_percent"] == 0.0
         assert utilization["memory_percent"] == 0.0
+
+@pytest.mark.unit
+def test_get_utilization_pynvml_fallback():
+    """Test get_utilization uses pynvml fallback when nvidia-smi fails."""
+    import subprocess
+    
+    mock_torch = _create_mock_torch(cuda_available=True)
+    
+    # Mock nvidia-smi to fail, then pynvml to succeed
+    mock_nvml = MagicMock()
+    mock_nvml.nvmlInit.return_value = None
+    mock_handle = MagicMock()
+    mock_nvml.nvmlDeviceGetHandleByIndex.return_value = mock_handle
+    
+    mock_util = MagicMock()
+    mock_util.gpu = 45.0
+    mock_nvml.nvmlDeviceGetUtilizationRates.return_value = mock_util
+    
+    mock_mem_info = MagicMock()
+    mock_mem_info.used = 8 * (1024**3)  # 8GB
+    mock_mem_info.total = 16 * (1024**3)  # 16GB
+    mock_nvml.nvmlDeviceGetMemoryInfo.return_value = mock_mem_info
+    
+    with (
+        patch.dict("sys.modules", {"torch": mock_torch}),
+        patch("subprocess.run", side_effect=FileNotFoundError("nvidia-smi not found")),
+        patch.dict("sys.modules", {"pynvml": mock_nvml}),
+    ):
+        manager = GPUManager()
+        utilization = manager.get_utilization()
+        
+        # Should return values from pynvml
+        assert utilization["gpu_percent"] == 45.0
+        assert utilization["memory_percent"] == 50.0  # 8GB / 16GB = 50%
