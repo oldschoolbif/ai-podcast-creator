@@ -186,13 +186,16 @@ def benchmark(request):
         import pytest_benchmark
         # Check if the plugin is actually registered (not just installed)
         if hasattr(request.config, 'pluginmanager'):
-            plugins = [name for name in request.config.pluginmanager.list_name_plugin()]
-            if 'pytest_benchmark' in plugins or 'benchmark' in plugins:
-                # Try to get the real benchmark fixture
-                try:
-                    return request.getfixturevalue("_pytest_benchmark_benchmark")
-                except pytest.FixtureLookupError:
-                    pass
+            try:
+                plugins = [name for name in request.config.pluginmanager.list_name_plugin()]
+                if 'pytest_benchmark' in plugins or 'benchmark' in plugins:
+                    # Try to get the real benchmark fixture
+                    try:
+                        return request.getfixturevalue("_pytest_benchmark_benchmark")
+                    except (pytest.FixtureLookupError, AttributeError):
+                        pass
+            except (AttributeError, TypeError):
+                pass
     except ImportError:
         pass
     
