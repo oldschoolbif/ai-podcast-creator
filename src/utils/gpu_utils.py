@@ -202,8 +202,10 @@ class GPUManager:
                 # Parse output: "XX, YY" where XX is GPU utilization, YY is memory utilization
                 match = re.search(r'(\d+)\s*,\s*(\d+)', result.stdout.strip())
                 if match:
-                    gpu_percent = float(match.group(1))
-                    memory_percent = float(match.group(2))
+                    gpu_match = match.group(1)
+                    memory_match = match.group(2)
+                    gpu_percent = float(gpu_match)
+                    memory_percent = float(memory_match)
                     return {"gpu_percent": gpu_percent, "memory_percent": memory_percent}
         except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ValueError, AttributeError):
             # Fallback: try pynvml if available
