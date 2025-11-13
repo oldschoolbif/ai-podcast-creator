@@ -46,6 +46,9 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
+          set -e  # Exit on first error
+          set -x  # Show all commands
+          
           # Show pytest version and Python version for debugging
           python --version
           pytest --version
@@ -53,4 +56,14 @@ jobs:
           echo "=== Running pytest ==="
           # Override pytest.ini -q with -v for verbose output
           # Use --override-ini to ensure verbose output shows
-          pytest --override-ini="addopts=-v --tb=short" || pytest --override-ini="addopts=-v --tb=long"
+          # Capture output to file for debugging
+          pytest --override-ini="addopts=-v --tb=short" 2>&1 | tee pytest_output.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo ""
+            echo "=== Pytest failed with exit code $EXIT_CODE ==="
+            echo "=== Last 100 lines of output ==="
+            tail -100 pytest_output.log
+            exit $EXIT_CODE
+          fi
