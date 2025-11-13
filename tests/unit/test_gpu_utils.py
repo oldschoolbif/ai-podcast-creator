@@ -761,3 +761,58 @@ def test_get_utilization_pynvml_fallback():
         # Should return values from pynvml
         assert utilization["gpu_percent"] == 45.0
         assert utilization["memory_percent"] == 50.0  # 8GB / 16GB = 50%
+        
+        # Verify pynvml methods were called
+        mock_nvml.nvmlInit.assert_called_once()
+        mock_nvml.nvmlDeviceGetHandleByIndex.assert_called_once_with(0)
+        mock_nvml.nvmlDeviceGetUtilizationRates.assert_called_once_with(mock_handle)
+        mock_nvml.nvmlDeviceGetMemoryInfo.assert_called_once_with(mock_handle)
+
+@pytest.mark.unit
+def test_get_utilization_pynvml_import_error():
+    """Test get_utilization handles pynvml ImportError."""
+    import subprocess
+    
+    mock_torch = _create_mock_torch(cuda_available=True)
+    
+    # Remove pynvml from sys.modules if present, so import fails with ImportError
+    pynvml_backup = sys.modules.pop("pynvml", None)
+    
+    try:
+        with (
+            patch.dict("sys.modules", {"torch": mock_torch}),
+            patch("subprocess.run", side_effect=FileNotFoundError("nvidia-smi not found")),
+        ):
+            manager = GPUManager()
+            utilization = manager.get_utilization()
+            
+            # Should return zeros when pynvml import fails
+            assert utilization["gpu_percent"] == 0.0
+            assert utilization["memory_percent"] == 0.0
+    finally:
+        # Restore pynvml if it was there
+        if pynvml_backup is not None:
+            sys.modules["pynvml"] = pynvml_backup
+
+@pytest.mark.unit
+def test_get_utilization_pynvml_exception():
+    """Test get_utilization handles pynvml exceptions."""
+    import subprocess
+    
+    mock_torch = _create_mock_torch(cuda_available=True)
+    
+    # Mock nvidia-smi to fail, then pynvml to raise exception
+    mock_nvml = MagicMock()
+    mock_nvml.nvmlInit.side_effect = Exception("pynvml init failed")
+    
+    with (
+        patch.dict("sys.modules", {"torch": mock_torch}),
+        patch("subprocess.run", side_effect=FileNotFoundError("nvidia-smi not found")),
+        patch.dict("sys.modules", {"pynvml": mock_nvml}),
+    ):
+        manager = GPUManager()
+        utilization = manager.get_utilization()
+        
+        # Should return zeros when pynvml fails
+        assert utilization["gpu_percent"] == 0.0
+        assert utilization["memory_percent"] == 0.0
