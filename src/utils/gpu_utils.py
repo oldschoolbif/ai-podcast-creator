@@ -207,7 +207,8 @@ class GPUManager:
                     # Parse output: "XX, YY" where XX is GPU utilization, YY is memory utilization
                     stdout_content = result.stdout.strip()
                     match = re.search(r'(\d+)\s*,\s*(\d+)', stdout_content)
-                    if match is not None:
+                    match_exists = (match is not None)
+                    if match_exists:
                         gpu_match = match.group(1)
                         memory_match = match.group(2)
                         gpu_percent = float(gpu_match)
