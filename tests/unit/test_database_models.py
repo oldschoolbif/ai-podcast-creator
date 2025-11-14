@@ -110,8 +110,11 @@ class TestInitDBBranches:
             
             engine = init_db(None)
             
-            # Verify it uses the default path
-            assert engine.url.database == str(Path(temp_dir) / "data" / "podcasts.db")
+            # Verify it uses the default path (may be relative or absolute)
+            db_path = engine.url.database
+            expected_path = str(Path(temp_dir) / "data" / "podcasts.db")
+            # SQLAlchemy may return relative path, so resolve both
+            assert Path(db_path).resolve() == Path(expected_path).resolve()
         finally:
             os.chdir(original_cwd)
 
