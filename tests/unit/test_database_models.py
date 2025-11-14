@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -43,3 +44,122 @@ def test_get_session_insert_and_query(tmp_path):
     assert saved_cue.description == "Cue"
     session.close()
 
+
+# Check if sqlalchemy is available
+try:
+    import sqlalchemy
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    SQLALCHEMY_AVAILABLE = False
+
+@pytest.mark.skipif(not SQLALCHEMY_AVAILABLE, reason="sqlalchemy not installed")
+class TestPodcastInitBranches:
+    """Test Podcast __init__ method branches."""
+
+    def test_podcast_init_with_status_provided(self):
+        """Test Podcast __init__ when status is explicitly provided."""
+        podcast = Podcast(title="Test", status="processing")
+        
+        assert podcast.status == "processing"
+        assert podcast.title == "Test"
+
+    def test_podcast_init_with_created_at_provided(self):
+        """Test Podcast __init__ when created_at is explicitly provided."""
+        custom_time = datetime(2023, 1, 1, 12, 0, 0)
+        podcast = Podcast(title="Test", created_at=custom_time)
+        
+        assert podcast.created_at == custom_time
+        assert podcast.status == "pending"  # Should still default
+
+    def test_podcast_init_with_both_provided(self):
+        """Test Podcast __init__ when both status and created_at are provided."""
+        custom_time = datetime(2023, 1, 1, 12, 0, 0)
+        podcast = Podcast(title="Test", status="completed", created_at=custom_time)
+        
+        assert podcast.status == "completed"
+        assert podcast.created_at == custom_time
+
+
+@pytest.mark.skipif(not SQLALCHEMY_AVAILABLE, reason="sqlalchemy not installed")
+class TestInitDBBranches:
+    """Test init_db branches."""
+
+    def test_init_db_with_none_url_creates_data_dir(self, temp_dir):
+        """Test init_db with None URL creates data directory."""
+        import os
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(temp_dir)
+            
+            # Call init_db with None (default)
+            engine = init_db(None)
+            
+            assert engine is not None
+            data_dir = Path(temp_dir) / "data"
+            assert data_dir.exists()
+            assert data_dir.is_dir()
+        finally:
+            os.chdir(original_cwd)
+
+    def test_init_db_with_none_url_creates_default_db_path(self, temp_dir):
+        """Test init_db with None URL uses default database path."""
+        import os
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(temp_dir)
+            
+            engine = init_db(None)
+            
+            # Verify it uses the default path
+            assert engine.url.database == str(Path(temp_dir) / "data" / "podcasts.db")
+        finally:
+            os.chdir(original_cwd)
+
+
+@pytest.mark.skipif(not SQLALCHEMY_AVAILABLE, reason="sqlalchemy not installed")
+class TestGetSessionBranches:
+    """Test get_session branches."""
+
+    def test_get_session_with_none_url(self, temp_dir):
+        """Test get_session with None URL uses default database."""
+        import os
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(temp_dir)
+            
+            session = get_session(None)
+            
+            assert session is not None
+            assert hasattr(session, "add")
+            assert hasattr(session, "commit")
+            assert hasattr(session, "query")
+            
+            # Verify it created the default database
+            data_dir = Path(temp_dir) / "data"
+            assert data_dir.exists()
+            
+            session.close()
+        finally:
+            os.chdir(original_cwd)
+
+    def test_get_session_with_none_url_creates_default_db(self, temp_dir):
+        """Test get_session with None URL creates default database file."""
+        import os
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(temp_dir)
+            
+            session = get_session(None)
+            
+            # Add and commit something to ensure DB file is created
+            podcast = Podcast(title="Test Session")
+            session.add(podcast)
+            session.commit()
+            
+            db_file = Path(temp_dir) / "data" / "podcasts.db"
+            # Database file should exist after first write
+            assert db_file.exists()
+            
+            session.close()
+        finally:
+            os.chdir(original_cwd)
