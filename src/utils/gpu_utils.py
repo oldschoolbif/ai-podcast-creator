@@ -202,19 +202,18 @@ class GPUManager:
             returncode_ok = (result.returncode == 0)
             stdout_stripped = result.stdout.strip()
             stdout_not_empty = bool(stdout_stripped)
-            both_conditions_met = returncode_ok and stdout_not_empty
-            if both_conditions_met:
-                # Parse output: "XX, YY" where XX is GPU utilization, YY is memory utilization
-                stdout_content = result.stdout.strip()
-                match = re.search(r'(\d+)\s*,\s*(\d+)', stdout_content)
-                match_is_not_none = (match is not None)
-                if match_is_not_none:
-                    gpu_match = match.group(1)
-                    memory_match = match.group(2)
-                    gpu_percent = float(gpu_match)
-                    memory_percent = float(memory_match)
-                    result_dict = {"gpu_percent": gpu_percent, "memory_percent": memory_percent}
-                    return result_dict
+            if returncode_ok:
+                if stdout_not_empty:
+                    # Parse output: "XX, YY" where XX is GPU utilization, YY is memory utilization
+                    stdout_content = result.stdout.strip()
+                    match = re.search(r'(\d+)\s*,\s*(\d+)', stdout_content)
+                    if match is not None:
+                        gpu_match = match.group(1)
+                        memory_match = match.group(2)
+                        gpu_percent = float(gpu_match)
+                        memory_percent = float(memory_match)
+                        result_dict = {"gpu_percent": gpu_percent, "memory_percent": memory_percent}
+                        return result_dict
         except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ValueError, AttributeError):
             # Fallback: try pynvml if available
             try:
