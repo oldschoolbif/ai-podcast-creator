@@ -4,15 +4,23 @@ on:
   pull_request:
     types: [opened, ready_for_review]
 
+# NOTE: This workflow is disabled because GITHUB_TOKEN doesn't have permission
+# to enable auto-merge. GitHub Actions tokens have limited permissions for security.
+# 
+# Workaround: Manually enable auto-merge on PRs using:
+#   gh pr merge <PR_NUMBER> --auto --squash
+#
+# Or use a GitHub App with proper permissions (requires setup).
+
 permissions:
   pull-requests: write
   contents: read
 
 jobs:
   enable-auto-merge:
-    name: Enable Auto-Merge
+    name: Enable Auto-Merge (Disabled)
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
+    if: false  # Disabled - GITHUB_TOKEN lacks enablePullRequestAutoMerge permission
     
     steps:
       - name: Checkout repository
@@ -20,7 +28,8 @@ jobs:
       
       - name: Enable auto-merge
         run: |
-          gh pr merge ${{ github.event.pull_request.number }} --auto --squash
+          echo "This workflow is disabled due to GITHUB_TOKEN permission limitations"
+          echo "Please enable auto-merge manually: gh pr merge ${{ github.event.pull_request.number }} --auto --squash"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
