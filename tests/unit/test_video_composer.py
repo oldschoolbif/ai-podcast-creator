@@ -6,10 +6,46 @@ Tests for src/core/video_composer.py with correct API
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, call, patch
 
+import inspect
 import pytest
 
 from src.core.video_composer import VideoComposer
 from tests.conftest import create_valid_mp3_file
+
+
+@pytest.fixture
+def mock_ffmpeg_success(monkeypatch):
+    """Ensure FFmpeg/ffprobe calls succeed without invoking real binaries."""
+    def fake_run(cmd, *args, **kwargs):
+        from subprocess import CompletedProcess
+
+        if isinstance(cmd, list) and cmd:
+            if cmd[0] == "ffprobe":
+                return CompletedProcess(cmd, 0, stdout="1.0\n", stderr="")
+            if cmd[0] == "ffmpeg":
+                output_path = Path(cmd[-1])
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_bytes(b"fake-video")
+                return CompletedProcess(cmd, 0, stdout="", stderr="")
+        return CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    def fake_popen(cmd, *args, **kwargs):
+        process = MagicMock()
+
+        def communicate(timeout=None):
+            if isinstance(cmd, list) and cmd and cmd[0] == "ffmpeg":
+                output_path = Path(cmd[-1])
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_bytes(b"fake-video")
+            return ("", "")
+
+        process.communicate.side_effect = communicate
+        process.returncode = 0
+        return process
+
+    monkeypatch.setattr("src.core.video_composer.subprocess.run", fake_run)
+    monkeypatch.setattr("src.core.video_composer.subprocess.Popen", fake_popen)
+    return fake_run
 
 
 class TestVideoComposerInit:
@@ -39,7 +75,12 @@ class TestVideoComposerInit:
 class TestVideoComposerCompose:
     """Test VideoComposer.compose() method."""
 
-    def test_compose_basic(self, test_config, temp_dir):
+    def test_compose_signature_default_visualization_false(self):
+        """Ensure the default value for use_visualization remains False."""
+        sig = inspect.signature(VideoComposer.compose)
+        assert sig.parameters["use_visualization"].default is False
+
+    def test_compose_basic(self, test_config, temp_dir, mock_ffmpeg_success):
         """Test basic video composition (uses _compose_minimal_video by default)."""
         audio_path = temp_dir / "test_audio.wav"
         # Create valid audio file for happy path test
@@ -84,7 +125,12 @@ class TestVideoComposerCompose:
         mock_moviepy.editor.ColorClip = MagicMock(return_value=mock_color_clip)
         mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_color_clip)
 
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+        fake_gpu = MagicMock()
+        fake_gpu.gpu_available = False
+
+        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}), patch(
+            "src.utils.gpu_utils.get_gpu_manager", return_value=fake_gpu
+        ):
             composer = VideoComposer(test_config)
             result = composer.compose(audio_path, output_name="test_output")
 
@@ -134,7 +180,7 @@ class TestVideoComposerCompose:
 
             mock_overlay.assert_called_once()
 
-    def test_compose_default_use_visualization_false(self, test_config, temp_dir):
+    def test_compose_default_use_visualization_false(self, test_config, temp_dir, mock_ffmpeg_success):
         """Test that compose defaults to use_visualization=False (no visualization by default)."""
         audio_path = temp_dir / "test_audio.wav"
         # Create valid audio file for happy path test
@@ -159,9 +205,14 @@ class TestVideoComposerCompose:
         mock_moviepy.editor.ColorClip = MagicMock(return_value=mock_color_clip)
         mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_color_clip)
 
+        fake_gpu = MagicMock()
+        fake_gpu.gpu_available = False
+
         with (
             patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
             patch("src.core.audio_visualizer.AudioVisualizer") as mock_visualizer_class,
+            patch("src.utils.gpu_utils.get_gpu_manager", return_value=fake_gpu),
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
         ):
 
             result = composer.compose(audio_path, output_name="test_default_no_viz")
@@ -170,7 +221,7 @@ class TestVideoComposerCompose:
             mock_visualizer_class.assert_not_called()
             assert result is not None
 
-    def test_compose_explicitly_use_visualization_false(self, test_config, temp_dir):
+    def test_compose_explicitly_use_visualization_false(self, test_config, temp_dir, mock_ffmpeg_success):
         """Test compose with use_visualization=False explicitly."""
         audio_path = temp_dir / "test_audio.wav"
         # Create valid audio file for happy path test
@@ -194,9 +245,14 @@ class TestVideoComposerCompose:
         mock_moviepy.editor.ColorClip = MagicMock(return_value=mock_color_clip)
         mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_color_clip)
 
+        fake_gpu = MagicMock()
+        fake_gpu.gpu_available = False
+
         with (
             patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
             patch("src.core.audio_visualizer.AudioVisualizer") as mock_visualizer_class,
+            patch("src.utils.gpu_utils.get_gpu_manager", return_value=fake_gpu),
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
         ):
 
             result = composer.compose(audio_path, output_name="test_explicit_false", use_visualization=False)
@@ -204,6 +260,70 @@ class TestVideoComposerCompose:
             # Visualization should NOT be called when explicitly False
             mock_visualizer_class.assert_not_called()
             assert result is not None
+
+    def test_compose_avatar_with_visualization_prefers_overlay(self, test_config, temp_dir, mock_ffmpeg_success):
+        """When avatar video is provided, visualization should route through overlay helper."""
+        audio_path = temp_dir / "test_audio.wav"
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
+
+        avatar_video = temp_dir / "avatar.mp4"
+        avatar_video.write_bytes(b"fake-avatar")
+
+        composer = VideoComposer(test_config)
+
+        with (
+            patch.object(VideoComposer, "_overlay_visualization_on_avatar", return_value=composer.output_dir / "overlay.mp4") as overlay,
+            patch.object(VideoComposer, "_compose_visualization_only") as viz_only,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        ):
+            result = composer.compose(
+                audio_path=audio_path,
+                use_visualization=True,
+                avatar_video=avatar_video,
+            )
+
+            overlay.assert_called_once()
+            viz_only.assert_not_called()
+            assert result == overlay.return_value
+
+    def test_compose_use_visualization_true_no_avatar_calls_visualization_only(self, test_config, temp_dir, mock_ffmpeg_success):
+        """Test that use_visualization=True with no avatar_video calls _compose_visualization_only (kills mutant 286)."""
+        audio_path = temp_dir / "test_audio.wav"
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
+
+        with (
+            patch.object(VideoComposer, "_compose_visualization_only") as mock_viz_only,
+            patch.object(VideoComposer, "_compose_minimal_video") as mock_minimal,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        ):
+            mock_viz_only.return_value = temp_dir / "output.mp4"
+            composer = VideoComposer(test_config)
+            result = composer.compose(audio_path, output_name="test_viz_only", use_visualization=True)
+
+            # Must call visualization-only path when use_visualization=True and no avatar_video
+            mock_viz_only.assert_called_once()
+            mock_minimal.assert_not_called()
+            assert result == mock_viz_only.return_value
+
+    def test_compose_default_parameter_use_visualization_false_does_not_call_visualization(self, test_config, temp_dir, mock_ffmpeg_success):
+        """Test that default use_visualization=False parameter does NOT trigger visualization (kills mutant 275)."""
+        audio_path = temp_dir / "test_audio.wav"
+        create_valid_mp3_file(audio_path, duration_seconds=5.0)
+
+        with (
+            patch.object(VideoComposer, "_compose_visualization_only") as mock_viz_only,
+            patch.object(VideoComposer, "_compose_minimal_video") as mock_minimal,
+            patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")),
+        ):
+            mock_minimal.return_value = temp_dir / "output.mp4"
+            composer = VideoComposer(test_config)
+            # Call compose WITHOUT passing use_visualization - should use default False
+            result = composer.compose(audio_path, output_name="test_default")
+
+            # Default False means visualization should NOT be called
+            mock_viz_only.assert_not_called()
+            mock_minimal.assert_called_once()
+            assert result == mock_minimal.return_value
 
     def test_compose_fallback_to_ffmpeg(self, test_config, temp_dir):
         """Test that compose uses _compose_minimal_video by default (no MoviePy fallback needed)."""
@@ -225,7 +345,7 @@ class TestVideoComposerCompose:
             mock_minimal.assert_called_once()
             assert result == expected_output
 
-    def test_compose_generates_timestamp_name(self, test_config, temp_dir):
+    def test_compose_generates_timestamp_name(self, test_config, temp_dir, mock_ffmpeg_success):
         """Test that compose generates timestamp-based name when not provided."""
         audio_path = temp_dir / "test_audio.wav"
         # Create valid audio file for happy path test
@@ -248,7 +368,9 @@ class TestVideoComposerCompose:
         mock_moviepy.editor.ColorClip = MagicMock(return_value=mock_clip)
         mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_clip)
 
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}), patch.object(
+            VideoComposer, "_validate_audio_file", return_value=(True, "")
+        ):
             composer = VideoComposer(test_config)
             result = composer.compose(audio_path)  # No output_name
 
@@ -277,22 +399,40 @@ class TestVideoComposerFFmpegFallback:
 
         with (
             patch("src.utils.gpu_utils.get_gpu_manager", return_value=mock_gpu_manager),
-            patch("subprocess.run", return_value=mock_result) as mock_run,
+            patch("subprocess.run") as mock_run,
             patch("subprocess.Popen") as mock_popen,
             patch.object(VideoComposer, "_validate_audio_file", return_value=(True, "")) as mock_validate,
         ):
 
             mock_process = MagicMock()
-            mock_process.communicate.return_value = ("", "")
+
+            def communicate_side_effect(*args, **kwargs):
+                output_path.write_bytes(b"fake video")
+                return ("", "")
+
+            mock_process.communicate.side_effect = communicate_side_effect
             mock_process.returncode = 0
             mock_popen.return_value = mock_process
 
             composer = VideoComposer(test_config)
+
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            def run_side_effect(cmd, *args, **kwargs):
+                # When ffmpeg is invoked for encoding, create a fake output file
+                if isinstance(cmd, list) and "-c:v" in cmd:
+                    output_path.write_bytes(b"fake video")
+                    return mock_result
+                return mock_result
+
+            mock_run.side_effect = run_side_effect
+
             result = composer._compose_with_ffmpeg(audio_path, bg_path, output_path)
 
             # Should have validated and called subprocess
             mock_validate.assert_called_once_with(audio_path)
             assert mock_popen.called or mock_run.called
+            assert result == output_path
 
     def test_compose_with_ffmpeg_cpu(self, test_config, temp_dir):
         """Test FFmpeg composition without GPU."""
@@ -559,7 +699,7 @@ class TestVideoComposerResolutions:
             ([854, 480], (854, 480)),
         ],
     )
-    def test_different_resolutions(self, test_config, temp_dir, resolution, expected):
+    def test_different_resolutions(self, test_config, temp_dir, resolution, expected, mock_ffmpeg_success):
         """Test video composition with different resolutions."""
         audio_path = temp_dir / "test_audio.wav"
         # Create valid audio file for happy path test
@@ -584,7 +724,12 @@ class TestVideoComposerResolutions:
         mock_moviepy.editor.ColorClip = MagicMock(return_value=mock_clip)
         mock_moviepy.editor.CompositeVideoClip = MagicMock(return_value=mock_clip)
 
-        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+        fake_gpu = MagicMock()
+        fake_gpu.gpu_available = False
+
+        with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}), patch.object(
+            VideoComposer, "_validate_audio_file", return_value=(True, "")
+        ), patch("src.utils.gpu_utils.get_gpu_manager", return_value=fake_gpu):
             composer = VideoComposer(test_config)
             result = composer.compose(audio_path, output_name="resolution_test")
 

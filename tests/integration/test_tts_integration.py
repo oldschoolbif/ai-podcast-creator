@@ -13,10 +13,11 @@ from src.core.tts_engine import TTSEngine
 
 
 @pytest.mark.integration
+@pytest.mark.network
 class TestTTSIntegration:
     """Integration tests for TTS engine with real generation."""
 
-    def test_gtts_real_generation(self, test_config, temp_dir):
+    def test_gtts_real_generation(self, test_config, temp_dir, skip_if_no_internet):
         """Test real gTTS generation end-to-end."""
         test_config["tts"] = {"engine": "gtts", "gtts_tld": "com"}
         test_config["storage"]["cache_dir"] = str(temp_dir)
@@ -41,7 +42,8 @@ class TestTTSIntegration:
         assert audio_path3 != audio_path
         assert audio_path3.exists()
 
-    def test_gtts_multiple_generations(self, test_config, temp_dir):
+    @pytest.mark.network
+    def test_gtts_multiple_generations(self, test_config, temp_dir, skip_if_no_internet):
         """Test multiple generations in sequence."""
         test_config["tts"] = {"engine": "gtts"}
         test_config["storage"]["cache_dir"] = str(temp_dir)
@@ -66,6 +68,7 @@ class TestTTSIntegration:
         # All files should be different
         assert len(set(audio_files)) == 4
 
+    @pytest.mark.network
     def test_gtts_empty_text_handling(self, test_config, temp_dir):
         """Test handling of edge cases."""
         test_config["tts"] = {"engine": "gtts"}
@@ -87,7 +90,8 @@ class TestTTSIntegration:
         assert audio.exists()
         assert audio.stat().st_size > 10000  # Should be larger file
 
-    def test_gtts_special_characters(self, test_config, temp_dir):
+    @pytest.mark.network
+    def test_gtts_special_characters(self, test_config, temp_dir, skip_if_no_internet):
         """Test special characters in text."""
         test_config["tts"] = {"engine": "gtts"}
         test_config["storage"]["cache_dir"] = str(temp_dir)
@@ -107,7 +111,8 @@ class TestTTSIntegration:
             assert audio.exists()
             assert audio.stat().st_size > 500
 
-    def test_gtts_british_vs_american_accent(self, test_config, temp_dir):
+    @pytest.mark.network
+    def test_gtts_british_vs_american_accent(self, test_config, temp_dir, skip_if_no_internet):
         """Test different accents produce different files."""
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
@@ -130,7 +135,8 @@ class TestTTSIntegration:
         # Files should be different (different cache keys due to TLD)
         assert audio_uk != audio_us
 
-    def test_cache_directory_organization(self, test_config, temp_dir):
+    @pytest.mark.network
+    def test_cache_directory_organization(self, test_config, temp_dir, skip_if_no_internet):
         """Test cache directory is properly organized."""
         test_config["tts"] = {"engine": "gtts"}
         test_config["storage"]["cache_dir"] = str(temp_dir)
@@ -154,7 +160,8 @@ class TestTTSIntegration:
         for audio_file in audio_files:
             assert len(audio_file.stem) == 32  # MD5 hex length
 
-    def test_gpu_manager_integration(self, test_config, temp_dir):
+    @pytest.mark.network
+    def test_gpu_manager_integration(self, test_config, temp_dir, skip_if_no_internet):
         """Test TTS integrates with GPU manager."""
         test_config["tts"] = {"engine": "gtts"}
         test_config["storage"]["cache_dir"] = str(temp_dir)
@@ -170,7 +177,8 @@ class TestTTSIntegration:
         audio = engine.generate("GPU integration test")
         assert audio.exists()
 
-    def test_concurrent_generations(self, test_config, temp_dir):
+    @pytest.mark.network
+    def test_concurrent_generations(self, test_config, temp_dir, skip_if_no_internet):
         """Test multiple generations don't interfere."""
         test_config["tts"] = {"engine": "gtts"}
         test_config["storage"]["cache_dir"] = str(temp_dir)

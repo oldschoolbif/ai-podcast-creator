@@ -13,6 +13,35 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.utils.gpu_utils import GPUManager, get_gpu_manager
 
+# Import helper from test_gpu_utils
+sys.path.insert(0, str(Path(__file__).parent))
+try:
+    from test_gpu_utils import _create_mock_torch
+except ImportError:
+    # Fallback if import fails
+    def _create_mock_torch(cuda_available=False, device_name="Test GPU", memory_gb=8):
+        """Create a mock torch module for testing."""
+        mock_torch = MagicMock()
+        mock_torch.cuda.is_available.return_value = cuda_available
+        mock_torch.cuda.get_device_name.return_value = device_name
+        mock_torch.cuda.get_device_capability.return_value = (8, 0) if cuda_available else (0, 0)
+        mock_props = MagicMock()
+        mock_props.total_memory = memory_gb * (1024**3)
+        mock_torch.cuda.get_device_properties.return_value = mock_props
+        mock_torch.version.cuda = "12.1"
+        mock_torch.backends.cudnn.enabled = True
+        mock_torch.backends.cudnn.benchmark = True
+        mock_torch.backends.cuda.matmul.allow_tf32 = False
+        mock_torch.backends.cudnn.allow_tf32 = False
+        mock_torch.cuda.empty_cache = MagicMock()
+        mock_torch.cuda.synchronize = MagicMock()
+        mock_torch.cuda.memory_allocated.return_value = 0
+        mock_torch.cuda.memory_reserved.return_value = 0
+        mock_torch.cuda.set_device = MagicMock()
+        mock_torch.cuda.device_count.return_value = 1
+        mock_torch.device = MagicMock(side_effect=lambda x: f"device({x})")
+        return mock_torch
+
 
 class TestGPUManagerReal:
     """Test actual GPU manager functionality."""
@@ -107,11 +136,14 @@ class TestGPUManagerWithMocks:
 
     def test_init_with_cuda_available(self):
         """Test init when CUDA is available."""
+        mock_props = MagicMock()
+        mock_props.total_memory = 16 * (1024**3)  # 16GB
         with patch("torch.cuda.is_available", return_value=True):
             with patch("torch.cuda.device_count", return_value=1):
                 with patch("torch.cuda.get_device_name", return_value="GeForce RTX 3090"):
-                    manager = GPUManager()
-                    assert manager.gpu_available == True
+                    with patch("torch.cuda.get_device_properties", return_value=mock_props):
+                        manager = GPUManager()
+                        assert manager.gpu_available == True
 
     def test_init_with_cuda_unavailable(self):
         """Test init when CUDA is unavailable."""
@@ -131,12 +163,18 @@ class TestGPUManagerWithMocks:
 
     def test_clear_cache_with_cuda(self):
         """Test clear cache with CUDA."""
+        mock_props = MagicMock()
+        mock_props.total_memory = 16 * (1024**3)  # 16GB
         with patch("torch.cuda.is_available", return_value=True):
-            with patch("torch.cuda.empty_cache") as mock_clear:
-                manager = GPUManager()
-                manager.clear_cache()
-                # Cache clearing should be attempted
+            with patch("torch.cuda.device_count", return_value=1):
+                with patch("torch.cuda.get_device_name", return_value="GeForce RTX 3090"):
+                    with patch("torch.cuda.get_device_properties", return_value=mock_props):
+                        with patch("torch.cuda.empty_cache") as mock_clear:
+                            manager = GPUManager()
+                            manager.clear_cache()
+                            # Cache clearing should be attempted
 
+    @pytest.mark.gpu
     def test_optimize_for_inference_with_cuda(self):
         """Test inference optimization with CUDA."""
         with patch("torch.cuda.is_available", return_value=True):
@@ -148,50 +186,57 @@ class TestGPUManagerWithMocks:
 
     def test_get_optimal_batch_size_task_param(self):
         """Test batch size with different task parameter."""
+        mock_props = MagicMock()
+        mock_props.total_memory = 16 * (1024**3)  # 16GB
         with patch("torch.cuda.is_available", return_value=True):
             with patch("torch.cuda.device_count", return_value=1):
-                manager = GPUManager()
-                batch_size = manager.get_optimal_batch_size(task="music")
-                assert isinstance(batch_size, int)
+                with patch("torch.cuda.get_device_name", return_value="GeForce RTX 3090"):
+                    with patch("torch.cuda.get_device_properties", return_value=mock_props):
+                        manager = GPUManager()
+                        batch_size = manager.get_optimal_batch_size(task="music")
+                        assert isinstance(batch_size, int)
 
     def test_device_string_format(self):
         """Test device string format."""
+        mock_props = MagicMock()
+        mock_props.total_memory = 16 * (1024**3)  # 16GB
         with patch("torch.cuda.is_available", return_value=True):
             with patch("torch.cuda.device_count", return_value=1):
-                manager = GPUManager()
-                assert manager.device in ["cuda", "cpu"]
+                with patch("torch.cuda.get_device_name", return_value="GeForce RTX 3090"):
+                    with patch("torch.cuda.get_device_properties", return_value=mock_props):
+                        manager = GPUManager()
+                        assert manager.device in ["cuda", "cpu"]
 
+    @pytest.mark.gpu
     def test_get_optimal_batch_size_large_gpu(self):
         """Test batch size calculation for large GPU."""
-        with patch("torch.cuda.is_available", return_value=True):
-            with patch("torch.cuda.device_count", return_value=1):
-                with patch("torch.cuda.get_device_properties") as mock_props:
-                    mock_props.return_value.total_memory = 24000000000  # 24GB
-                    manager = GPUManager()
-                    batch_size = manager.get_optimal_batch_size()
-                    assert batch_size >= 1
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=24)
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            batch_size = manager.get_optimal_batch_size()
+            assert batch_size >= 1
 
+    @pytest.mark.gpu
     def test_get_optimal_batch_size_small_gpu(self):
         """Test batch size calculation for small GPU."""
-        with patch("torch.cuda.is_available", return_value=True):
-            with patch("torch.cuda.device_count", return_value=1):
-                with patch("torch.cuda.get_device_properties") as mock_props:
-                    mock_props.return_value.total_memory = 4000000000  # 4GB
-                    manager = GPUManager()
-                    batch_size = manager.get_optimal_batch_size()
-                    assert batch_size >= 1
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=4)
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            batch_size = manager.get_optimal_batch_size()
+            assert batch_size >= 1
 
 
 class TestGPUManagerEdgeCases:
     """Test edge cases and error handling."""
 
+    @pytest.mark.gpu
     def test_multiple_gpus(self):
         """Test handling of multiple GPUs."""
-        with patch("torch.cuda.is_available", return_value=True):
-            with patch("torch.cuda.device_count", return_value=2):
-                with patch("torch.cuda.get_device_name", return_value="GPU"):
-                    manager = GPUManager()
-                    assert manager.gpu_available == True
+        mock_torch = _create_mock_torch(cuda_available=True)
+        mock_torch.cuda.device_count.return_value = 2
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            assert manager.gpu_available == True
 
     def test_device_without_gpu(self):
         """Test device without GPU."""

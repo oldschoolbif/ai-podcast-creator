@@ -1,0 +1,6 @@
+# This is a summary of fixes needed for the 5 failing tests
+# The main issues are:
+# 1. torchaudio is imported locally, so we need to patch it differently
+# 2. The model needs set_generation_params to be mocked
+# 3. The exception test needs to check for the actual print format
+

@@ -13,7 +13,7 @@ coverage[toml]==7.11.1
 
 # Test utilities
 faker==22.0.0  # Generate fake data for testing
-freezegun==1.4.0  # Mock datetime
+freezegun>=1.5.5  # Mock datetime (1.5.5+ fixes Python 3.13 compatibility)
 responses==0.24.1  # Mock HTTP requests
 pytest-benchmark==5.2.2  # Performance benchmarking
 

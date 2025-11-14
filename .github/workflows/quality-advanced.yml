@@ -5,6 +5,8 @@ on:
     # Run weekly on Monday at 3am UTC
     - cron: '0 3 * * 1'
   workflow_dispatch:  # Allow manual trigger
+  pull_request:
+    branches: [main, develop]
 
 jobs:
   mutation-testing:
@@ -98,7 +100,7 @@ jobs:
       continue-on-error: true
 
   dependency-audit:
-    name: Dependency Security Audit
+    name: Security Scan
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
     

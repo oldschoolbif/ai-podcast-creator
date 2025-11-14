@@ -29,6 +29,7 @@ class TestGPUUtilizationTracking:
         mock_gpu.gpu_available = True
         mock_gpu.get_memory_usage.return_value = {"allocated_gb": 2.0, "reserved_gb": 2.5}
         mock_gpu.get_utilization.return_value = {"gpu_percent": 85.0, "memory_percent": 60.0}
+        mock_gpu._component_gpu_samples = []
         tracker.gpu_manager = mock_gpu
         
         tracker.start_session("test_script.txt")
@@ -72,6 +73,7 @@ class TestGPUUtilizationTracking:
         tracker = MetricsTracker(config)
         tracker.gpu_manager = Mock()
         tracker.gpu_manager.gpu_available = False
+        tracker.gpu_manager._component_gpu_samples = []
         
         tracker.start_session("test_script.txt")
         comp = tracker.start_component("test_component")
@@ -136,6 +138,7 @@ class TestComponentGPUUsage:
         mock_gpu.gpu_available = True
         mock_gpu.get_memory_usage.return_value = {"allocated_gb": 1.0}
         mock_gpu.get_utilization.return_value = {"gpu_percent": 0.0, "memory_percent": 0.0}
+        mock_gpu._component_gpu_samples = []
         tracker.gpu_manager = mock_gpu
         
         tracker.start_session("test.txt")
@@ -171,6 +174,7 @@ class TestGPUUtilizationMetrics:
         mock_gpu.gpu_memory = 8.0
         mock_gpu.get_memory_usage.return_value = {"allocated_gb": 2.0}
         mock_gpu.get_utilization.return_value = {"gpu_percent": 90.0, "memory_percent": 70.0}
+        mock_gpu._component_gpu_samples = []
         tracker.gpu_manager = mock_gpu
         
         session_id = tracker.start_session("test.txt")
@@ -217,6 +221,7 @@ class TestGPUUtilizationThresholds:
             {"gpu_percent": 0.0, "memory_percent": 0.0},  # Before
             {"gpu_percent": min_gpu_percent + 10.0, "memory_percent": 50.0},  # After
         ]
+        mock_gpu._component_gpu_samples = []
         tracker.gpu_manager = mock_gpu
         
         tracker.start_session("test.txt")

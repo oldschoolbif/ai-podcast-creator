@@ -502,7 +502,6 @@ class AvatarGenerator:
                     
                     def monitor_gpu_during_execution():
                         """Monitor GPU utilization while Wav2Lip runs"""
-                        nonlocal gpu_samples, gpu_monitoring_active
                         import time
                         sample_interval = 1.0  # Sample every second
                         max_samples = 300  # Max 5 minutes of samples

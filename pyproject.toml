@@ -46,31 +46,8 @@ use_parentheses = true
 ensure_newline_before_comments = true
 skip_glob = ["venv/*", "*.egg-info/*"]
 
-[tool.pytest.ini_options]
-minversion = "7.0"
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-    "-ra",
-    "--strict-markers",
-    "--strict-config",
-    "--showlocals",
-]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
-    "e2e: marks tests as end-to-end tests",
-    "gpu: marks tests that require GPU",
-    "performance: marks performance/load tests",
-    "chaos: marks chaos engineering tests",
-]
-filterwarnings = [
-    "error",
-    "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning",
-]
+# pytest configuration moved to pytest.ini to avoid conflicts
+# pytest.ini takes precedence when both files exist
 
 # Coverage configuration is in .coveragerc
 
@@ -128,16 +105,9 @@ exclude = [
 
 [tool.mutmut]
 paths_to_mutate = [
-    "src/core/tts_engine.py",
-    "src/core/video_composer.py",
-    "src/core/audio_mixer.py",
-    "src/core/script_parser.py",
-    "src/utils/config.py",
+    "src",  # src/ is the project package root
 ]
-tests_dir = "tests"
+# Cursor-auto: wrapper enforces pytest -n 26 -q --maxfail=1 --tb=short; disable via PY_PARALLEL=0.
 runner = "python scripts/mutmut_pytest_wrapper.py"
-backup = false
-# Optimize for speed
-# Only mutate fast-to-test files, skip slow modules during mutation
-use_coverage = true  # Skip mutations on uncovered lines (faster)
+use_coverage = true
 

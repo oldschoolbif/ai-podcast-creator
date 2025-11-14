@@ -362,3 +362,182 @@ class TestMusicGeneratorEdgeCases:
         # Both should use same cache dir
         assert gen1.cache_dir == gen2.cache_dir
         assert cache_dir.exists()
+
+
+# ============================================================================
+# Tests for error paths and edge cases
+# ============================================================================
+
+@pytest.mark.unit
+def test_init_musicgen_import_error(test_config):
+    """Test _init_musicgen handles ImportError when AudioCraft is not installed."""
+    test_config["music"]["engine"] = "musicgen"
+
+    with (
+        patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
+        patch.dict("sys.modules", {"audiocraft": None, "torch": None}),
+    ):
+        mock_gpu.return_value.gpu_available = False
+        mock_gpu.return_value.get_device.return_value = "cpu"
+
+        generator = MusicGenerator(test_config)
+
+        assert generator.model is None
+
+
+@pytest.mark.unit
+def test_generate_musicgen_exception_handling(test_config):
+    """Test _generate_musicgen handles exceptions and returns None."""
+    test_config["music"]["engine"] = "musicgen"
+
+    with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+        mock_gpu.return_value.gpu_available = False
+        mock_gpu.return_value.get_device.return_value = "cpu"
+
+        generator = MusicGenerator(test_config)
+        generator.model = MagicMock()
+        generator.model.set_generation_params = MagicMock()
+        generator.model.generate = MagicMock(side_effect=Exception("Generation failed"))
+
+        result = generator._generate_musicgen("test music", Path("/tmp/output.wav"))
+
+        assert result is None
+
+
+@pytest.mark.unit
+def test_generate_musicgen_torch_compile_exception(test_config):
+    """Test _init_musicgen handles torch.compile exception gracefully."""
+    test_config["music"]["engine"] = "musicgen"
+
+    stub_torch = MagicMock()
+    stub_torch.__version__ = "2.0.0"
+    stub_torch.compile = MagicMock(side_effect=Exception("Compile failed"))
+    stub_torch.cuda = MagicMock()
+    stub_torch.cuda.amp = MagicMock()
+
+    stub_audiocraft = MagicMock()
+    stub_model = MagicMock()
+    stub_model.lm = MagicMock()
+    stub_audiocraft.models.MusicGen.get_pretrained.return_value = stub_model
+
+    with (
+        patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
+        patch.dict("sys.modules", {"torch": stub_torch, "audiocraft": stub_audiocraft, "audiocraft.models": stub_audiocraft.models}),
+    ):
+        mock_gpu.return_value.gpu_available = True
+        mock_gpu.return_value.get_device.return_value = "cuda"
+        mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": False}
+
+        # Should not raise exception, just skip torch.compile
+        generator = MusicGenerator(test_config)
+
+        assert generator.model is not None
+
+
+@pytest.mark.unit
+def test_generate_musicgen_fp16_exception(test_config):
+    """Test _init_musicgen handles FP16 conversion exception gracefully."""
+    test_config["music"]["engine"] = "musicgen"
+
+    stub_torch = MagicMock()
+    stub_torch.__version__ = "2.0.0"
+    stub_torch.compile = MagicMock(return_value=MagicMock())
+    stub_torch.cuda = MagicMock()
+
+    stub_audiocraft = MagicMock()
+    stub_model = MagicMock()
+    stub_model.lm = MagicMock()
+    stub_model.lm.half = MagicMock(side_effect=Exception("FP16 failed"))
+    stub_audiocraft.models.MusicGen.get_pretrained.return_value = stub_model
+
+    with (
+        patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
+        patch.dict("sys.modules", {"torch": stub_torch, "audiocraft": stub_audiocraft, "audiocraft.models": stub_audiocraft.models}),
+    ):
+        mock_gpu.return_value.gpu_available = True
+        mock_gpu.return_value.get_device.return_value = "cuda"
+        mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": True}
+
+        # Should not raise exception, just skip FP16
+        generator = MusicGenerator(test_config)
+
+        assert generator.model is not None
+
+
+@pytest.mark.skip(reason="Complex torchaudio mocking - tested via integration")
+def test_generate_musicgen_torchaudio_save_error(test_config, tmp_path):
+    """Test _generate_musicgen handles torchaudio.save errors."""
+    # This requires complex mocking of torchaudio which is imported locally
+    # Better tested through integration tests
+    pass
+
+
+@pytest.mark.unit
+def test_generate_mubert_creates_file(test_config, tmp_path):
+    """Test _generate_mubert creates output file."""
+    test_config["music"]["engine"] = "mubert"
+
+    with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+        mock_gpu.return_value.gpu_available = False
+        mock_gpu.return_value.get_device.return_value = "cpu"
+
+        generator = MusicGenerator(test_config)
+        output_path = tmp_path / "output.wav"
+
+        result = generator._generate_mubert("test music", output_path)
+
+        assert result == output_path
+        assert output_path.exists()
+
+
+@pytest.mark.unit
+def test_select_from_library_creates_file(test_config, tmp_path):
+    """Test _select_from_library creates output file."""
+    test_config["music"]["engine"] = "library"
+
+    with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+        mock_gpu.return_value.gpu_available = False
+        mock_gpu.return_value.get_device.return_value = "cpu"
+
+        generator = MusicGenerator(test_config)
+        output_path = tmp_path / "output.wav"
+
+        result = generator._select_from_library("test music", output_path)
+
+        assert result == output_path
+        assert output_path.exists()
+
+
+@pytest.mark.unit
+def test_get_cache_key_different_engines(test_config):
+    """Test _get_cache_key generates different keys for different engines."""
+    test_config["music"]["engine"] = "musicgen"
+
+    with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+        mock_gpu.return_value.gpu_available = False
+        mock_gpu.return_value.get_device.return_value = "cpu"
+
+        generator1 = MusicGenerator(test_config)
+        key1 = generator1._get_cache_key("test music")
+
+        test_config["music"]["engine"] = "library"
+        generator2 = MusicGenerator(test_config)
+        key2 = generator2._get_cache_key("test music")
+
+        assert key1 != key2
+
+
+@pytest.mark.unit
+def test_get_cache_key_same_input_same_key(test_config):
+    """Test _get_cache_key generates same key for same input."""
+    test_config["music"]["engine"] = "musicgen"
+
+    with patch("src.core.music_generator.get_gpu_manager") as mock_gpu:
+        mock_gpu.return_value.gpu_available = False
+        mock_gpu.return_value.get_device.return_value = "cpu"
+
+        generator = MusicGenerator(test_config)
+        key1 = generator._get_cache_key("test music")
+        key2 = generator._get_cache_key("test music")
+
+        assert key1 == key2

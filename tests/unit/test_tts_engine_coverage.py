@@ -18,8 +18,7 @@ class TestTTSEngineInitialization:
     """Test initialization with different engines."""
 
     @pytest.mark.gpu
-    @pytest.mark.skip(reason="Coqui TTS requires GPU and TTS library")
-    def test_init_with_coqui_engine_mock(self, test_config, temp_dir):
+    def test_init_with_coqui_engine_mock(self, test_config, temp_dir, skip_if_no_gpu, stub_tts):
         """Test Coqui TTS initialization raises error when not installed."""
         test_config["tts"] = {"engine": "coqui", "coqui": {"model": "tts_models/en/ljspeech/tacotron2-DDC"}}
         test_config["storage"]["cache_dir"] = str(temp_dir)

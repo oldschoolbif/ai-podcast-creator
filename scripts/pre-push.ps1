@@ -21,6 +21,22 @@ Write-Host "3️⃣ Checking coverage..." -ForegroundColor Yellow
 pytest --cov=src --cov-report=term --cov-fail-under=30 --tb=no -q
 if ($LASTEXITCODE -ne 0) { $failed = $true }
 
+# 4. GPU tests (if GPU available and enabled)
+Write-Host ""
+Write-Host "4️⃣ Checking GPU tests..." -ForegroundColor Yellow
+if ($env:PY_ENABLE_GPU_TESTS -eq "1" -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
+    Write-Host "  Running GPU tests..." -ForegroundColor Cyan
+    pytest tests/unit tests/integration -m gpu -q --tb=no
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  ⚠️  Some GPU tests failed (non-blocking)" -ForegroundColor Yellow
+        # Don't fail pre-push for GPU tests - they're optional
+    } else {
+        Write-Host "  ✅ GPU tests passed" -ForegroundColor Green
+    }
+} else {
+    Write-Host "  ⏭️  GPU tests skipped (not enabled or no GPU)" -ForegroundColor Gray
+}
+
 Write-Host ""
 if (-not $failed) {
     Write-Host "✅ All checks passed! Safe to push." -ForegroundColor Green
