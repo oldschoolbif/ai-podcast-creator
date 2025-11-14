@@ -24,7 +24,7 @@ jobs:
       # To run GPU-enabled tests, create a dedicated job with PY_ENABLE_GPU_TESTS=1 and CUDA-capable runners.
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
