@@ -8,10 +8,15 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Run all jobs in parallel for faster execution
+concurrency:
+  group: quality-checks-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   mutation-testing:
     name: Mutation Testing
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && !startsWith(github.head_ref, 'dependabot/')
     runs-on: ubuntu-latest
     
     steps:
@@ -51,7 +56,7 @@ jobs:
 
   type-checking:
     name: Type Checking with MyPy
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && !startsWith(github.head_ref, 'dependabot/')
     runs-on: ubuntu-latest
     
     steps:
@@ -75,7 +80,7 @@ jobs:
 
   performance-tests:
     name: Performance Testing
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && !startsWith(github.head_ref, 'dependabot/')
     runs-on: ubuntu-latest
     
     steps:
@@ -102,6 +107,7 @@ jobs:
   dependency-audit:
     name: Security Scan
     if: github.event_name != 'push'
+    # Security scan should run on all PRs including Dependabot
     runs-on: ubuntu-latest
     
     steps:
@@ -129,7 +135,7 @@ jobs:
 
   test-coverage-trend:
     name: Coverage Trend Analysis
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && !startsWith(github.head_ref, 'dependabot/')
     runs-on: ubuntu-latest
     
     steps:
