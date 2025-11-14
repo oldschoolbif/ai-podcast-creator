@@ -902,3 +902,187 @@ def test_cli_create_with_avatar_visualize_background(tmp_path):
         composer_instance.compose.assert_called_once()
         avatar_instance.generate.assert_called_once()
 
+
+def test_cli_list_without_database(tmp_path):
+    """Test list command when database is not available."""
+    with patch("src.cli.main.DATABASE_AVAILABLE", False):
+        result = runner.invoke(app, ["list"])
+        
+        assert result.exit_code == 0
+        assert "Database not available" in result.stdout
+
+
+def test_cli_list_with_database(tmp_path):
+    """Test list command when database is available."""
+    with (
+        patch("src.cli.main.DATABASE_AVAILABLE", True),
+        patch("src.cli.main.console") as mock_console,
+    ):
+        result = runner.invoke(app, ["list"])
+        
+        assert result.exit_code == 0
+        mock_console.print.assert_called()
+
+
+def test_cli_config_show(tmp_path):
+    """Test config command with --show flag."""
+    config = make_cli_config(tmp_path)
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.console") as mock_console,
+    ):
+        result = runner.invoke(app, ["config", "--show"])
+        
+        assert result.exit_code == 0
+        mock_console.print.assert_called()
+
+
+def test_cli_config_edit(tmp_path):
+    """Test config command with --edit flag."""
+    # Rich console output may not appear in stdout, so just check exit code
+    result = runner.invoke(app, ["config", "--edit"])
+    
+    assert result.exit_code == 0
+
+
+def test_cli_config_reset(tmp_path):
+    """Test config command with --reset flag."""
+    # Rich console output may not appear in stdout, so just check exit code
+    result = runner.invoke(app, ["config", "--reset"])
+    
+    assert result.exit_code == 0
+
+
+def test_cli_config_no_flags(tmp_path):
+    """Test config command without flags."""
+    result = runner.invoke(app, ["config"])
+    
+    assert result.exit_code == 0
+    assert "Use --show to display config" in result.stdout
+
+
+def test_cli_init_creates_directories(tmp_path):
+    """Test init command creates required directories."""
+    import os
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(tmp_path)
+        
+        with (
+            patch("src.cli.main.DATABASE_AVAILABLE", False),
+            patch("src.cli.main.console") as mock_console,
+        ):
+            result = runner.invoke(app, ["init"])
+            
+            assert result.exit_code == 0
+            # Check directories were created
+            assert (tmp_path / "data" / "scripts").exists()
+            assert (tmp_path / "data" / "outputs").exists()
+            assert (tmp_path / "data" / "cache").exists()
+            assert (tmp_path / "data" / "models").exists()
+            assert (tmp_path / "logs").exists()
+    finally:
+        os.chdir(original_cwd)
+
+
+def test_cli_init_with_database(tmp_path):
+    """Test init command with database available."""
+    import os
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(tmp_path)
+        
+        with (
+            patch("src.cli.main.DATABASE_AVAILABLE", True),
+            patch("src.cli.main.init_db") as mock_init_db,
+            patch("src.cli.main.console") as mock_console,
+        ):
+            result = runner.invoke(app, ["init"])
+            
+            assert result.exit_code == 0
+            mock_init_db.assert_called_once()
+    finally:
+        os.chdir(original_cwd)
+
+
+def test_cli_version(tmp_path):
+    """Test version command."""
+    config = make_cli_config(tmp_path)
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.console") as mock_console,
+    ):
+        result = runner.invoke(app, ["version"])
+        
+        assert result.exit_code == 0
+        mock_console.print.assert_called()
+
+
+def test_cli_status(tmp_path):
+    """Test status command."""
+    fake_gpu = MagicMock()
+    fake_gpu.gpu_available = False
+    fake_gpu.gpu_name = "CPU"
+    fake_gpu.gpu_memory = 0
+    
+    with (
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("src.cli.main.console") as mock_console,
+        patch("subprocess.run") as mock_subprocess,
+    ):
+        # Mock FFmpeg check
+        mock_subprocess.return_value.returncode = 0
+        mock_subprocess.return_value.stdout = "ffmpeg version"
+        
+        result = runner.invoke(app, ["status"])
+        
+        assert result.exit_code == 0
+        mock_console.print.assert_called()
+
+
+def test_cli_cleanup_dry_run(tmp_path):
+    """Test cleanup command with --dry-run flag."""
+    config = make_cli_config(tmp_path)
+    
+    # Create some test files
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "test.txt").write_text("test")
+    
+    with patch("src.cli.main.load_config", return_value=config):
+        result = runner.invoke(app, ["cleanup", "--dry-run"])
+        
+        assert result.exit_code == 0
+        # File should still exist (dry-run doesn't delete)
+        assert (cache_dir / "test.txt").exists()
+
+
+def test_cli_cleanup_nothing_to_clean(tmp_path):
+    """Test cleanup command when there's nothing to clean."""
+    config = make_cli_config(tmp_path)
+    
+    with patch("src.cli.main.load_config", return_value=config):
+        result = runner.invoke(app, ["cleanup", "--force"])
+        
+        assert result.exit_code == 0
+        # Rich console output may not appear in stdout, but command should succeed
+
+
+def test_cli_cleanup_cache_only(tmp_path):
+    """Test cleanup command with --cache-only flag."""
+    config = make_cli_config(tmp_path)
+    
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "test.txt").write_text("test")
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.console") as mock_console,
+        patch("typer.confirm", return_value=True),
+    ):
+        result = runner.invoke(app, ["cleanup", "--cache-only", "--force"])
+        
+        assert result.exit_code == 0
