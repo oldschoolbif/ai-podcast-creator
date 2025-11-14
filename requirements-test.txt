@@ -18,7 +18,7 @@ responses==0.24.1  # Mock HTTP requests
 pytest-benchmark==5.2.3  # Performance benchmarking
 
 # Mocking and fixtures
-factory-boy==3.3.0  # Test data factories
+factory-boy==3.3.3  # Test data factories
 pytest-factoryboy==2.8.1
 
 # Audio testing
