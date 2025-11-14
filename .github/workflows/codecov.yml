@@ -12,18 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       coverage_percent: ${{ steps.coverage_output.outputs.coverage }}
-  
-  coverage-gate:
-    name: Coverage Gate
-    runs-on: ubuntu-latest
-    needs: coverage
-    if: always() && needs.coverage.result == 'success'
-    steps:
-      - name: Check coverage threshold
-        run: |
-          echo "Coverage check passed: ${{ needs.coverage.outputs.coverage_percent }}"
-          # Coverage gate passes if coverage job succeeded
-          # The actual threshold is enforced by Codecov
     
     steps:
     - name: Checkout code
@@ -86,4 +74,16 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
         MINIMUM_GREEN: 50
         MINIMUM_ORANGE: 30
+
+  coverage-gate:
+    name: Coverage Gate
+    runs-on: ubuntu-latest
+    needs: coverage
+    if: always() && needs.coverage.result == 'success'
+    steps:
+      - name: Check coverage threshold
+        run: |
+          echo "Coverage check passed: ${{ needs.coverage.outputs.coverage_percent }}"
+          # Coverage gate passes if coverage job succeeded
+          # The actual threshold is enforced by Codecov
 
