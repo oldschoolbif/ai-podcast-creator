@@ -38,7 +38,7 @@ numpy>=1.23.0,<3.0.0  # Compatible with librosa 0.10.2+ and most ML libraries
 moviepy==1.0.3
 opencv-python==4.11.0.86
 pillow==10.1.0
-imageio==2.33.0
+imageio==2.37.2
 imageio-ffmpeg==0.4.9
 face-alignment>=1.4.0  # Installed: 68-point facial landmarks for accurate lip-sync alignment (works with Python 3.13)
 # mediapipe>=0.10.0  # Optional: Best facial landmark detection (468 points) - Not available for Python 3.13 yet
