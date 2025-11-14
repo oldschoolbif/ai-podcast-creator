@@ -100,6 +100,16 @@ class TestMusicGeneratorMusicGen:
         test_config["music"]["musicgen"] = {"model": "facebook/musicgen-small", "duration": 5}
         test_config["storage"]["cache_dir"] = str(temp_dir)
 
+        # Stub torch and torchaudio in sys.modules before patching
+        mock_torch = MagicMock()
+        mock_torch.inference_mode.return_value.__enter__ = MagicMock()
+        mock_torch.inference_mode.return_value.__exit__ = MagicMock(return_value=False)
+        sys.modules["torch"] = mock_torch
+
+        mock_torchaudio = MagicMock()
+        mock_torchaudio.save = MagicMock()
+        sys.modules["torchaudio"] = mock_torchaudio
+
         with (
             patch("audiocraft.models.MusicGen") as mock_gen,
             patch("src.core.music_generator.get_gpu_manager") as mock_gpu,
@@ -146,6 +156,16 @@ class TestMusicGeneratorMusicGen:
         test_config["music"]["engine"] = "musicgen"
         test_config["music"]["musicgen"] = {"model": "test", "duration": 5}
         test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        # Stub torch and torchaudio in sys.modules before patching
+        mock_torch = MagicMock()
+        mock_torch.inference_mode.return_value.__enter__ = MagicMock()
+        mock_torch.inference_mode.return_value.__exit__ = MagicMock(return_value=False)
+        sys.modules["torch"] = mock_torch
+
+        mock_torchaudio = MagicMock()
+        mock_torchaudio.save = MagicMock()
+        sys.modules["torchaudio"] = mock_torchaudio
 
         with (
             patch("audiocraft.models.MusicGen") as mock_gen,
