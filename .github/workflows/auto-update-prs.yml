@@ -1,0 +1,67 @@
+name: Auto-Update Out-of-Date PRs
+
+on:
+  schedule:
+    # Run every 6 hours to keep PRs up-to-date
+    - cron: '0 */6 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-prs:
+    name: Update Out-of-Date PRs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history needed for comparison
+      
+      - name: Set up GitHub CLI
+        run: |
+          gh --version
+      
+      - name: Get out-of-date PRs
+        id: get-prs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Get all open PRs
+          PRS=$(gh pr list --state open --json number,headRefName,baseRefName --limit 50 --jq '.[] | select(.headRefName | startswith("dependabot/")) | .number')
+          
+          echo "prs<<EOF" >> $GITHUB_OUTPUT
+          echo "$PRS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Update PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRS="${{ steps.get-prs.outputs.prs }}"
+          
+          if [ -z "$PRS" ]; then
+            echo "No Dependabot PRs found"
+            exit 0
+          fi
+          
+          for PR in $PRS; do
+            echo "Checking PR #$PR..."
+            
+            # Check if PR is behind base
+            BEHIND=$(gh api repos/${{ github.repository }}/compare/${{ github.event.repository.default_branch }}...$(gh pr view $PR --json headRefName -q .headRefName) --jq '.behind_by' 2>&1)
+            
+            if [ "$BEHIND" -gt 0 ] 2>/dev/null; then
+              echo "  PR #$PR is $BEHIND commit(s) behind - updating..."
+              
+              # Update branch by merging base into PR branch
+              HEAD_REF=$(gh pr view $PR --json headRefName -q .headRefName)
+              BASE_REF=$(gh pr view $PR --json baseRefName -q .baseRefName)
+              gh api repos/${{ github.repository }}/merges -X POST -f base=$HEAD_REF -f head=$BASE_REF -f commit_message="Merge $BASE_REF into $HEAD_REF" 2>&1 || echo "  Failed to update PR #$PR"
+            else
+              echo "  PR #$PR is up-to-date"
+            fi
+          done
+
