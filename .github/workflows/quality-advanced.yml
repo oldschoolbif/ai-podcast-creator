@@ -100,7 +100,7 @@ jobs:
       continue-on-error: true
 
   dependency-audit:
-    name: Dependency Security Audit
+    name: Security Scan
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
     

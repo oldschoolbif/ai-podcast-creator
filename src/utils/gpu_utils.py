@@ -202,21 +202,32 @@ class GPUManager:
             returncode_ok = (result.returncode == 0)
             stdout_stripped = result.stdout.strip()
             stdout_not_empty = bool(stdout_stripped)
-            if returncode_ok:
-                if stdout_not_empty:
-                    # Parse output: "XX, YY" where XX is GPU utilization, YY is memory utilization
-                    stdout_content = result.stdout.strip()
-                    match = re.search(r'(\d+)\s*,\s*(\d+)', stdout_content)
-                    # Split None check to ensure Codecov tracks both branches
-                    match_is_none = (match is None)
-                    match_exists = not match_is_none
-                    if match_exists:
-                        gpu_match = match.group(1)
-                        memory_match = match.group(2)
-                        gpu_percent = float(gpu_match)
-                        memory_percent = float(memory_match)
-                        result_dict = {"gpu_percent": gpu_percent, "memory_percent": memory_percent}
-                        return result_dict
+            if not returncode_ok:
+                # Return zeros if returncode is not 0
+                zero_dict = {"gpu_percent": 0.0, "memory_percent": 0.0}
+                return zero_dict
+            
+            if not stdout_not_empty:
+                # Return zeros if stdout is empty
+                zero_dict = {"gpu_percent": 0.0, "memory_percent": 0.0}
+                return zero_dict
+            
+            # Parse output: "XX, YY" where XX is GPU utilization, YY is memory utilization
+            stdout_content = result.stdout.strip()
+            match = re.search(r'(\d+)\s*,\s*(\d+)', stdout_content)
+            
+            # Handle None case explicitly to avoid partial line coverage
+            if match is None:
+                zero_dict = {"gpu_percent": 0.0, "memory_percent": 0.0}
+                return zero_dict
+            
+            # Match found - extract values
+            gpu_match = match.group(1)
+            memory_match = match.group(2)
+            gpu_percent = float(gpu_match)
+            memory_percent = float(memory_match)
+            result_dict = {"gpu_percent": gpu_percent, "memory_percent": memory_percent}
+            return result_dict
         except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ValueError, AttributeError):
             # Fallback: try pynvml if available
             try:
