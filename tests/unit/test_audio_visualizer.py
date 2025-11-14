@@ -1024,6 +1024,119 @@ class TestAudioVisualizerUncoveredMethods:
         assert len(result) == 3
         assert all(isinstance(c, int) for c in result)
 
+    def test_get_orientation_auto_detection(self, test_config_visualization):
+        """Test _get_orientation auto-detection for different positions."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        viz = AudioVisualizer(test_config_visualization)
+        
+        # Test auto-detection for horizontal positions
+        assert viz._get_orientation("top") == "horizontal"
+        assert viz._get_orientation("bottom") == "horizontal"
+        assert viz._get_orientation("middle") == "horizontal"
+        
+        # Test auto-detection for vertical positions
+        assert viz._get_orientation("left") == "vertical"
+        assert viz._get_orientation("right") == "vertical"
+        
+        # Test explicit orientation override
+        test_config_visualization["visualization"]["waveform"] = {"orientation": "vertical"}
+        viz2 = AudioVisualizer(test_config_visualization)
+        assert viz2._get_orientation("top") == "vertical"  # Override takes precedence
+
+    def test_rotate_points(self, test_config_visualization):
+        """Test _rotate_points method for point rotation."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        viz = AudioVisualizer(test_config_visualization)
+        
+        # Test no rotation (0 degrees)
+        points = [(10, 10), (20, 10), (20, 20)]
+        center = (15, 15)
+        result = viz._rotate_points(points, center, 0)
+        assert result == points  # Should return unchanged
+        
+        # Test 90 degree rotation
+        points = [(0, 0), (10, 0), (10, 10)]
+        center = (5, 5)
+        result = viz._rotate_points(points, center, 90)
+        # After 90° rotation around (5,5), points should be rotated
+        assert len(result) == 3
+        assert all(isinstance(p, tuple) and len(p) == 2 for p in result)
+        
+        # Test 180 degree rotation
+        points = [(0, 0)]
+        center = (5, 5)
+        result = viz._rotate_points(points, center, 180)
+        assert len(result) == 1
+        # Point should be rotated 180 degrees around center
+        assert result[0][0] == 10
+        assert result[0][1] == 10
+
+    def test_draw_waveform_pil_fallback(self, test_config_visualization, tmp_path):
+        """Test _draw_waveform_pil fallback method."""
+        from src.core.audio_visualizer import AudioVisualizer
+        from PIL import Image, ImageDraw
+        import numpy as np
+
+        viz = AudioVisualizer(test_config_visualization)
+        
+        # Create a test image and draw object
+        img = Image.new('RGB', (800, 600), color=(0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        
+        # Create test audio chunk
+        chunk = np.random.randn(1000).astype(np.float32) * 0.5
+        
+        # Test drawing waveform at different positions
+        viz._draw_waveform_pil(draw, chunk, amplitude=1.0, width=800, height=600, 
+                               position="bottom", base_thickness=2)
+        
+        # Test top position
+        img2 = Image.new('RGB', (800, 600), color=(0, 0, 0))
+        draw2 = ImageDraw.Draw(img2)
+        viz._draw_waveform_pil(draw2, chunk, amplitude=1.0, width=800, height=600,
+                               position="top", base_thickness=2)
+        
+        # Test middle position
+        img3 = Image.new('RGB', (800, 600), color=(0, 0, 0))
+        draw3 = ImageDraw.Draw(img3)
+        viz._draw_waveform_pil(draw3, chunk, amplitude=0.5, width=800, height=600,
+                               position="middle", base_thickness=2)
+        
+        # If no exception raised, test passed
+        assert True
+
+    def test_cleanup_ffmpeg_process_none(self, test_config_visualization):
+        """Test _cleanup_ffmpeg_process with None process."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        viz = AudioVisualizer(test_config_visualization)
+        
+        # Should not raise exception
+        viz._cleanup_ffmpeg_process(None)
+
+    def test_cleanup_ffmpeg_process_already_closed(self, test_config_visualization):
+        """Test _cleanup_ffmpeg_process with already closed handles."""
+        from src.core.audio_visualizer import AudioVisualizer
+        from unittest.mock import MagicMock
+
+        viz = AudioVisualizer(test_config_visualization)
+        
+        mock_process = MagicMock()
+        mock_process.poll.return_value = None  # Still running
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.closed = True  # Already closed
+        mock_process.stderr = MagicMock()
+        mock_process.stderr.closed = True
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.closed = True
+        mock_process.terminate.return_value = None
+        mock_process.wait.return_value = 0
+        
+        # Should handle already-closed handles gracefully
+        viz._cleanup_ffmpeg_process(mock_process)
+
     # Note: _stream_frames_to_video is complex and requires real FFmpeg process mocking
     # These tests are skipped as they require extensive mocking that may not be reliable
     # The method is tested indirectly through generate_visualization integration tests
