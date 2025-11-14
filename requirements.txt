@@ -68,8 +68,8 @@ psutil>=6.1.0,<8.0.0  # System resource monitoring (CPU, RAM)
 # ffmpegcv[cuda]>=0.2.0,<1.0.0  # Requires CUDA development tools - disabled in CI
 
 # Development
-pytest==8.4.2
-pytest-asyncio==1.2.0
+pytest==9.0.1
+pytest-asyncio==1.3.0
 pytest-cov==7.0.0
 pytest-xdist>=3.5.0,<4.0.0
 pytest-timeout>=2.2.0,<3.0.0
