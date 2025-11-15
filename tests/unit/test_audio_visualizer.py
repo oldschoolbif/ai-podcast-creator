@@ -957,6 +957,112 @@ class TestAudioVisualizerUncoveredMethods:
         mock_process.stdout.close.assert_called_once()
         mock_process.terminate.assert_called_once()
 
+    def test_get_orientation_auto_detection(self, test_config_visualization):
+        """Test _get_orientation with auto-detection."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        test_config_visualization["visualization"]["waveform"] = {"orientation": "auto"}
+        viz = AudioVisualizer(test_config_visualization)
+
+        # Test auto-detection for horizontal positions
+        assert viz._get_orientation("top") == "horizontal"
+        assert viz._get_orientation("bottom") == "horizontal"
+        assert viz._get_orientation("middle") == "horizontal"
+
+        # Test auto-detection for vertical positions
+        assert viz._get_orientation("left") == "vertical"
+        assert viz._get_orientation("right") == "vertical"
+
+        # Test default fallback
+        assert viz._get_orientation("unknown") == "horizontal"
+
+    def test_get_orientation_explicit(self, test_config_visualization):
+        """Test _get_orientation with explicit orientation."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        test_config_visualization["visualization"]["waveform"] = {"orientation": "vertical"}
+        viz = AudioVisualizer(test_config_visualization)
+
+        # Should return explicit orientation regardless of position
+        assert viz._get_orientation("top") == "vertical"
+        assert viz._get_orientation("bottom") == "vertical"
+        assert viz._get_orientation("left") == "vertical"
+
+    def test_rotate_points(self, test_config_visualization):
+        """Test _rotate_points method."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        viz = AudioVisualizer(test_config_visualization)
+
+        # Test with zero rotation (should return same points)
+        points = [(10, 20), (30, 40), (50, 60)]
+        center = (0, 0)
+        result = viz._rotate_points(points, center, 0)
+        assert result == points
+
+        # Test with 90 degree rotation
+        points = [(10, 0), (0, 10)]
+        center = (0, 0)
+        result = viz._rotate_points(points, center, 90)
+        # After 90° rotation: (10, 0) -> (0, 10), (0, 10) -> (-10, 0)
+        assert len(result) == 2
+        assert result[0] == (0, 10)  # (10, 0) rotated 90° around (0, 0) = (0, 10)
+
+    def test_get_audio_duration_ffmpeg_returncode_nonzero(self, test_config_visualization, tmp_path):
+        """Test _get_audio_duration_ffmpeg when returncode is non-zero."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        audio_path = tmp_path / "audio.mp3"
+        audio_path.write_bytes(b"mp3")
+        viz = AudioVisualizer(test_config_visualization)
+
+        with patch("src.core.audio_visualizer.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 1
+            mock_run.return_value.stdout = ""
+            duration = viz._get_audio_duration_ffmpeg(audio_path)
+
+        assert duration is None
+
+    def test_get_audio_duration_ffmpeg_empty_stdout(self, test_config_visualization, tmp_path):
+        """Test _get_audio_duration_ffmpeg when stdout is empty."""
+        from src.core.audio_visualizer import AudioVisualizer
+
+        audio_path = tmp_path / "audio.mp3"
+        audio_path.write_bytes(b"mp3")
+        viz = AudioVisualizer(test_config_visualization)
+
+        with patch("src.core.audio_visualizer.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = ""  # Empty stdout
+            duration = viz._get_audio_duration_ffmpeg(audio_path)
+
+        assert duration is None
+
+    def test_draw_waveform_pil_fallback(self, test_config_visualization, tmp_path):
+        """Test _draw_waveform_pil fallback when OpenCV not available."""
+        from src.core.audio_visualizer import AudioVisualizer
+        import numpy as np
+
+        # Disable OpenCV
+        with patch("src.core.audio_visualizer.OPENCV_AVAILABLE", False):
+            viz = AudioVisualizer(test_config_visualization)
+            
+            # Create a simple frame and chunk
+            frame = np.zeros((100, 200, 3), dtype=np.uint8)
+            chunk = np.random.randn(1000).astype(np.float32) * 0.3
+            amplitude = 0.5
+            
+            # Should not raise exception
+            viz._draw_waveform_pil(
+                MagicMock(),  # draw object
+                chunk,
+                amplitude,
+                200,
+                100,
+                "bottom",
+                12
+            )
+
     def test_cleanup_ffmpeg_process_force_kill(self, test_config_visualization):
         """Test _cleanup_ffmpeg_process with force kill."""
         from src.core.audio_visualizer import AudioVisualizer
