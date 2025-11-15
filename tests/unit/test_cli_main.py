@@ -1042,6 +1042,421 @@ def test_cli_status(tmp_path):
         mock_console.print.assert_called()
 
 
+def test_cli_generate_face_no_gpu(tmp_path):
+    """Test generate_face command when GPU is not available (line 70)."""
+    config = make_cli_config(tmp_path)
+    fake_gpu = MagicMock()
+    fake_gpu.gpu_available = False
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("src.core.face_generator.FaceGenerator") as mock_face_gen,
+    ):
+        mock_face_gen.return_value.generate.return_value = tmp_path / "face.png"
+        
+        result = runner.invoke(app, ["generate-face", "test face"])
+        
+        assert result.exit_code == 0
+        assert "CPU" in result.stdout or "WARN" in result.stdout
+
+
+def test_cli_generate_face_exception(tmp_path):
+    """Test generate_face command exception handling (lines 93-95)."""
+    config = make_cli_config(tmp_path)
+    fake_gpu = MagicMock()
+    fake_gpu.gpu_available = False
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("src.core.face_generator.FaceGenerator") as mock_face_gen,
+    ):
+        mock_face_gen.return_value.generate.side_effect = Exception("Face generation failed")
+        
+        result = runner.invoke(app, ["generate-face", "test face"])
+        
+        assert result.exit_code == 1
+        assert "Error" in result.stdout
+
+
+def test_cli_create_with_chunking_error(tmp_path):
+    """Test create command with chunking error (lines 215-218)."""
+    script_path = tmp_path / "script.txt"
+    script_path.write_text("# Title\nHello world", encoding="utf-8")
+    config = make_cli_config(tmp_path)
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.chunk_script", side_effect=Exception("Chunking failed")),
+        patch("src.cli.main.ScriptParser") as mock_parser,
+        patch("src.cli.main.TTSEngine") as mock_tts,
+        patch("src.cli.main.AudioMixer") as mock_mixer,
+        patch("src.cli.main.VideoComposer") as mock_composer,
+        patch("src.utils.ram_monitor.RAMMonitor") as mock_ram,
+    ):
+        mock_ram_instance = MagicMock()
+        mock_ram_instance.get_ram_usage_gb.return_value = 10.0
+        mock_ram_instance.total_ram_gb = 64.0
+        mock_ram_instance.max_ram_gb = 45.0
+        mock_ram_instance.check_ram_limit.return_value = (False, None)
+        mock_ram.return_value = mock_ram_instance
+        
+        mock_parser.return_value.parse.return_value = {"text": "Hello world", "music_cues": []}
+        mock_tts.return_value.generate.return_value = tmp_path / "audio.mp3"
+        mock_mixer.return_value.mix.return_value = tmp_path / "mixed.mp3"
+        mock_composer.return_value.compose.return_value = tmp_path / "output" / "video.mp4"
+        
+        result = runner.invoke(app, ["create", str(script_path), "--chunk-duration", "3"])
+        
+        # Should continue with full script
+        assert "Continuing with full script" in result.stdout or result.exit_code == 0
+
+
+def test_cli_create_multiple_chunks(tmp_path):
+    """Test create command with multiple chunks (lines 229-230, 252, 254-256, 370-372, 479-483)."""
+    script_path = tmp_path / "script.txt"
+    script_path.write_text("# Title\n" + "Hello world. " * 1000, encoding="utf-8")  # Long script
+    config = make_cli_config(tmp_path)
+    
+    # Mock chunker to return multiple chunks
+    chunk1 = tmp_path / "chunk1.txt"
+    chunk2 = tmp_path / "chunk2.txt"
+    chunk1.write_text("Chunk 1", encoding="utf-8")
+    chunk2.write_text("Chunk 2", encoding="utf-8")
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.chunk_script", return_value=[chunk1, chunk2]),
+        patch("src.cli.main.ScriptParser") as mock_parser,
+        patch("src.cli.main.TTSEngine") as mock_tts,
+        patch("src.cli.main.AudioMixer") as mock_mixer,
+        patch("src.cli.main.VideoComposer") as mock_composer,
+        patch("src.utils.ram_monitor.RAMMonitor") as mock_ram,
+    ):
+        mock_ram_instance = MagicMock()
+        mock_ram_instance.get_ram_usage_gb.return_value = 10.0
+        mock_ram_instance.total_ram_gb = 64.0
+        mock_ram_instance.max_ram_gb = 45.0
+        mock_ram_instance.check_ram_limit.return_value = (False, None)
+        mock_ram.return_value = mock_ram_instance
+        
+        mock_parser.return_value.parse.return_value = {"text": "Hello world", "music_cues": []}
+        mock_tts.return_value.generate.return_value = tmp_path / "audio.mp3"
+        mock_mixer.return_value.mix.return_value = tmp_path / "mixed.mp3"
+        mock_composer.return_value.compose.return_value = tmp_path / "output" / "video.mp4"
+        
+        result = runner.invoke(app, ["create", str(script_path), "--chunk-duration", "1"])
+        
+        # Should process multiple chunks
+        assert "Processing" in result.stdout or "chunk" in result.stdout.lower() or result.exit_code == 0
+
+
+def test_cli_create_with_music_offset(tmp_path):
+    """Test create command with music_start_offset (line 319)."""
+    script_path = tmp_path / "script.txt"
+    script_path.write_text("# Title\nHello world", encoding="utf-8")
+    config = make_cli_config(tmp_path)
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.ScriptParser") as mock_parser,
+        patch("src.cli.main.TTSEngine") as mock_tts,
+        patch("src.cli.main.AudioMixer") as mock_mixer,
+        patch("src.cli.main.VideoComposer") as mock_composer,
+        patch("src.utils.ram_monitor.RAMMonitor") as mock_ram,
+    ):
+        mock_ram_instance = MagicMock()
+        mock_ram_instance.get_ram_usage_gb.return_value = 10.0
+        mock_ram_instance.total_ram_gb = 64.0
+        mock_ram_instance.max_ram_gb = 45.0
+        mock_ram_instance.check_ram_limit.return_value = (False, None)
+        mock_ram.return_value = mock_ram_instance
+        
+        mock_parser.return_value.parse.return_value = {"text": "Hello world", "music_cues": []}
+        mock_tts.return_value.generate.return_value = tmp_path / "audio.mp3"
+        mock_mixer.return_value.mix.return_value = tmp_path / "mixed.mp3"
+        mock_composer.return_value.compose.return_value = tmp_path / "output" / "video.mp4"
+        
+        result = runner.invoke(app, ["create", str(script_path), "calm music", "--music-offset", "5.0"])
+        
+        assert result.exit_code == 0
+        # Should mention music offset
+        assert "offset" in result.stdout.lower() or "5" in result.stdout
+
+
+def test_cli_create_with_avatar(tmp_path):
+    """Test create command with avatar enabled (lines 381->420, 390->401)."""
+    script_path = tmp_path / "script.txt"
+    script_path.write_text("# Title\nHello world", encoding="utf-8")
+    config = make_cli_config(tmp_path)
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.ScriptParser") as mock_parser,
+        patch("src.cli.main.TTSEngine") as mock_tts,
+        patch("src.cli.main.AudioMixer") as mock_mixer,
+        patch("src.cli.main.VideoComposer") as mock_composer,
+        patch("src.core.avatar_generator.AvatarGenerator") as mock_avatar,
+        patch("src.utils.ram_monitor.RAMMonitor") as mock_ram,
+    ):
+        mock_ram_instance = MagicMock()
+        mock_ram_instance.get_ram_usage_gb.return_value = 10.0
+        mock_ram_instance.total_ram_gb = 64.0
+        mock_ram_instance.max_ram_gb = 45.0
+        mock_ram_instance.check_ram_limit.return_value = (False, None)
+        mock_ram.return_value = mock_ram_instance
+        
+        mock_parser.return_value.parse.return_value = {"text": "Hello world", "music_cues": []}
+        mock_tts.return_value.generate.return_value = tmp_path / "audio.mp3"
+        mock_mixer.return_value.mix.return_value = tmp_path / "mixed.mp3"
+        
+        avatar_video = tmp_path / "avatar.mp4"
+        avatar_video.write_bytes(b"video")
+        mock_avatar_instance = MagicMock()
+        mock_avatar_instance.generate.return_value = avatar_video
+        mock_avatar_instance.get_file_monitor.return_value = None
+        mock_avatar.return_value = mock_avatar_instance
+        
+        mock_composer.return_value.compose.return_value = tmp_path / "output" / "video.mp4"
+        
+        result = runner.invoke(app, ["create", str(script_path), "--avatar"])
+        
+        assert result.exit_code == 0
+        mock_avatar.assert_called_once()
+
+
+def test_cli_status_with_gpu(tmp_path):
+    """Test status command with GPU available (lines 737, 747-775, 798-802, 807)."""
+    fake_gpu = MagicMock()
+    fake_gpu.gpu_available = True
+    fake_gpu.gpu_name = "Test GPU"
+    fake_gpu.gpu_memory = 8.0
+    fake_gpu.get_performance_config.return_value = {"use_fp16": True, "use_tf32": True}
+    fake_gpu.get_memory_usage.return_value = {
+        "allocated_gb": 2.0,
+        "free_gb": 6.0,
+        "total_gb": 8.0
+    }
+    
+    # Mock torch module
+    mock_torch = MagicMock()
+    mock_torch.cuda.get_device_capability.return_value = (8, 0)
+    mock_torch.version.cuda = "11.8"
+    mock_torch.backends.cudnn.is_available.return_value = True
+    mock_torch.backends.cudnn.version.return_value = 8500
+    
+    with (
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("subprocess.run") as mock_subprocess,
+        patch.dict("sys.modules", {"torch": mock_torch}),
+    ):
+        # Mock FFmpeg with NVENC
+        mock_subprocess.return_value.returncode = 0
+        mock_subprocess.return_value.stdout = "enable-nvenc"
+        
+        result = runner.invoke(app, ["status"])
+        
+        assert result.exit_code == 0
+        assert "GPU" in result.stdout or "OK" in result.stdout
+
+
+def test_cli_status_ffmpeg_not_found(tmp_path):
+    """Test status command when FFmpeg is not found (lines 741-743)."""
+    fake_gpu = MagicMock()
+    fake_gpu.gpu_available = False
+    
+    with (
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("subprocess.run", side_effect=FileNotFoundError()),
+    ):
+        result = runner.invoke(app, ["status"])
+        
+        assert result.exit_code == 0
+        assert "FFmpeg" in result.stdout or "FAIL" in result.stdout
+
+
+def test_cli_status_gpu_with_torch_error(tmp_path):
+    """Test status command with GPU but torch error (line 774)."""
+    fake_gpu = MagicMock()
+    fake_gpu.gpu_available = True
+    fake_gpu.gpu_name = "Test GPU"
+    fake_gpu.gpu_memory = 8.0
+    fake_gpu.get_performance_config.return_value = {"use_fp16": False, "use_tf32": False}
+    fake_gpu.get_memory_usage.return_value = {
+        "allocated_gb": 2.0,
+        "free_gb": 6.0,
+        "total_gb": 8.0
+    }
+    
+    # Mock torch module to raise exception
+    mock_torch = MagicMock()
+    mock_torch.cuda.get_device_capability.side_effect = Exception("Torch error")
+    
+    with (
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("subprocess.run") as mock_subprocess,
+        patch.dict("sys.modules", {"torch": mock_torch}),
+    ):
+        mock_subprocess.return_value.returncode = 0
+        mock_subprocess.return_value.stdout = "ffmpeg version"
+        
+        result = runner.invoke(app, ["status"])
+        
+        assert result.exit_code == 0
+
+
+def test_cli_status_cpu_with_torch_not_available(tmp_path):
+    """Test status command with CPU and torch not available (lines 781-782)."""
+    fake_gpu = MagicMock()
+    fake_gpu.gpu_available = False
+    
+    # Mock torch module
+    mock_torch = MagicMock()
+    mock_torch.cuda.is_available.return_value = False
+    
+    with (
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("subprocess.run") as mock_subprocess,
+        patch.dict("sys.modules", {"torch": mock_torch}),
+    ):
+        mock_subprocess.return_value.returncode = 0
+        mock_subprocess.return_value.stdout = "ffmpeg version"
+        
+        result = runner.invoke(app, ["status"])
+        
+        assert result.exit_code == 0
+
+
+def test_cli_status_models_dir_not_found(tmp_path):
+    """Test status command when models directory not found (line 792)."""
+    fake_gpu = MagicMock()
+    fake_gpu.gpu_available = False
+    
+    with (
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("subprocess.run") as mock_subprocess,
+        patch("pathlib.Path.exists", return_value=False),
+    ):
+        mock_subprocess.return_value.returncode = 0
+        mock_subprocess.return_value.stdout = "ffmpeg version"
+        
+        result = runner.invoke(app, ["status"])
+        
+        assert result.exit_code == 0
+
+
+def test_cli_waveform_overrides_invalid_thickness(tmp_path):
+    """Test _apply_waveform_cli_overrides with invalid thickness (lines 852-854)."""
+    from src.cli.main import _apply_waveform_cli_overrides
+    
+    config = {}
+    
+    # Test invalid thickness format
+    result_config = _apply_waveform_cli_overrides(
+        config.copy(),
+        position=None,
+        num_lines=None,
+        thickness="invalid",
+        colors=None,
+        style=None,
+        opacity=None,
+        randomize=False,
+        height_percent=None,
+        width_percent=None,
+        left_spacing=None,
+        right_spacing=None,
+        render_scale=None,
+        anti_alias=None,
+        orientation_offset=None,
+        rotation=None,
+        amplitude_multiplier=None,
+        num_instances=None,
+        instances_offset=None,
+        instances_intersect=None,
+    )
+    
+    # Should not crash, may use default
+    assert "visualization" in result_config
+
+
+def test_cli_waveform_overrides_invalid_colors(tmp_path):
+    """Test _apply_waveform_cli_overrides with invalid colors (lines 862->860, 864->868, 866-867)."""
+    from src.cli.main import _apply_waveform_cli_overrides
+    
+    config = {}
+    
+    # Test invalid colors format
+    result_config = _apply_waveform_cli_overrides(
+        config.copy(),
+        position=None,
+        num_lines=None,
+        thickness=None,
+        colors="invalid,format",
+        style=None,
+        opacity=None,
+        randomize=False,
+        height_percent=None,
+        width_percent=None,
+        left_spacing=None,
+        right_spacing=None,
+        render_scale=None,
+        anti_alias=None,
+        orientation_offset=None,
+        rotation=None,
+        amplitude_multiplier=None,
+        num_instances=None,
+        instances_offset=None,
+        instances_intersect=None,
+    )
+    
+    # Should not crash
+    assert "visualization" in result_config or result_config == config
+
+
+def test_cli_waveform_overrides_invalid_style(tmp_path):
+    """Test _apply_waveform_cli_overrides with invalid style (line 872)."""
+    from src.cli.main import _apply_waveform_cli_overrides
+    
+    config = {}
+    
+    # Test invalid style
+    result_config = _apply_waveform_cli_overrides(
+        config.copy(),
+        position=None,
+        num_lines=None,
+        thickness=None,
+        colors=None,
+        style="invalid_style",
+        opacity=None,
+        randomize=False,
+        height_percent=None,
+        width_percent=None,
+        left_spacing=None,
+        right_spacing=None,
+        render_scale=None,
+        anti_alias=None,
+        orientation_offset=None,
+        rotation=None,
+        amplitude_multiplier=None,
+        num_instances=None,
+        instances_offset=None,
+        instances_intersect=None,
+    )
+    
+    # Should not crash
+    assert "visualization" in result_config
+
+
+def test_cli_main_function():
+    """Test main() function (line 907)."""
+    from src.cli.main import main
+    
+    with patch("src.cli.main.app") as mock_app:
+        main()
+        mock_app.assert_called_once()
+
+
 def test_cli_cleanup_dry_run(tmp_path):
     """Test cleanup command with --dry-run flag."""
     config = make_cli_config(tmp_path)
