@@ -51,6 +51,11 @@ class StubTorch:
     class cuda:
         is_available = lambda: False
         device_count = lambda: 0
+    
+    class backends:
+        class cudnn:
+            benchmark = False
+            enabled = True
 
 
 class StubGFPGAN:
@@ -1324,9 +1329,132 @@ class TestAvatarGeneratorUncoveredMethods:
         assert "Wav2Lip Inference Script" in content
         assert "Wav2Lip full installation required" in content
 
-    # Note: _create_fallback_video and _detect_face_with_landmarks require complex mocking
-    # of moviepy, mediapipe, cv2, etc. These are better tested via integration tests.
-    # The basic functionality is covered by existing integration tests.
+    def test_generate_unknown_engine_fallback(self, test_config, temp_dir):
+        """Test generate() with unknown engine type falls back to _create_fallback_video."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "unknown_engine_xyz"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        generator = AvatarGenerator(test_config)
+
+        audio_path = temp_dir / "audio.mp3"
+        audio_path.write_bytes(b"mp3" * 100)
+
+        with patch.object(generator, "_create_fallback_video") as mock_fallback:
+            mock_fallback.return_value = temp_dir / "fallback.mp4"
+            result = generator.generate(audio_path)
+
+        assert mock_fallback.called
+        assert result == mock_fallback.return_value
+
+    def test_init_did_with_api_key_env(self, test_config, temp_dir, monkeypatch):
+        """Test _init_did with API key from environment variable."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "did"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        
+        monkeypatch.setenv("DID_API_KEY", "test_api_key_from_env")
+        generator = AvatarGenerator(test_config)
+
+        assert generator.did_api_key == "test_api_key_from_env"
+
+    def test_init_did_with_api_key_config(self, test_config, temp_dir):
+        """Test _init_did with API key from config."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "did"
+        test_config["avatar"]["did"] = {"api_key": "test_api_key_from_config"}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        
+        generator = AvatarGenerator(test_config)
+
+        assert generator.did_api_key == "test_api_key_from_config"
+
+    def test_init_did_no_api_key(self, test_config, temp_dir, monkeypatch):
+        """Test _init_did when no API key is provided."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "did"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        
+        # Ensure no API key in env or config
+        monkeypatch.delenv("DID_API_KEY", raising=False)
+        if "did" in test_config.get("avatar", {}):
+            test_config["avatar"]["did"] = {}
+        
+        generator = AvatarGenerator(test_config)
+
+        assert generator.did_api_key is None
+
+    def test_create_fallback_video_exception_handling(self, test_config, temp_dir):
+        """Test _create_fallback_video handles exceptions gracefully."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        
+        generator = AvatarGenerator(test_config)
+
+        audio_path = temp_dir / "audio.mp3"
+        audio_path.write_bytes(b"mp3" * 100)
+        output_path = temp_dir / "fallback.mp4"
+
+        # Patch the import inside the method
+        with patch("builtins.__import__", side_effect=lambda name, *args, **kwargs: 
+                   MagicMock() if name == "moviepy" else __import__(name, *args, **kwargs)):
+            result = generator._create_fallback_video(audio_path, output_path)
+
+        # Should return output_path even on error (creates empty file)
+        assert result == output_path
+        assert output_path.exists()
+
+    def test_init_sadtalker_gpu_path(self, test_config, temp_dir, stub_torch_if_needed):
+        """Test _init_sadtalker with GPU available."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "sadtalker"
+        test_config["avatar"]["sadtalker"] = {"checkpoint_dir": str(temp_dir)}
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = True
+            mock_gpu.return_value.get_device.return_value = "cuda"
+            mock_gpu.return_value.device_id = 0
+            mock_gpu.return_value.get_performance_config.return_value = {"use_fp16": True}
+
+            generator = AvatarGenerator(test_config)
+            assert generator.engine_type == "sadtalker"
+
+    def test_init_wav2lip_with_existing_model(self, test_config, temp_dir, stub_torch_if_needed):
+        """Test _init_wav2lip when model already exists."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        
+        # Create fake model file
+        model_path = Path("models") / "wav2lip_gan.pth"
+        model_path.parent.mkdir(parents=True, exist_ok=True)
+        model_path.write_bytes(b"fake model")
+
+        try:
+            with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+                mock_gpu.return_value.gpu_available = False
+                mock_gpu.return_value.get_device.return_value = "cpu"
+
+                generator = AvatarGenerator(test_config)
+                assert generator.engine_type == "wav2lip"
+                # Model path should be set if torch is available
+                if hasattr(generator, 'wav2lip_model_path'):
+                    assert generator.wav2lip_model_path == model_path
+        finally:
+            # Cleanup
+            if model_path.exists():
+                model_path.unlink()
+
+    # Note: _detect_face_with_landmarks requires complex mocking of mediapipe, cv2, etc.
+    # These are better tested via integration tests.
 
 
 # ============================================================================
@@ -1713,3 +1841,227 @@ def test_generate_wav2lip_exception_during_execution(tmp_path, test_config, stub
             # Should raise the exception (not catch it)
             with pytest.raises(Exception, match="Script creation failed"):
                 gen._generate_wav2lip(audio_path, output_path)
+
+
+class TestAvatarGeneratorFaceDetection:
+    """Test face detection with landmarks method - simplified tests."""
+
+    def test_detect_face_returns_none_when_all_fail(self, test_config, temp_dir):
+        """Test _detect_face_with_landmarks returns None when all methods fail."""
+        from src.core.avatar_generator import AvatarGenerator
+        from PIL import Image
+
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        
+        generator = AvatarGenerator(test_config)
+        
+        # Create a test image
+        image_path = temp_dir / "face.jpg"
+        img = Image.new('RGB', (640, 480), color='red')
+        img.save(image_path)
+        
+        # Mock all imports to fail
+        with patch("builtins.__import__", side_effect=ImportError("Module not found")):
+            result = generator._detect_face_with_landmarks(image_path)
+            
+        # Should return None when all methods fail
+        assert result is None
+
+
+class TestAvatarGeneratorAdditionalCoverage:
+    """Additional tests to improve coverage to 60%+."""
+
+    def test_generate_wav2lip_with_none_model_path(self, test_config, temp_dir):
+        """Test _generate_wav2lip when model path is None."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+            
+            generator = AvatarGenerator(test_config)
+            generator.wav2lip_model_path = None  # Set to None
+            
+            audio_path = temp_dir / "audio.wav"
+            audio_path.write_bytes(b"fake audio")
+            output_path = temp_dir / "output.mp4"
+            
+            with patch.object(generator, "_create_fallback_video", return_value=output_path) as mock_fallback:
+                result = generator._generate_wav2lip(audio_path, output_path)
+                
+            assert result == output_path
+            mock_fallback.assert_called_once()
+
+    def test_generate_wav2lip_face_detection_returns_none(self, test_config, temp_dir):
+        """Test _generate_wav2lip when face detection returns None."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+            
+            generator = AvatarGenerator(test_config)
+            generator.wav2lip_model_path = temp_dir / "model.pth"
+            generator.wav2lip_model_path.write_bytes(b"fake model")
+            
+            audio_path = temp_dir / "audio.wav"
+            audio_path.write_bytes(b"fake audio")
+            output_path = temp_dir / "output.mp4"
+            
+            with (
+                patch.object(generator, "_detect_face_with_landmarks", return_value=None),
+                patch.object(generator, "_create_fallback_video", return_value=output_path) as mock_fallback,
+            ):
+                result = generator._generate_wav2lip(audio_path, output_path)
+                
+            assert result == output_path
+            mock_fallback.assert_called_once()
+
+    def test_generate_wav2lip_source_image_not_exists(self, test_config, temp_dir):
+        """Test _generate_wav2lip when source image doesn't exist."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["avatar"]["source_image"] = str(temp_dir / "nonexistent.jpg")
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+            
+            generator = AvatarGenerator(test_config)
+            generator.wav2lip_model_path = temp_dir / "model.pth"
+            generator.wav2lip_model_path.write_bytes(b"fake model")
+            
+            audio_path = temp_dir / "audio.wav"
+            audio_path.write_bytes(b"fake audio")
+            output_path = temp_dir / "output.mp4"
+            
+            with patch.object(generator, "_create_fallback_video", return_value=output_path) as mock_fallback:
+                result = generator._generate_wav2lip(audio_path, output_path)
+                
+            assert result == output_path
+            mock_fallback.assert_called_once()
+
+    def test_get_audio_duration_ffmpeg_returncode_nonzero(self, test_config, temp_dir):
+        """Test _get_audio_duration_ffmpeg when returncode is non-zero."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        generator = AvatarGenerator(test_config)
+
+        audio_path = temp_dir / "audio.mp3"
+        audio_path.write_bytes(b"mp3")
+
+        with patch("src.core.avatar_generator.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 1
+            mock_run.return_value.stdout = ""
+            duration = generator._get_audio_duration_ffmpeg(audio_path)
+
+        assert duration is None
+
+    def test_get_audio_duration_ffmpeg_empty_stdout(self, test_config, temp_dir):
+        """Test _get_audio_duration_ffmpeg when stdout is empty."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        generator = AvatarGenerator(test_config)
+
+        audio_path = temp_dir / "audio.mp3"
+        audio_path.write_bytes(b"mp3")
+
+        with patch("src.core.avatar_generator.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = ""  # Empty stdout
+            duration = generator._get_audio_duration_ffmpeg(audio_path)
+
+        assert duration is None
+
+    def test_get_audio_duration_ffmpeg_value_error(self, test_config, temp_dir):
+        """Test _get_audio_duration_ffmpeg when float conversion fails."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        generator = AvatarGenerator(test_config)
+
+        audio_path = temp_dir / "audio.mp3"
+        audio_path.write_bytes(b"mp3")
+
+        with patch("src.core.avatar_generator.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = "invalid_number\n"
+            duration = generator._get_audio_duration_ffmpeg(audio_path)
+
+        assert duration is None
+
+    def test_create_fallback_video_source_image_exists(self, test_config, temp_dir):
+        """Test _create_fallback_video when source image exists."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["avatar"]["source_image"] = str(temp_dir / "avatar.jpg")
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        
+        # Create source image
+        image_path = temp_dir / "avatar.jpg"
+        image_path.write_bytes(b"fake image")
+        
+        audio_path = temp_dir / "audio.wav"
+        audio_path.write_bytes(b"fake audio")
+        output_path = temp_dir / "output.mp4"
+        
+        # Mock moviepy
+        mock_audio = MagicMock()
+        mock_audio.duration = 5.0
+        mock_video = MagicMock()
+        mock_video.set_audio.return_value = mock_video
+        mock_video.write_videofile = MagicMock()
+        
+        mock_moviepy = MagicMock()
+        mock_moviepy.editor.ImageClip.return_value = mock_video
+        mock_moviepy.editor.AudioFileClip.return_value = mock_audio
+        
+        with (
+            patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu,
+            patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}),
+        ):
+            mock_gpu.return_value.gpu_available = False
+            
+            generator = AvatarGenerator(test_config)
+            result = generator._create_fallback_video(audio_path, output_path)
+            
+        assert result == output_path
+
+    def test_create_fallback_video_exception_handling(self, test_config, temp_dir):
+        """Test _create_fallback_video exception handling."""
+        from src.core.avatar_generator import AvatarGenerator
+
+        test_config["avatar"]["engine"] = "wav2lip"
+        test_config["storage"]["cache_dir"] = str(temp_dir)
+        
+        with patch("src.core.avatar_generator.get_gpu_manager") as mock_gpu:
+            mock_gpu.return_value.gpu_available = False
+            
+            generator = AvatarGenerator(test_config)
+            
+            audio_path = temp_dir / "audio.wav"
+            audio_path.write_bytes(b"fake audio")
+            output_path = temp_dir / "output.mp4"
+            
+            # Mock moviepy.editor to raise exception when imported inside the method
+            mock_moviepy = MagicMock()
+            mock_moviepy.editor.ImageClip.side_effect = Exception("MoviePy error")
+            mock_moviepy.editor.AudioFileClip.side_effect = Exception("MoviePy error")
+            
+            with patch.dict("sys.modules", {"moviepy": mock_moviepy, "moviepy.editor": mock_moviepy.editor}):
+                result = generator._create_fallback_video(audio_path, output_path)
+            
+            assert result == output_path
+            assert output_path.exists()  # Should create empty file on error
