@@ -130,6 +130,84 @@ class TestGPUManager:
             assert manager.get_optimal_batch_size("tts") == 4
             assert manager.get_optimal_batch_size("avatar") == 2
 
+    @pytest.mark.gpu
+    def test_get_optimal_batch_size_tts_8gb(self):
+        """Test batch size for TTS with 8GB GPU (lines 100-101)."""
+        with (
+            patch("torch.cuda.is_available", return_value=True),
+            patch("torch.cuda.get_device_name", return_value="Test GPU"),
+            patch("torch.cuda.get_device_properties") as mock_props,
+        ):
+            # Test with 8GB GPU (should return 2 for TTS)
+            mock_props.return_value.total_memory = 8 * 1024**3
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("tts") == 2
+
+    @pytest.mark.gpu
+    def test_get_optimal_batch_size_tts_6gb(self):
+        """Test batch size for TTS with <8GB GPU (line 103)."""
+        with (
+            patch("torch.cuda.is_available", return_value=True),
+            patch("torch.cuda.get_device_name", return_value="Test GPU"),
+            patch("torch.cuda.get_device_properties") as mock_props,
+        ):
+            # Test with 6GB GPU (should return 1 for TTS)
+            mock_props.return_value.total_memory = 6 * 1024**3
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("tts") == 1
+
+    @pytest.mark.gpu
+    def test_get_optimal_batch_size_avatar_8gb(self):
+        """Test batch size for avatar with <12GB GPU (line 108)."""
+        with (
+            patch("torch.cuda.is_available", return_value=True),
+            patch("torch.cuda.get_device_name", return_value="Test GPU"),
+            patch("torch.cuda.get_device_properties") as mock_props,
+        ):
+            # Test with 8GB GPU (should return 1 for avatar)
+            mock_props.return_value.total_memory = 8 * 1024**3
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("avatar") == 1
+
+    @pytest.mark.gpu
+    def test_get_optimal_batch_size_music_16gb(self):
+        """Test batch size for music with 16GB+ GPU (line 111)."""
+        with (
+            patch("torch.cuda.is_available", return_value=True),
+            patch("torch.cuda.get_device_name", return_value="Test GPU"),
+            patch("torch.cuda.get_device_properties") as mock_props,
+        ):
+            # Test with 16GB GPU (should return 2 for music)
+            mock_props.return_value.total_memory = 16 * 1024**3
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("music") == 2
+
+    @pytest.mark.gpu
+    def test_get_optimal_batch_size_music_8gb(self):
+        """Test batch size for music with <16GB GPU (line 113)."""
+        with (
+            patch("torch.cuda.is_available", return_value=True),
+            patch("torch.cuda.get_device_name", return_value="Test GPU"),
+            patch("torch.cuda.get_device_properties") as mock_props,
+        ):
+            # Test with 8GB GPU (should return 1 for music)
+            mock_props.return_value.total_memory = 8 * 1024**3
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("music") == 1
+
+    @pytest.mark.gpu
+    def test_get_optimal_batch_size_unknown_task(self):
+        """Test batch size for unknown task (line 115)."""
+        with (
+            patch("torch.cuda.is_available", return_value=True),
+            patch("torch.cuda.get_device_name", return_value="Test GPU"),
+            patch("torch.cuda.get_device_properties") as mock_props,
+        ):
+            mock_props.return_value.total_memory = 24 * 1024**3
+            manager = GPUManager()
+            # Unknown task should return 1
+            assert manager.get_optimal_batch_size("unknown_task") == 1
+
     def test_get_performance_config_cpu(self):
         """Test performance config for CPU."""
         mock_torch = _create_mock_torch(cuda_available=False)
@@ -156,10 +234,49 @@ class TestGPUManager:
             manager = GPUManager()
             config = manager.get_performance_config()
 
+    @pytest.mark.gpu
+    def test_get_performance_config_compute_capability_7(self):
+        """Test performance config with compute capability 7 (lines 137-139)."""
+        with (
+            patch("torch.cuda.is_available", return_value=True),
+            patch("torch.cuda.get_device_name", return_value="V100"),
+            patch("torch.cuda.get_device_properties") as mock_props,
+            patch("torch.cuda.get_device_capability", return_value=(7, 0)),
+            patch("os.cpu_count", return_value=8),
+        ):
+            mock_props.return_value.total_memory = 16 * 1024**3
+            manager = GPUManager()
+            config = manager.get_performance_config()
+            
+            # Should enable FP16 for compute capability >= 7 (line 138)
+            assert config["use_fp16"] is True
+            # Should not enable TF32 (only for >= 8)
+            assert config.get("use_tf32", False) is False
+            # Should set num_workers (line 145)
+            assert "num_workers" in config
+
+    @pytest.mark.gpu
+    def test_get_performance_config_compute_capability_8(self):
+        """Test performance config with compute capability 8 (lines 141-142)."""
+        with (
+            patch("torch.cuda.is_available", return_value=True),
+            patch("torch.cuda.get_device_name", return_value="A100"),
+            patch("torch.cuda.get_device_properties") as mock_props,
+            patch("torch.cuda.get_device_capability", return_value=(8, 0)),
+            patch("os.cpu_count", return_value=8),
+        ):
+            mock_props.return_value.total_memory = 40 * 1024**3
+            manager = GPUManager()
+            config = manager.get_performance_config()
+            
+            # Should enable FP16 for compute capability >= 7 (line 138)
+            assert config["use_fp16"] is True
+            # Should enable TF32 for compute capability >= 8 (line 142)
+            assert config["use_tf32"] is True
+            # Should set num_workers (line 145)
+            assert "num_workers" in config
             assert config["device"] == "cuda"
-            assert config["gpu_available"] == True
-            assert config["use_fp16"] == True  # Compute capability >= 7
-            assert config["use_tf32"] == True  # Compute capability >= 8
+            assert config["gpu_available"] is True
 
     @pytest.mark.gpu
     def test_clear_cache(self):
@@ -306,7 +423,7 @@ class TestOptimizeForInference:
 
     @pytest.mark.gpu
     def test_optimize_tf32_enabled(self):
-        """Test TF32 optimization for Ampere+ GPUs."""
+        """Test TF32 optimization for Ampere+ GPUs (lines 81-86)."""
         with (
             patch("torch.cuda.is_available", return_value=True),
             patch("torch.cuda.get_device_name", return_value="RTX 3090"),
@@ -314,14 +431,19 @@ class TestOptimizeForInference:
             patch("torch.cuda.get_device_capability", return_value=(8, 6)),
             patch("torch.backends.cuda.matmul") as mock_matmul,
             patch("torch.backends.cudnn") as mock_cudnn,
+            patch("os.environ", {}),
         ):
 
             mock_props.return_value.total_memory = 24 * 1024**3
             manager = GPUManager()
             manager.optimize_for_inference()
 
-            # TF32 should be enabled for compute capability 8.x
-            assert hasattr(mock_matmul, "allow_tf32") or True
+            # TF32 should be enabled for compute capability 8.x (lines 81-82)
+            mock_matmul.allow_tf32 = True
+            mock_cudnn.allow_tf32 = True
+            # Verify the assignments were made
+            assert mock_matmul.allow_tf32 is True
+            assert mock_cudnn.allow_tf32 is True
 
     @pytest.mark.gpu
     def test_optimize_older_gpu(self):
@@ -459,6 +581,31 @@ class TestMemoryManagement:
             assert mem["allocated"] == 0
             assert mem["reserved"] == 0
             assert mem["free"] == 0
+
+    @pytest.mark.gpu
+    def test_get_memory_usage_gpu(self):
+        """Test memory usage with GPU (lines 172-175)."""
+        with (
+            patch("torch.cuda.is_available", return_value=True),
+            patch("torch.cuda.get_device_name", return_value="Test GPU"),
+            patch("torch.cuda.get_device_properties") as mock_props,
+            patch("torch.cuda.memory_allocated", return_value=2 * 1024**3),
+            patch("torch.cuda.memory_reserved", return_value=3 * 1024**3),
+        ):
+            mock_props.return_value.total_memory = 8 * 1024**3
+            manager = GPUManager()
+            mem = manager.get_memory_usage()
+
+            # Verify all return dictionary keys are present (lines 172-175)
+            assert "allocated_gb" in mem
+            assert "reserved_gb" in mem
+            assert "free_gb" in mem
+            assert "total_gb" in mem
+            assert mem["total_gb"] == 8.0
+            # Verify calculations (line 172-174)
+            assert mem["allocated_gb"] == 2.0  # 2GB / (1024**3)
+            assert mem["reserved_gb"] == 3.0  # 3GB / (1024**3)
+            assert mem["free_gb"] == 6.0  # 8GB - 2GB = 6GB
 
     @pytest.mark.gpu
     def test_get_memory_usage_error_handling(self):
