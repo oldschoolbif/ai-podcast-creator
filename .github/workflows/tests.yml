@@ -35,7 +35,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg xvfb
 
       - name: Install Python dependencies
         run: |
@@ -44,7 +44,7 @@ jobs:
 
       # NOTE: Mutation testing (mutmut) should run in a dedicated workflow due to runtime cost.
 
-      - name: Run tests
+      - name: Run tests with Xvfb (for GUI tests)
         shell: bash
         run: |
           set -e  # Exit on first error
@@ -54,11 +54,11 @@ jobs:
           python --version
           pytest --version
           echo ""
-          echo "=== Running pytest ==="
+          echo "=== Running pytest with Xvfb (virtual display) ==="
+          # Use xvfb-run to enable tkinter tests in headless CI
           # Override pytest.ini -q with -v for verbose output
-          # Use --override-ini to ensure verbose output shows
           # Capture output to file for debugging
-          pytest --override-ini="addopts=-v --tb=short" 2>&1 | tee pytest_output.log
+          xvfb-run -a pytest --override-ini="addopts=-v --tb=short" 2>&1 | tee pytest_output.log
           EXIT_CODE=${PIPESTATUS[0]}
           
           if [ $EXIT_CODE -ne 0 ]; then

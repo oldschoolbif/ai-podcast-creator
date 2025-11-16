@@ -17,6 +17,7 @@ from src.core.music_generator import MusicGenerator
 from src.core.script_parser import ScriptParser
 from src.core.tts_engine import TTSEngine
 from src.core.video_composer import VideoComposer
+from src.gui.desktop_gui_controller import PodcastCreatorController
 from src.utils.config import load_config
 from src.utils.gpu_utils import get_gpu_manager
 
@@ -43,6 +44,9 @@ class PodcastCreatorGUI:
 
         # Load config
         self.config = load_config()
+        
+        # Initialize controller (business logic layer)
+        self.controller = PodcastCreatorController(self.config)
 
         # Create GUI
         self.create_widgets()
@@ -318,8 +322,20 @@ class PodcastCreatorGUI:
 
     def create_podcast(self):
         """Create podcast in separate thread."""
-        if not self.script_file.get():
-            messagebox.showerror("Error", "Please select a script file!")
+        # Update controller state from GUI
+        self.controller.script_file = self.script_file.get()
+        self.controller.music_file = self.music_file.get() if self.music_file.get() else None
+        self.controller.music_description = self.music_description.get() if self.music_description.get() else None
+        self.controller.video_quality = self.video_quality.get()
+        self.controller.visualize = self.visualize.get()
+        self.controller.background = self.background.get()
+        self.controller.avatar = self.avatar.get()
+        self.controller.output_name = self.output_name.get() if self.output_name.get() else None
+        
+        # Validate using controller
+        is_valid, error_msg = self.controller.validate_inputs()
+        if not is_valid:
+            messagebox.showerror("Error", error_msg)
             return
 
         # Disable button during processing
@@ -333,105 +349,13 @@ class PodcastCreatorGUI:
     def _create_podcast_thread(self):
         """Create podcast (runs in separate thread)."""
         try:
-            self.update_status("Processing...", "blue")
-            self.log("=" * 60)
-            self.log("🎙️ Starting podcast creation...")
-
-            # Read script
-            script_path = Path(self.script_file.get())
-            self.log(f"📄 Reading script: {script_path.name}")
-
-            with open(script_path, "r", encoding="utf-8") as f:
-                script_text = f.read()
-
-            # Parse script
-            self.log("🔍 Parsing script...")
-            parser = ScriptParser(self.config)
-            parsed_data = parser.parse(script_text)
-            self.log(f"✅ Parsed {len(parsed_data['text'])} characters")
-
-            # Generate TTS
-            self.log("🗣️ Generating speech...")
-            tts_engine = TTSEngine(self.config)
-            audio_path = tts_engine.generate(parsed_data["text"])
-            self.log(f"✅ Speech generated: {audio_path.name}")
-
-            # Handle music
-            music_path = None
-            if self.music_file.get():
-                music_path = Path(self.music_file.get())
-                self.log(f"🎵 Using music file: {music_path.name}")
-            elif self.music_description.get():
-                self.log(f"🎵 Generating music: {self.music_description.get()}")
-                music_gen = MusicGenerator(self.config)
-                music_path = music_gen.generate(self.music_description.get())
-
-            # Mix audio
-            if music_path:
-                self.log("🎛️ Mixing audio...")
-                mixer = AudioMixer(self.config)
-                mixed_audio = mixer.mix(audio_path, music_path)
-                self.log("✅ Audio mixed")
-            else:
-                mixed_audio = audio_path
-                self.log("⏭️ Skipping audio mixing (no music)")
-
-            # Generate avatar if requested
-            avatar_video_path = None
-            if self.avatar.get():
-                try:
-                    self.log("🎭 Generating avatar with lip-sync...")
-                    from src.core.avatar_generator import AvatarGenerator
-                    avatar_gen = AvatarGenerator(self.config)
-                    avatar_video_path = avatar_gen.generate(mixed_audio)
-                    if avatar_video_path and avatar_video_path.exists() and avatar_video_path.stat().st_size > 0:
-                        self.log(f"✅ Avatar generated: {avatar_video_path.name}")
-                    else:
-                        self.log("⚠️ Avatar generation failed, continuing without avatar...")
-                        avatar_video_path = None
-                except Exception as e:
-                    self.log(f"⚠️ Avatar generation error: {e}, continuing without avatar...")
-                    avatar_video_path = None
-
-            # Create video
-            self.log("🎬 Creating video...")
-            composer = VideoComposer(self.config)
-
-            # Map UI quality strings to internal quality presets
-            quality_map = {
-                "Fastest (Testing)": "fastest",
-                "Fast (720p)": "fast",
-                "Medium (720p)": "medium",
-                "High (1080p)": "high",
-            }
-            # Support legacy format
-            video_quality_str = self.video_quality.get()
-            if "1080p" in video_quality_str and "High" in video_quality_str:
-                quality = "high"
-            elif "720p" in video_quality_str and "Medium" in video_quality_str:
-                quality = "medium"
-            elif "720p" in video_quality_str and "Fast" in video_quality_str:
-                quality = "fast"
-            else:
-                quality = quality_map.get(video_quality_str, "fastest")  # Default to fastest for testing
-
-            output_name = self.output_name.get() or script_path.stem
-            final_video = composer.compose(
-                mixed_audio, 
-                output_name=output_name, 
-                use_visualization=self.visualize.get(),
-                use_background=self.background.get(),
-                avatar_video=avatar_video_path,
-                quality=quality
+            # Use controller to create podcast with callbacks for UI updates
+            final_video = self.controller.create_podcast(
+                progress_callback=lambda msg, status: self.update_status(msg, status),
+                log_callback=lambda msg, color: self.log(msg, color)
             )
 
-            self.log("=" * 60)
-            self.log("✅ Podcast created successfully!")
-            self.log(f"📹 Video saved to: {final_video}")
-            self.log("=" * 60)
-
-            self.update_status("✅ Complete!", "green")
-
+            # Show success dialog
             prompt_result = {"value": False}
 
             def ask_success():
@@ -444,7 +368,7 @@ class PodcastCreatorGUI:
             if prompt_result["value"]:
                 self._run_on_ui_thread(self.open_output_folder)
 
-        except Exception as e:
+        except (ValueError, RuntimeError) as e:
             self.log(f"❌ Error: {str(e)}", "red")
             self.update_status("❌ Error", "red")
             self._run_on_ui_thread(
