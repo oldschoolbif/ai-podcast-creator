@@ -211,6 +211,7 @@ class TestPodcastCreatorGUICreatePodcast:
             gui = PodcastCreatorGUI(root)
         return root, gui
 
+    @pytest.mark.timeout(30)  # Add 30 second timeout to prevent CI hang
     def test_create_podcast_valid_inputs(self, tmp_path):
         script_path = tmp_path / "script.txt"
         script_path.write_text("# Test\nHello world", encoding="utf-8")
