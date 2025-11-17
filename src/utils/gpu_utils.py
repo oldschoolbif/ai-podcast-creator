@@ -76,14 +76,30 @@ class GPUManager:
         try:
             import torch
 
-            # Enable TF32 for better performance on Ampere+ GPUs
-            if torch.cuda.get_device_capability()[0] >= 8:
+            # Safe mode to stabilize local GPU testing
+            gpu_safe_mode = os.getenv("GPU_SAFE_MODE", "0") == "1"
+
+            # Enable TF32 for better performance on Ampere+ GPUs (unless in safe mode)
+            if torch.cuda.get_device_capability()[0] >= 8 and not gpu_safe_mode:
                 torch.backends.cuda.matmul.allow_tf32 = True
                 torch.backends.cudnn.allow_tf32 = True
                 print("[OK] TF32 enabled for Ampere+ GPU")
 
-            # Set optimal memory allocation
-            os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
+            # cuDNN benchmarking can increase memory fragmentation; disable in safe mode
+            if gpu_safe_mode:
+                torch.backends.cudnn.benchmark = False
+
+            # Configure allocator to reduce fragmentation/peaks. Allow override via env.
+            max_split_mb = os.getenv("GPU_MAX_SPLIT_MB")
+            if max_split_mb is None:
+                # Use more conservative splits in safe mode (64MB default, was 128MB)
+                max_split_mb = "64" if gpu_safe_mode else "512"
+            alloc_conf_parts = [f"max_split_size_mb:{max_split_mb}"]
+            if gpu_safe_mode:
+                # Encourage earlier release behavior
+                alloc_conf_parts.append("garbage_collection_threshold:0.6")
+                alloc_conf_parts.append("expandable_segments:False")
+            os.environ["PYTORCH_CUDA_ALLOC_CONF"] = ",".join(alloc_conf_parts)
 
         except Exception as e:
             print(f"[WARN] Could not apply inference optimizations: {e}")

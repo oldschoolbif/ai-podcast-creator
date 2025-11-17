@@ -1,0 +1,50 @@
+tests\unit\test_ram_monitor.py ...                                       [ 61%]
+tests\unit\test_script_chunker.py ....                                   [ 61%]
+tests\unit\test_script_parser.py ...........................             [ 64%]
+tests\unit\test_tts_engine_additional.py .ss..s..s..                     [ 65%]
+tests\unit\test_tts_engine_advanced.py .........                         [ 67%]
+tests\unit\test_tts_engine_coverage.py s...........sss...                [ 69%]
+tests\unit\test_tts_engine_expansion.py .........................s       [ 71%]
+tests\unit\test_tts_engine_focus.py .......s.sss..............s..        [ 75%]
+tests\unit\test_tts_engine_night_push.py ................                [ 77%]
+tests\unit\test_tts_engine_path_insertion.py ..                          [ 77%]
+tests\unit\test_tts_engine_real.py ...........s....                      [ 79%]
+tests\unit\test_video_chunker.py ..                                      [ 79%]
+tests\unit\test_video_composer.py ................................       [ 82%]
+tests\unit\test_video_composer_focus.py .............s.................. [ 86%]
+........................................................................ [ 94%]
+..................                                                       [ 96%]
+tests\unit\test_waveform_advanced_features.py .............              [ 98%]
+tests\unit\test_web_interface.py ...............                         [100%]
+
+============================== warnings summary ===============================
+venv\Lib\site-packages\librosa\util\files.py:10
+  D:\dev\AI_Podcast_Creator\venv\Lib\site-packages\librosa\util\files.py:10: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+    from pkg_resources import resource_filename
+
+tests/unit/test_avatar_generator.py::TestAvatarGeneratorEdgeCases::test_generate_wav2lip_creates_script
+  D:\dev\AI_Podcast_Creator\venv\Lib\site-packages\face_alignment\api.py:147: UserWarning: No faces were detected.
+    warnings.warn("No faces were detected.")
+
+tests/unit/test_tts_engine_focus.py::test_gtts_retry_then_success
+tests/unit/test_tts_engine_focus.py::test_elevenlabs_missing_dependency
+tests/unit/test_tts_engine_real.py::TestTTSEngineEdgeCases::test_retry_on_network_error
+tests/unit/test_tts_engine_real.py::TestTTSEngineEdgeCases::test_max_retries_exceeded
+tests/unit/test_video_composer.py::TestVideoComposerCompose::test_compose_with_color_background
+tests/unit/test_video_composer.py::TestVideoComposerHelperMethods::test_validate_audio_file_corrupted
+tests/unit/test_video_composer_focus.py::test_create_default_background
+tests/unit/test_video_composer_focus.py::test_validate_audio_file_timeout
+  D:\dev\AI_Podcast_Creator\venv\Lib\site-packages\_pytest\unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <function Variable.__del__ at 0x0000020F6EED2340>
+  
+  Traceback (most recent call last):
+    File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\tkinter\__init__.py", line 414, in __del__
+      if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+                             ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  RuntimeError: main thread is not in main loop
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========== 770 passed, 113 skipped, 10 warnings in 138.92s (0:02:18) ==========

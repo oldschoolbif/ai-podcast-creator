@@ -1,0 +1,70 @@
+......................................s..............................F.. [  9%]
+s....s..s.........................................FF.................... [ 18%]
+.............................................................sssssssssss [ 28%]
+ssssssssssss.ss........s............................s.s.s.s.sss.s..s..ss [ 37%]
+s.s..s.s.ssssssssssss..sssss......s................F.FFsFFsss.........s. [ 46%]
+.sssssssssssssssssssssssss............................s................. [ 56%]
+...........................ss..s..s...........s...........sss........... [ 65%]
+.................s....F..s.sss..............s........................... [ 74%]
+....s...................................................s............... [ 84%]
+........................................................................ [ 93%]
+.................................................                        [100%]
+============================== warnings summary ===============================
+tests/unit/test_gpu_utilization.py::TestComponentGPUUsage::test_component_should_use_gpu[avatar_generation-True]
+tests/unit/test_gpu_utils.py::TestOptimizeForInference::test_optimize_tf32_enabled
+tests/unit/test_gpu_utils.py::TestGPUManagerPerformance::test_initialization_performance
+tests/unit/test_gpu_utils.py::TestGPUManagerPerformance::test_get_device_performance
+tests/unit/test_music_generator_focus.py::TestMusicGeneratorLibrary::test_generate_with_library_engine
+tests/unit/test_tts_engine_coverage.py::TestTTSEngineInitialization::test_init_with_elevenlabs_engine_mock
+tests/unit/test_tts_engine_focus.py::test_generate_gtts_retry_then_failure
+tests/unit/test_tts_engine_focus.py::test_gtts_retry_then_success
+  C:\Users\dpipe\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\_pytest\unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <function Variable.__del__ at 0x000001B0C304AB60>
+  
+  Traceback (most recent call last):
+    File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\tkinter\__init__.py", line 414, in __del__
+      if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+                             ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  RuntimeError: main thread is not in main loop
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.13.9-final-0 _______________
+
+Name                           Stmts   Miss Branch BrPart   Cover   Missing
+---------------------------------------------------------------------------
+src\core\__init__.py               0      0      0      0 100.00%
+src\core\audio_mixer.py           47      0      8      0 100.00%
+src\core\audio_visualizer.py    1047    446    348     61  56.06%   16-18, 89, 108-115, 121-123, 213, 227->exit, 230, 258, 272-280, 294, 315, 332, 364, 403, 406-409, 415-418, 463, 489, 496-514, 517, 520->540, 523->530, 531->540, 555, 581, 600-607, 652, 655, 659, 667, 673->427, 694-702, 719, 729, 735->741, 741->427, 749->427, 764, 773->exit, 776, 779-782, 801->784, 806-854, 858-905, 954, 979, 987-1081, 1085-1166, 1170-1251, 1341-1342, 1346-1347, 1351-1352, 1364-1365, 1401-1402, 1492, 1497-1501, 1545, 1549-1566, 1570-1572, 1590-1603, 1607-1616, 1620-1629, 1635-1637, 1644-1686, 1692-1698, 1700, 1704, 1717-1718, 1724-1730, 1734-1736, 1740-1749, 1767-1769, 1774-1775, 1794-1795, 1798-1800, 1807-1808, 1813, 1820-1823, 1827-1955
+src\core\avatar_generator.py     707    380    174     13  45.40%   61->exit, 86->91, 125->128, 148, 194, 320->323, 325-329, 355-356, 364-366, 380-382, 400-669, 688-689, 841-904, 908-909, 914-972, 976-977, 986-1025, 1034-1184, 1188-1190
+src\core\face_generator.py        71      4     20      4  91.21%   69, 156, 164, 172
+src\core\music_generator.py      109      4     36      4  94.48%   40->exit, 59->67, 71-72, 114, 130
+src\core\script_parser.py         40      0     16      0 100.00%
+src\core\tts_engine.py           240      7     74      8  95.22%   20, 93->exit, 95->100, 102->exit, 166->exit, 200, 202, 238, 380-383
+src\core\video_composer.py       708     49    184     14  91.14%   25, 146-147, 237->240, 282-295, 650, 706, 743->748, 767, 876, 947-950, 1215-1217, 1269-1282, 1334-1337, 1390->1402, 1391-1396, 1399->1402, 1440, 1454-1457, 1468, 1558-1560, 1615-1620
+---------------------------------------------------------------------------
+TOTAL                           2969    890    860    104  68.56%
+
+----------------------------------------------------------------------------------------------------------- benchmark: 2 tests -----------------------------------------------------------------------------------------------------------
+Name (time in ns)                            Min                       Max                    Mean                  StdDev                  Median                     IQR            Outliers  OPS (Kops/s)            Rounds  Iterations
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+test_get_device_performance             128.0000 (1.0)          6,975.0000 (1.0)          137.9685 (1.0)           57.9536 (1.0)          136.0000 (1.0)            3.0000 (1.0)      296;3828    7,248.0338 (1.0)       75758         100
+test_initialization_performance     145,899.9996 (>1000.0)  1,389,499.9993 (199.21)   576,603.5670 (>1000.0)  195,938.2001 (>1000.0)  542,299.9984 (>1000.0)  290,525.0003 (>1000.0)     253;2        1.7343 (0.00)        813           1
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Legend:
+  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.
+  OPS: Operations Per Second, computed as 1 / Mean
+=========================== short test summary info ===========================
+FAILED tests/unit/test_audio_visualizer.py::test_stream_frames_to_video_process_dies
+FAILED tests/unit/test_avatar_generator.py::test_generate_wav2lip_subprocess_failure
+FAILED tests/unit/test_avatar_generator.py::test_generate_did_api_error - Att...
+FAILED tests/unit/test_gpu_utils_real.py::TestGPUManagerWithMocks::test_init_with_cuda_available
+FAILED tests/unit/test_gpu_utils_real.py::TestGPUManagerWithMocks::test_gpu_memory_with_cuda
+FAILED tests/unit/test_gpu_utils_real.py::TestGPUManagerWithMocks::test_clear_cache_with_cuda
+FAILED tests/unit/test_gpu_utils_real.py::TestGPUManagerWithMocks::test_get_optimal_batch_size_task_param
+FAILED tests/unit/test_gpu_utils_real.py::TestGPUManagerWithMocks::test_device_string_format
+FAILED tests/unit/test_tts_engine_focus.py::test_init_coqui_exception_handling
