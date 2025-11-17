@@ -226,7 +226,12 @@ class TestPodcastCreatorGUICreatePodcast:
             patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
             patch("tkinter.messagebox.askyesno", return_value=False),
             patch.object(PodcastCreatorGUI, "open_output_folder"),
+            patch.object(PodcastCreatorGUI, "_run_on_ui_thread") as mock_run_ui,  # Mock to avoid event loop issues
         ):
+            # Make _run_on_ui_thread execute immediately without waiting
+            def immediate_run(func, wait=False):
+                func()
+            mock_run_ui.side_effect = immediate_run
 
             mock_parser_instance = MagicMock()
             mock_parser_instance.parse.return_value = {"text": "Hello world", "music_cues": []}
