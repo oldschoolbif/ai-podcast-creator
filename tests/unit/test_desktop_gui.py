@@ -635,7 +635,6 @@ class TestPodcastCreatorGUIAdditionalCoverage:
         gui.script_file.set(str(script_path))
         gui.video_quality.set("High (1080p)")  # Legacy format
         
-<<<<<<< HEAD
         final_video = tmp_path / "output" / "final.mp4"
         final_video.parent.mkdir(parents=True, exist_ok=True)
         final_video.write_bytes(b"video")
