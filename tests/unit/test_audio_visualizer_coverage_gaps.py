@@ -58,6 +58,7 @@ class TestStreamFramesToVideoCoverage:
             patch("subprocess.run") as mock_subprocess,
             patch("subprocess.Popen") as mock_popen,
             patch("src.utils.file_monitor.FileMonitor") as mock_monitor,
+            patch("src.utils.ram_monitor.RAMMonitor") as mock_ram_monitor_class,
         ):
             # Mock GPU available
             mock_gpu_instance = MagicMock()
@@ -67,6 +68,11 @@ class TestStreamFramesToVideoCoverage:
             # Mock FFmpeg encoder check (NVENC available)
             mock_subprocess.return_value.stdout = "h264_nvenc"
             mock_subprocess.return_value.returncode = 0
+
+            # Mock RAMMonitor
+            mock_ram_monitor = MagicMock()
+            mock_ram_monitor.check_ram_limit.return_value = (False, "")  # Not over limit
+            mock_ram_monitor_class.return_value = mock_ram_monitor
 
             # Mock FFmpeg process
             mock_process = MagicMock()
@@ -87,10 +93,11 @@ class TestStreamFramesToVideoCoverage:
             mock_monitor_instance = MagicMock()
             mock_monitor.return_value = mock_monitor_instance
 
-            # Create frame generator
+            # Create frame generator that yields enough frames
             def frame_gen():
-                frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
-                yield frame
+                for _ in range(30):  # Yield 30 frames (1 second at 30fps)
+                    frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+                    yield frame
 
             visualizer._stream_frames_to_video(frame_gen(), audio_path, output_path, 1.0)
 
@@ -111,6 +118,7 @@ class TestStreamFramesToVideoCoverage:
             patch("subprocess.run") as mock_subprocess,
             patch("subprocess.Popen") as mock_popen,
             patch("src.utils.file_monitor.FileMonitor") as mock_monitor,
+            patch("src.utils.ram_monitor.RAMMonitor") as mock_ram_monitor_class,
         ):
             # Mock GPU unavailable
             mock_gpu_instance = MagicMock()
@@ -120,6 +128,11 @@ class TestStreamFramesToVideoCoverage:
             # Mock FFmpeg encoder check (no NVENC)
             mock_subprocess.return_value.stdout = "libx264"
             mock_subprocess.return_value.returncode = 0
+
+            # Mock RAMMonitor
+            mock_ram_monitor = MagicMock()
+            mock_ram_monitor.check_ram_limit.return_value = (False, "")  # Not over limit
+            mock_ram_monitor_class.return_value = mock_ram_monitor
 
             # Mock FFmpeg process
             mock_process = MagicMock()
@@ -140,10 +153,11 @@ class TestStreamFramesToVideoCoverage:
             mock_monitor_instance = MagicMock()
             mock_monitor.return_value = mock_monitor_instance
 
-            # Create frame generator
+            # Create frame generator that yields enough frames
             def frame_gen():
-                frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
-                yield frame
+                for _ in range(30):  # Yield 30 frames (1 second at 30fps)
+                    frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+                    yield frame
 
             visualizer._stream_frames_to_video(frame_gen(), audio_path, output_path, 1.0)
 
@@ -163,7 +177,13 @@ class TestStreamFramesToVideoCoverage:
             patch("src.utils.gpu_utils.get_gpu_manager", side_effect=Exception("GPU check failed")),
             patch("subprocess.Popen") as mock_popen,
             patch("src.utils.file_monitor.FileMonitor") as mock_monitor,
+            patch("src.utils.ram_monitor.RAMMonitor") as mock_ram_monitor_class,
         ):
+            # Mock RAMMonitor
+            mock_ram_monitor = MagicMock()
+            mock_ram_monitor.check_ram_limit.return_value = (False, "")  # Not over limit
+            mock_ram_monitor_class.return_value = mock_ram_monitor
+
             # Mock FFmpeg process
             mock_process = MagicMock()
             mock_process.stdin = MagicMock()
@@ -183,10 +203,11 @@ class TestStreamFramesToVideoCoverage:
             mock_monitor_instance = MagicMock()
             mock_monitor.return_value = mock_monitor_instance
 
-            # Create frame generator
+            # Create frame generator that yields enough frames
             def frame_gen():
-                frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
-                yield frame
+                for _ in range(30):  # Yield 30 frames (1 second at 30fps)
+                    frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+                    yield frame
 
             # Should fall back to CPU encoding
             visualizer._stream_frames_to_video(frame_gen(), audio_path, output_path, 1.0)
