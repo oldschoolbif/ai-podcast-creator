@@ -82,6 +82,8 @@ class TestStreamFramesToVideoCoverage:
             mock_process.wait = MagicMock(return_value=0)
             mock_process.poll = MagicMock(return_value=None)  # Process still running
             mock_process.returncode = 0
+            # Mock communicate() to return (stdout, stderr) tuple
+            mock_process.communicate = MagicMock(return_value=(b'', b''))
             # Mock stderr to return empty iterator (simulates no errors)
             mock_stderr = MagicMock()
             # Make readline return empty bytes immediately (stops iterator)
@@ -142,6 +144,8 @@ class TestStreamFramesToVideoCoverage:
             mock_process.wait = MagicMock(return_value=0)
             mock_process.poll = MagicMock(return_value=None)  # Process still running
             mock_process.returncode = 0
+            # Mock communicate() to return (stdout, stderr) tuple
+            mock_process.communicate = MagicMock(return_value=(b'', b''))
             # Mock stderr to return empty iterator (simulates no errors)
             mock_stderr = MagicMock()
             # Make readline return empty bytes immediately (stops iterator)
@@ -192,6 +196,8 @@ class TestStreamFramesToVideoCoverage:
             mock_process.wait = MagicMock(return_value=0)
             mock_process.poll = MagicMock(return_value=None)  # Process still running
             mock_process.returncode = 0
+            # Mock communicate() to return (stdout, stderr) tuple
+            mock_process.communicate = MagicMock(return_value=(b'', b''))
             # Mock stderr to return empty iterator (simulates no errors)
             mock_stderr = MagicMock()
             # Make readline return empty bytes immediately (stops iterator)
