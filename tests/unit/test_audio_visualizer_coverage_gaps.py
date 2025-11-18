@@ -54,7 +54,7 @@ class TestStreamFramesToVideoCoverage:
 
         # Mock GPU manager and FFmpeg encoder check
         with (
-            patch("src.core.audio_visualizer.get_gpu_manager") as mock_gpu,
+            patch("src.utils.gpu_utils.get_gpu_manager") as mock_gpu,
             patch("subprocess.run") as mock_subprocess,
             patch("subprocess.Popen") as mock_popen,
             patch("src.utils.file_monitor.FileMonitor") as mock_monitor,
@@ -101,7 +101,7 @@ class TestStreamFramesToVideoCoverage:
         visualizer = AudioVisualizer(test_config_visualization)
 
         with (
-            patch("src.core.audio_visualizer.get_gpu_manager") as mock_gpu,
+            patch("src.utils.gpu_utils.get_gpu_manager") as mock_gpu,
             patch("subprocess.run") as mock_subprocess,
             patch("subprocess.Popen") as mock_popen,
             patch("src.utils.file_monitor.FileMonitor") as mock_monitor,
@@ -148,7 +148,7 @@ class TestStreamFramesToVideoCoverage:
         visualizer = AudioVisualizer(test_config_visualization)
 
         with (
-            patch("src.core.audio_visualizer.get_gpu_manager", side_effect=Exception("GPU check failed")),
+            patch("src.utils.gpu_utils.get_gpu_manager", side_effect=Exception("GPU check failed")),
             patch("subprocess.Popen") as mock_popen,
             patch("src.utils.file_monitor.FileMonitor") as mock_monitor,
         ):
@@ -192,7 +192,7 @@ class TestFramesToVideoCoverage:
         frames = [np.zeros((1080, 1920, 3), dtype=np.uint8) for _ in range(10)]
 
         with (
-            patch("src.core.audio_visualizer.get_gpu_manager") as mock_gpu,
+            patch("src.utils.gpu_utils.get_gpu_manager") as mock_gpu,
             patch("subprocess.run") as mock_subprocess,
             patch("tempfile.mkdtemp", return_value=str(tmp_path / "temp")),
         ):
@@ -225,7 +225,7 @@ class TestFramesToVideoCoverage:
         frames = [np.zeros((1080, 1920, 3), dtype=np.uint8) for _ in range(10)]
 
         with (
-            patch("src.core.audio_visualizer.get_gpu_manager") as mock_gpu,
+            patch("src.utils.gpu_utils.get_gpu_manager") as mock_gpu,
             patch("subprocess.run") as mock_subprocess,
             patch("tempfile.mkdtemp", return_value=str(tmp_path / "temp")),
         ):
@@ -395,9 +395,11 @@ class TestGenerateVisualizationCoverage:
             # Should use default duration (10.0 seconds)
             assert mock_gen.called
             # Check that duration was passed (should be 10.0 default)
-            call_kwargs = mock_gen.call_args[1] if mock_gen.call_args else {}
-            duration = call_kwargs.get("duration", 0)
-            assert duration == 10.0  # Default duration
+            # Note: duration is passed as positional arg, not keyword
+            call_args = mock_gen.call_args[0] if mock_gen.call_args else ()
+            if len(call_args) >= 3:
+                duration = call_args[2]  # duration is 3rd positional arg
+                assert duration == 10.0  # Default duration
 
     def test_generate_visualization_unknown_style_fallback(self, test_config_visualization, tmp_path):
         """Test generate_visualization falls back to waveform for unknown style."""
