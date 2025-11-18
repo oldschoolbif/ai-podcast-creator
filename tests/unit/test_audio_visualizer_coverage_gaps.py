@@ -74,7 +74,13 @@ class TestStreamFramesToVideoCoverage:
             mock_process.stdin.write = MagicMock()
             mock_process.stdin.close = MagicMock()
             mock_process.wait = MagicMock(return_value=0)
+            mock_process.poll = MagicMock(return_value=None)  # Process still running
             mock_process.returncode = 0
+            # Mock stderr to return empty iterator (simulates no errors)
+            mock_stderr = MagicMock()
+            # Make readline return empty bytes immediately (stops iterator)
+            mock_stderr.readline = MagicMock(return_value=b'')  # Empty bytes = end of stream
+            mock_process.stderr = mock_stderr
             mock_popen.return_value = mock_process
 
             # Mock monitor
@@ -121,7 +127,13 @@ class TestStreamFramesToVideoCoverage:
             mock_process.stdin.write = MagicMock()
             mock_process.stdin.close = MagicMock()
             mock_process.wait = MagicMock(return_value=0)
+            mock_process.poll = MagicMock(return_value=None)  # Process still running
             mock_process.returncode = 0
+            # Mock stderr to return empty iterator (simulates no errors)
+            mock_stderr = MagicMock()
+            # Make readline return empty bytes immediately (stops iterator)
+            mock_stderr.readline = MagicMock(return_value=b'')  # Empty bytes = end of stream
+            mock_process.stderr = mock_stderr
             mock_popen.return_value = mock_process
 
             # Mock monitor
@@ -158,7 +170,13 @@ class TestStreamFramesToVideoCoverage:
             mock_process.stdin.write = MagicMock()
             mock_process.stdin.close = MagicMock()
             mock_process.wait = MagicMock(return_value=0)
+            mock_process.poll = MagicMock(return_value=None)  # Process still running
             mock_process.returncode = 0
+            # Mock stderr to return empty iterator (simulates no errors)
+            mock_stderr = MagicMock()
+            # Make readline return empty bytes immediately (stops iterator)
+            mock_stderr.readline = MagicMock(return_value=b'')  # Empty bytes = end of stream
+            mock_process.stderr = mock_stderr
             mock_popen.return_value = mock_process
 
             # Mock monitor
@@ -191,10 +209,14 @@ class TestFramesToVideoCoverage:
         # Create test frames
         frames = [np.zeros((1080, 1920, 3), dtype=np.uint8) for _ in range(10)]
 
+        # Create temp directory
+        temp_dir = tmp_path / "temp"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+
         with (
             patch("src.utils.gpu_utils.get_gpu_manager") as mock_gpu,
             patch("subprocess.run") as mock_subprocess,
-            patch("tempfile.mkdtemp", return_value=str(tmp_path / "temp")),
+            patch("tempfile.mkdtemp", return_value=str(temp_dir)),
         ):
             # Mock GPU available
             mock_gpu_instance = MagicMock()
@@ -224,10 +246,14 @@ class TestFramesToVideoCoverage:
         # Create test frames
         frames = [np.zeros((1080, 1920, 3), dtype=np.uint8) for _ in range(10)]
 
+        # Create temp directory
+        temp_dir = tmp_path / "temp"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+
         with (
             patch("src.utils.gpu_utils.get_gpu_manager") as mock_gpu,
             patch("subprocess.run") as mock_subprocess,
-            patch("tempfile.mkdtemp", return_value=str(tmp_path / "temp")),
+            patch("tempfile.mkdtemp", return_value=str(temp_dir)),
         ):
             # Mock GPU unavailable
             mock_gpu_instance = MagicMock()
