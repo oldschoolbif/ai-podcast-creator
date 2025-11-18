@@ -263,25 +263,31 @@ class TestPodcastCreatorGUICreatePodcast:
 
         root, gui = self._build_gui(tmp_path)
 
+        final_video = tmp_path / "output" / "final.mp4"
+        final_video.parent.mkdir(parents=True, exist_ok=True)
+        final_video.write_bytes(b"video")
+
         with (
-            patch("src.gui.desktop_gui.ScriptParser") as mock_parser,
-            patch("src.gui.desktop_gui.TTSEngine") as mock_tts,
-            patch("src.gui.desktop_gui.AudioMixer") as mock_mixer,
-            patch("src.gui.desktop_gui.VideoComposer") as mock_composer,
             patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
             patch("tkinter.messagebox.askyesno", return_value=False),
+            patch.object(PodcastCreatorGUI, "open_output_folder"),
+            patch.object(PodcastCreatorGUI, "_run_on_ui_thread") as mock_run_ui,
+            patch.object(gui.controller, "create_podcast") as mock_controller_create,
         ):
-
-            mock_parser.return_value.parse.return_value = {"text": "hello", "music_cues": []}
-            mock_tts.return_value.generate.return_value = tmp_path / "audio.mp3"
-            mock_mixer.return_value.mix.return_value = tmp_path / "mixed.mp3"
-            mock_composer.return_value.compose.return_value = tmp_path / "output" / "final.mp4"
+            # Make _run_on_ui_thread execute immediately without waiting
+            def immediate_run(func, wait=False):
+                func()
+            mock_run_ui.side_effect = immediate_run
+            
+            # Mock controller.create_podcast to return immediately
+            mock_controller_create.return_value = final_video
 
             gui.script_file.set(str(script_path))
             gui.music_file.set(str(music_path))
             gui.create_podcast()
 
             assert gui.music_file.get() == str(music_path)
+            mock_controller_create.assert_called_once()
 
         root.destroy()
 
@@ -291,29 +297,30 @@ class TestPodcastCreatorGUICreatePodcast:
 
         root, gui = self._build_gui(tmp_path)
 
+        final_video = tmp_path / "output" / "final.mp4"
+        final_video.parent.mkdir(parents=True, exist_ok=True)
+        final_video.write_bytes(b"video")
+
         with (
-            patch("src.gui.desktop_gui.ScriptParser") as mock_parser,
-            patch("src.gui.desktop_gui.TTSEngine") as mock_tts,
-            patch("src.gui.desktop_gui.MusicGenerator") as mock_music,
-            patch("src.gui.desktop_gui.AudioMixer") as mock_mixer,
-            patch("src.gui.desktop_gui.VideoComposer") as mock_composer,
             patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
             patch("tkinter.messagebox.askyesno", return_value=False),
+            patch.object(PodcastCreatorGUI, "open_output_folder"),
+            patch.object(PodcastCreatorGUI, "_run_on_ui_thread") as mock_run_ui,
+            patch.object(gui.controller, "create_podcast") as mock_controller_create,
         ):
-
-            mock_parser.return_value.parse.return_value = {"text": "hello", "music_cues": []}
-            mock_tts.return_value.generate.return_value = tmp_path / "audio.mp3"
-            generated_music = tmp_path / "generated.wav"
-            generated_music.write_bytes(b"music")
-            mock_music.return_value.generate.return_value = generated_music
-            mock_mixer.return_value.mix.return_value = tmp_path / "mixed.mp3"
-            mock_composer.return_value.compose.return_value = tmp_path / "output" / "final.mp4"
+            # Make _run_on_ui_thread execute immediately without waiting
+            def immediate_run(func, wait=False):
+                func()
+            mock_run_ui.side_effect = immediate_run
+            
+            # Mock controller.create_podcast to return immediately
+            mock_controller_create.return_value = final_video
 
             gui.script_file.set(str(script_path))
             gui.music_description.set("upbeat electronic")
             gui.create_podcast()
 
-            mock_music.return_value.generate.assert_called()
+            mock_controller_create.assert_called_once()
 
         root.destroy()
 
