@@ -93,6 +93,7 @@ class TestStreamFramesToVideoCoverage:
 
             # Mock monitor
             mock_monitor_instance = MagicMock()
+            mock_monitor_instance.get_current_size_mb.return_value = 1.5  # Return real value for formatting
             mock_monitor.return_value = mock_monitor_instance
 
             # Create frame generator that yields enough frames
@@ -155,6 +156,7 @@ class TestStreamFramesToVideoCoverage:
 
             # Mock monitor
             mock_monitor_instance = MagicMock()
+            mock_monitor_instance.get_current_size_mb.return_value = 1.5  # Return real value for formatting
             mock_monitor.return_value = mock_monitor_instance
 
             # Create frame generator that yields enough frames
@@ -207,6 +209,7 @@ class TestStreamFramesToVideoCoverage:
 
             # Mock monitor
             mock_monitor_instance = MagicMock()
+            mock_monitor_instance.get_current_size_mb.return_value = 1.5  # Return real value for formatting
             mock_monitor.return_value = mock_monitor_instance
 
             # Create frame generator that yields enough frames
