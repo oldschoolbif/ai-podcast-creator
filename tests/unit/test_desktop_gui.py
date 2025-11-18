@@ -635,6 +635,7 @@ class TestPodcastCreatorGUIAdditionalCoverage:
         gui.script_file.set(str(script_path))
         gui.video_quality.set("High (1080p)")  # Legacy format
         
+<<<<<<< HEAD
         final_video = tmp_path / "output" / "final.mp4"
         final_video.parent.mkdir(parents=True, exist_ok=True)
         final_video.write_bytes(b"video")
@@ -669,6 +670,7 @@ class TestPodcastCreatorGUIAdditionalCoverage:
         root, gui = self._build_gui(tmp_path)
         gui.script_file.set(str(script_path))
         
+<<<<<<< HEAD
         final_video = tmp_path / "output" / "final.mp4"
         final_video.parent.mkdir(parents=True, exist_ok=True)
         final_video.write_bytes(b"video")
@@ -687,6 +689,21 @@ class TestPodcastCreatorGUIAdditionalCoverage:
             
             # Mock controller.create_podcast to return immediately
             mock_controller_create.return_value = final_video
+=======
+        with (
+            patch("src.gui.desktop_gui.ScriptParser") as mock_parser,
+            patch("src.gui.desktop_gui.TTSEngine") as mock_tts,
+            patch("src.gui.desktop_gui.AudioMixer") as mock_mixer,
+            patch("src.gui.desktop_gui.VideoComposer") as mock_composer,
+            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
+            patch("tkinter.messagebox.askyesno", return_value=True),  # User confirms
+            patch.object(PodcastCreatorGUI, "open_output_folder") as mock_open,
+        ):
+            mock_parser.return_value.parse.return_value = {"text": "hello", "music_cues": []}
+            mock_tts.return_value.generate.return_value = tmp_path / "audio.mp3"
+            mock_mixer.return_value.mix.return_value = tmp_path / "mixed.mp3"
+            mock_composer.return_value.compose.return_value = tmp_path / "output" / "final.mp4"
+>>>>>>> origin/main
             
             gui.create_podcast()
             
