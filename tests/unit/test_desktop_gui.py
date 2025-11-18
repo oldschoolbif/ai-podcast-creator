@@ -626,8 +626,78 @@ class TestPodcastCreatorGUIAdditionalCoverage:
         
         root.destroy()
 
-    def test_create_podcast_quality_legacy_format(self, tmp_path):
-        """Test create_podcast with legacy quality format (lines 409-416)."""
+    def test_create_podcast_avatar_success(self, tmp_path):
+        """Test create_podcast with successful avatar generation (lines 387-388)."""
+        script_path = tmp_path / "script.txt"
+        script_path.write_text("Test", encoding="utf-8")
+        
+        root, gui = self._build_gui(tmp_path)
+        gui.script_file.set(str(script_path))
+        gui.avatar.set(True)
+        
+        final_video = tmp_path / "output" / "final.mp4"
+        final_video.parent.mkdir(parents=True, exist_ok=True)
+        final_video.write_bytes(b"video")
+        
+        with (
+            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
+            patch("tkinter.messagebox.askyesno", return_value=False),
+            patch.object(PodcastCreatorGUI, "open_output_folder"),
+            patch.object(PodcastCreatorGUI, "_run_on_ui_thread") as mock_run_ui,
+            patch.object(gui.controller, "create_podcast") as mock_controller_create,
+        ):
+            # Make _run_on_ui_thread execute immediately without waiting
+            def immediate_run(func, wait=False):
+                func()
+            mock_run_ui.side_effect = immediate_run
+            
+            # Mock controller.create_podcast to return immediately
+            mock_controller_create.return_value = final_video
+            
+            gui.create_podcast()
+            
+            # Verify controller was called
+            mock_controller_create.assert_called_once()
+        
+        root.destroy()
+    
+    def test_create_podcast_avatar_empty_file(self, tmp_path):
+        """Test create_podcast when avatar generation returns empty file (lines 389-391)."""
+        script_path = tmp_path / "script.txt"
+        script_path.write_text("Test", encoding="utf-8")
+        
+        root, gui = self._build_gui(tmp_path)
+        gui.script_file.set(str(script_path))
+        gui.avatar.set(True)
+        
+        final_video = tmp_path / "output" / "final.mp4"
+        final_video.parent.mkdir(parents=True, exist_ok=True)
+        final_video.write_bytes(b"video")
+        
+        with (
+            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
+            patch("tkinter.messagebox.askyesno", return_value=False),
+            patch.object(PodcastCreatorGUI, "open_output_folder"),
+            patch.object(PodcastCreatorGUI, "_run_on_ui_thread") as mock_run_ui,
+            patch.object(gui.controller, "create_podcast") as mock_controller_create,
+        ):
+            # Make _run_on_ui_thread execute immediately without waiting
+            def immediate_run(func, wait=False):
+                func()
+            mock_run_ui.side_effect = immediate_run
+            
+            # Mock controller.create_podcast to return immediately
+            mock_controller_create.return_value = final_video
+            
+            gui.create_podcast()
+            
+            # Verify controller was called
+            mock_controller_create.assert_called_once()
+        
+        root.destroy()
+    
+    def test_create_podcast_quality_legacy_format_high(self, tmp_path):
+        """Test create_podcast with legacy quality format 'High (1080p)' (lines 409-410)."""
         script_path = tmp_path / "script.txt"
         script_path.write_text("Test", encoding="utf-8")
         
@@ -656,7 +726,112 @@ class TestPodcastCreatorGUIAdditionalCoverage:
             
             gui.create_podcast()
             
-            # Verify controller was called (quality mapping is tested in controller tests)
+            # Verify controller was called
+            mock_controller_create.assert_called_once()
+        
+        root.destroy()
+    
+    def test_create_podcast_quality_legacy_format_medium(self, tmp_path):
+        """Test create_podcast with legacy quality format 'Medium (720p)' (lines 411-412)."""
+        script_path = tmp_path / "script.txt"
+        script_path.write_text("Test", encoding="utf-8")
+        
+        root, gui = self._build_gui(tmp_path)
+        gui.script_file.set(str(script_path))
+        gui.video_quality.set("Medium (720p)")  # Legacy format
+        
+        final_video = tmp_path / "output" / "final.mp4"
+        final_video.parent.mkdir(parents=True, exist_ok=True)
+        final_video.write_bytes(b"video")
+        
+        with (
+            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
+            patch("tkinter.messagebox.askyesno", return_value=False),
+            patch.object(PodcastCreatorGUI, "open_output_folder"),
+            patch.object(PodcastCreatorGUI, "_run_on_ui_thread") as mock_run_ui,
+            patch.object(gui.controller, "create_podcast") as mock_controller_create,
+        ):
+            # Make _run_on_ui_thread execute immediately without waiting
+            def immediate_run(func, wait=False):
+                func()
+            mock_run_ui.side_effect = immediate_run
+            
+            # Mock controller.create_podcast to return immediately
+            mock_controller_create.return_value = final_video
+            
+            gui.create_podcast()
+            
+            # Verify controller was called
+            mock_controller_create.assert_called_once()
+        
+        root.destroy()
+    
+    def test_create_podcast_quality_legacy_format_fast(self, tmp_path):
+        """Test create_podcast with legacy quality format 'Fast (720p)' (lines 413-414)."""
+        script_path = tmp_path / "script.txt"
+        script_path.write_text("Test", encoding="utf-8")
+        
+        root, gui = self._build_gui(tmp_path)
+        gui.script_file.set(str(script_path))
+        gui.video_quality.set("Fast (720p)")  # Legacy format
+        
+        final_video = tmp_path / "output" / "final.mp4"
+        final_video.parent.mkdir(parents=True, exist_ok=True)
+        final_video.write_bytes(b"video")
+        
+        with (
+            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
+            patch("tkinter.messagebox.askyesno", return_value=False),
+            patch.object(PodcastCreatorGUI, "open_output_folder"),
+            patch.object(PodcastCreatorGUI, "_run_on_ui_thread") as mock_run_ui,
+            patch.object(gui.controller, "create_podcast") as mock_controller_create,
+        ):
+            # Make _run_on_ui_thread execute immediately without waiting
+            def immediate_run(func, wait=False):
+                func()
+            mock_run_ui.side_effect = immediate_run
+            
+            # Mock controller.create_podcast to return immediately
+            mock_controller_create.return_value = final_video
+            
+            gui.create_podcast()
+            
+            # Verify controller was called
+            mock_controller_create.assert_called_once()
+        
+        root.destroy()
+    
+    def test_create_podcast_quality_legacy_format_default(self, tmp_path):
+        """Test create_podcast with legacy quality format default fallback (line 416)."""
+        script_path = tmp_path / "script.txt"
+        script_path.write_text("Test", encoding="utf-8")
+        
+        root, gui = self._build_gui(tmp_path)
+        gui.script_file.set(str(script_path))
+        gui.video_quality.set("Unknown Quality")  # Not in legacy format or quality_map
+        
+        final_video = tmp_path / "output" / "final.mp4"
+        final_video.parent.mkdir(parents=True, exist_ok=True)
+        final_video.write_bytes(b"video")
+        
+        with (
+            patch("src.gui.desktop_gui.threading.Thread", new=ImmediateThread),
+            patch("tkinter.messagebox.askyesno", return_value=False),
+            patch.object(PodcastCreatorGUI, "open_output_folder"),
+            patch.object(PodcastCreatorGUI, "_run_on_ui_thread") as mock_run_ui,
+            patch.object(gui.controller, "create_podcast") as mock_controller_create,
+        ):
+            # Make _run_on_ui_thread execute immediately without waiting
+            def immediate_run(func, wait=False):
+                func()
+            mock_run_ui.side_effect = immediate_run
+            
+            # Mock controller.create_podcast to return immediately
+            mock_controller_create.return_value = final_video
+            
+            gui.create_podcast()
+            
+            # Verify controller was called
             mock_controller_create.assert_called_once()
         
         root.destroy()

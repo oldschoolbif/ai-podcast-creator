@@ -1498,6 +1498,249 @@ def test_cli_cleanup_nothing_to_clean(tmp_path):
         # Rich console output may not appear in stdout, but command should succeed
 
 
+def test_cli_create_with_ram_warning(tmp_path):
+    """Test create command with RAM warning (line 248)."""
+    script_path = tmp_path / "script.txt"
+    script_path.write_text("# Title\nHello world", encoding="utf-8")
+    config = make_cli_config(tmp_path)
+    
+    fake_gpu = MagicMock()
+    fake_gpu.gpu_available = False
+    
+    parser_instance = MagicMock()
+    parser_instance.parse.return_value = {"text": "Hello world", "music_cues": []}
+    
+    tts_instance = MagicMock()
+    tts_instance.generate.return_value = tmp_path / "voice.mp3"
+    (tmp_path / "voice.mp3").write_bytes(b"voice")
+    
+    mixer_instance = MagicMock()
+    mixer_instance.mix.return_value = tmp_path / "mixed.mp3"
+    (tmp_path / "mixed.mp3").write_bytes(b"mixed")
+    
+    class DummyRAMMonitor:
+        total_ram_gb = 64.0
+        max_ram_gb = 45.0
+        
+        def __init__(self, *args, **kwargs):
+            pass
+        
+        def get_ram_usage_gb(self):
+            return 12.0
+        
+        def check_ram_limit(self):
+            # Return warning message (False, "warning")
+            return False, "WARNING: RAM usage approaching limit"
+    
+    class DummyProgress:
+        def __init__(self, *args, **kwargs):
+            pass
+        
+        def __enter__(self):
+            return self
+        
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            return False
+        
+        def add_task(self, *args, **kwargs):
+            return 1
+        
+        def update(self, *args, **kwargs):
+            return None
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("src.cli.main.ScriptParser", return_value=parser_instance),
+        patch("src.cli.main.TTSEngine", return_value=tts_instance),
+        patch("src.cli.main.AudioMixer", return_value=mixer_instance),
+        patch("src.utils.metrics.get_metrics_tracker", return_value=None),
+        patch("src.utils.ram_monitor.RAMMonitor", DummyRAMMonitor),
+        patch("src.cli.main.Progress", DummyProgress),
+        patch("subprocess.run") as mock_subprocess,
+    ):
+        def ffmpeg_side_effect(cmd, check=True, capture_output=True, **kwargs):
+            Path(cmd[-2]).write_bytes(b"mp3")
+            return MagicMock(returncode=0, stdout="", stderr="")
+        
+        mock_subprocess.side_effect = ffmpeg_side_effect
+        
+        result = runner.invoke(app, ["create", str(script_path), "--audio-only"])
+        
+        assert result.exit_code == 0
+        assert "WARN" in result.stdout or "RAM" in result.stdout
+
+
+def test_cli_create_with_music_offset(tmp_path):
+    """Test create command with music offset message (line 319)."""
+    script_path = tmp_path / "script.txt"
+    script_path.write_text("# Title\nHello world", encoding="utf-8")
+    config = make_cli_config(tmp_path)
+    
+    fake_gpu = MagicMock()
+    fake_gpu.gpu_available = False
+    
+    parser_instance = MagicMock()
+    parser_instance.parse.return_value = {"text": "Hello world", "music_cues": []}
+    
+    tts_instance = MagicMock()
+    tts_instance.generate.return_value = tmp_path / "voice.mp3"
+    (tmp_path / "voice.mp3").write_bytes(b"voice")
+    
+    mixer_instance = MagicMock()
+    mixer_instance.mix.return_value = tmp_path / "mixed.mp3"
+    (tmp_path / "mixed.mp3").write_bytes(b"mixed")
+    
+    class DummyRAMMonitor:
+        total_ram_gb = 64.0
+        max_ram_gb = 45.0
+        
+        def __init__(self, *args, **kwargs):
+            pass
+        
+        def get_ram_usage_gb(self):
+            return 12.0
+        
+        def check_ram_limit(self):
+            return False, ""
+    
+    class DummyProgress:
+        def __init__(self, *args, **kwargs):
+            pass
+        
+        def __enter__(self):
+            return self
+        
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            return False
+        
+        def add_task(self, *args, **kwargs):
+            return 1
+        
+        def update(self, *args, **kwargs):
+            return None
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("src.cli.main.ScriptParser", return_value=parser_instance),
+        patch("src.cli.main.TTSEngine", return_value=tts_instance),
+        patch("src.cli.main.AudioMixer", return_value=mixer_instance),
+        patch("src.utils.metrics.get_metrics_tracker", return_value=None),
+        patch("src.utils.ram_monitor.RAMMonitor", DummyRAMMonitor),
+        patch("src.cli.main.Progress", DummyProgress),
+        patch("subprocess.run") as mock_subprocess,
+    ):
+        def ffmpeg_side_effect(cmd, check=True, capture_output=True, **kwargs):
+            Path(cmd[-2]).write_bytes(b"mp3")
+            return MagicMock(returncode=0, stdout="", stderr="")
+        
+        mock_subprocess.side_effect = ffmpeg_side_effect
+        
+        result = runner.invoke(
+            app,
+            [
+                "create",
+                str(script_path),
+                "--audio-only",
+                "--music-offset",
+                "5.0",
+                "--skip-music",
+            ],
+        )
+        
+        assert result.exit_code == 0
+        assert "offset" in result.stdout.lower() or "5" in result.stdout
+
+
+def test_cli_create_with_multiple_chunks_display(tmp_path):
+    """Test create command with multiple chunks display (lines 230, 252-256)."""
+    script_path = tmp_path / "script.txt"
+    script_path.write_text("# Title\nHello world", encoding="utf-8")
+    config = make_cli_config(tmp_path)
+    
+    fake_gpu = MagicMock()
+    fake_gpu.gpu_available = False
+    
+    parser_instance = MagicMock()
+    parser_instance.parse.return_value = {"text": "Hello world", "music_cues": []}
+    
+    tts_instance = MagicMock()
+    tts_instance.generate.return_value = tmp_path / "voice.mp3"
+    (tmp_path / "voice.mp3").write_bytes(b"voice")
+    
+    mixer_instance = MagicMock()
+    mixer_instance.mix.return_value = tmp_path / "mixed.mp3"
+    (tmp_path / "mixed.mp3").write_bytes(b"mixed")
+    
+    # Create multiple chunk files
+    chunk1 = tmp_path / "script_chunk_001.txt"
+    chunk2 = tmp_path / "script_chunk_002.txt"
+    chunk1.write_text("Chunk 1", encoding="utf-8")
+    chunk2.write_text("Chunk 2", encoding="utf-8")
+    
+    class DummyRAMMonitor:
+        total_ram_gb = 64.0
+        max_ram_gb = 45.0
+        
+        def __init__(self, *args, **kwargs):
+            pass
+        
+        def get_ram_usage_gb(self):
+            return 12.0
+        
+        def check_ram_limit(self):
+            return False, ""
+    
+    class DummyProgress:
+        def __init__(self, *args, **kwargs):
+            pass
+        
+        def __enter__(self):
+            return self
+        
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            return False
+        
+        def add_task(self, *args, **kwargs):
+            return 1
+        
+        def update(self, *args, **kwargs):
+            return None
+    
+    with (
+        patch("src.cli.main.load_config", return_value=config),
+        patch("src.cli.main.get_gpu_manager", return_value=fake_gpu),
+        patch("src.cli.main.ScriptParser", return_value=parser_instance),
+        patch("src.cli.main.TTSEngine", return_value=tts_instance),
+        patch("src.cli.main.AudioMixer", return_value=mixer_instance),
+        patch("src.utils.metrics.get_metrics_tracker", return_value=None),
+        patch("src.utils.ram_monitor.RAMMonitor", DummyRAMMonitor),
+        patch("src.cli.main.Progress", DummyProgress),
+        patch("src.utils.script_chunker.chunk_script", return_value=[chunk1, chunk2]),
+        patch("subprocess.run") as mock_subprocess,
+    ):
+        def ffmpeg_side_effect(cmd, check=True, capture_output=True, **kwargs):
+            Path(cmd[-2]).write_bytes(b"mp3")
+            return MagicMock(returncode=0, stdout="", stderr="")
+        
+        mock_subprocess.side_effect = ffmpeg_side_effect
+        
+        result = runner.invoke(
+            app,
+            [
+                "create",
+                str(script_path),
+                "--audio-only",
+                "--chunk-duration",
+                "1",
+            ],
+        )
+        
+        assert result.exit_code == 0
+        assert "chunks" in result.stdout.lower() or "Chunk" in result.stdout
+
+
 def test_cli_cleanup_cache_only(tmp_path):
     """Test cleanup command with --cache-only flag."""
     config = make_cli_config(tmp_path)

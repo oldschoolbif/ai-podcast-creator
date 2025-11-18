@@ -3,6 +3,7 @@ Unit Tests for GPU Utilities
 Tests for src/utils/gpu_utils.py
 """
 
+import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
@@ -233,6 +234,176 @@ class TestGPUManager:
             mock_props.return_value.total_memory = 8 * 1024**3
             manager = GPUManager()
             config = manager.get_performance_config()
+
+    def test_optimize_for_inference_tf32_ampere(self):
+        """Test optimize_for_inference enables TF32 for Ampere+ GPUs (lines 81-83, 86)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=16)
+        mock_torch.cuda.get_device_capability.return_value = (8, 0)  # Ampere architecture
+        
+        with (
+            patch.dict("sys.modules", {"torch": mock_torch}),
+            patch.dict(os.environ, {}, clear=False),
+        ):
+            manager = GPUManager()
+            manager.optimize_for_inference()
+            
+            # Check TF32 was enabled
+            assert mock_torch.backends.cuda.matmul.allow_tf32 == True
+            assert mock_torch.backends.cudnn.allow_tf32 == True
+            # Check PYTORCH_CUDA_ALLOC_CONF was set
+            assert "PYTORCH_CUDA_ALLOC_CONF" in os.environ
+            assert "max_split_size_mb:512" in os.environ["PYTORCH_CUDA_ALLOC_CONF"]
+    
+    def test_optimize_for_inference_exception(self):
+        """Test optimize_for_inference handles exceptions (line 88-89)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=16)
+        mock_torch.cuda.get_device_capability.side_effect = Exception("Capability check failed")
+        
+        with (
+            patch.dict("sys.modules", {"torch": mock_torch}),
+            patch("builtins.print") as mock_print,
+        ):
+            manager = GPUManager()
+            manager.optimize_for_inference()
+            
+            # Should print warning
+            assert mock_print.called
+    
+    def test_get_optimal_batch_size_tts_12gb(self):
+        """Test get_optimal_batch_size for TTS with 12GB GPU (line 98-99)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=12)
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("tts") == 4
+    
+    def test_get_optimal_batch_size_tts_8gb(self):
+        """Test get_optimal_batch_size for TTS with 8GB GPU (line 100-101)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=8)
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("tts") == 2
+    
+    def test_get_optimal_batch_size_tts_4gb(self):
+        """Test get_optimal_batch_size for TTS with 4GB GPU (line 102-103)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=4)
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("tts") == 1
+    
+    def test_get_optimal_batch_size_avatar_12gb(self):
+        """Test get_optimal_batch_size for avatar with 12GB GPU (line 105-106)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=12)
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("avatar") == 2
+    
+    def test_get_optimal_batch_size_avatar_8gb(self):
+        """Test get_optimal_batch_size for avatar with 8GB GPU (line 107-108)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=8)
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("avatar") == 1
+    
+    def test_get_optimal_batch_size_music_16gb(self):
+        """Test get_optimal_batch_size for music with 16GB GPU (line 110-111)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=16)
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("music") == 2
+    
+    def test_get_optimal_batch_size_music_12gb(self):
+        """Test get_optimal_batch_size for music with 12GB GPU (line 112-113)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=12)
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            assert manager.get_optimal_batch_size("music") == 1
+    
+    def test_get_performance_config_fp16_compute_7(self):
+        """Test get_performance_config enables FP16 for compute capability 7+ (lines 137-139)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=16)
+        mock_torch.cuda.get_device_capability.return_value = (7, 5)  # Volta/Turing
+        
+        with (
+            patch.dict("sys.modules", {"torch": mock_torch}),
+            patch("builtins.print") as mock_print,
+        ):
+            manager = GPUManager()
+            config = manager.get_performance_config()
+            
+            assert config["use_fp16"] == True
+            assert config["use_tf32"] == False  # TF32 only for Ampere (8+)
+    
+    def test_get_performance_config_tf32_compute_8(self):
+        """Test get_performance_config enables TF32 for compute capability 8+ (lines 141-142)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=16)
+        mock_torch.cuda.get_device_capability.return_value = (8, 0)  # Ampere
+        
+        with (
+            patch.dict("sys.modules", {"torch": mock_torch}),
+            patch("builtins.print") as mock_print,
+        ):
+            manager = GPUManager()
+            config = manager.get_performance_config()
+            
+            assert config["use_fp16"] == True  # Should also enable FP16
+            assert config["use_tf32"] == True
+    
+    def test_get_performance_config_num_workers(self):
+        """Test get_performance_config sets num_workers (line 145)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=16)
+        mock_torch.cuda.get_device_capability.return_value = (8, 0)
+        
+        with (
+            patch.dict("sys.modules", {"torch": mock_torch}),
+            patch("os.cpu_count", return_value=16),
+        ):
+            manager = GPUManager()
+            config = manager.get_performance_config()
+            
+            assert "num_workers" in config
+            assert config["num_workers"] == 8  # min(8, 16)
+    
+    def test_get_memory_usage_success(self):
+        """Test get_memory_usage success path (lines 172-175)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=16)
+        mock_torch.cuda.memory_allocated.return_value = 2 * (1024**3)  # 2GB allocated
+        mock_torch.cuda.memory_reserved.return_value = 3 * (1024**3)  # 3GB reserved
+        
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            usage = manager.get_memory_usage()
+            
+            assert usage["allocated_gb"] == 2.0
+            assert usage["reserved_gb"] == 3.0
+            assert usage["free_gb"] == 14.0  # 16 - 2
+            assert usage["total_gb"] == 16.0
+    
+    def test_set_device_success(self):
+        """Test set_device success path (lines 258-263)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=16)
+        
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            manager = GPUManager()
+            manager.set_device(1)
+            
+            assert mock_torch.cuda.set_device.called
+            assert manager.device_id == 1
+            assert manager.device == "cuda:1"
+    
+    def test_set_device_exception(self):
+        """Test set_device handles exceptions (lines 264-265)."""
+        mock_torch = _create_mock_torch(cuda_available=True, memory_gb=16)
+        mock_torch.cuda.set_device.side_effect = Exception("Device set failed")
+        
+        with (
+            patch.dict("sys.modules", {"torch": mock_torch}),
+            patch("builtins.print") as mock_print,
+        ):
+            manager = GPUManager()
+            manager.set_device(1)
+            
+            # Should print warning
+            assert mock_print.called
 
     @pytest.mark.gpu
     def test_get_performance_config_compute_capability_7(self):
