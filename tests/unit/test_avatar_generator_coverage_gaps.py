@@ -21,8 +21,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.core.avatar_generator import AvatarGenerator
 
-from src.core.avatar_generator import AvatarGenerator
-
 
 @pytest.fixture
 def test_config(tmp_path):
