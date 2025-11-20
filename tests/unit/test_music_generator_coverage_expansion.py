@@ -34,6 +34,7 @@ class TestMusicGeneratorMissingPaths:
         mock_audiocraft.models.MusicGen.get_pretrained.return_value = mock_model
 
         mock_torch = MagicMock()
+        mock_torch.__version__ = "2.0.0"  # Add version attribute
         mock_torch.inference_mode = MagicMock(return_value=MagicMock())
         mock_torch.cuda.amp.autocast = MagicMock(return_value=MagicMock())
 
@@ -72,6 +73,7 @@ class TestMusicGeneratorMissingPaths:
         mock_audiocraft.models.MusicGen.get_pretrained.return_value = mock_model
 
         mock_torch = MagicMock()
+        mock_torch.__version__ = "2.0.0"  # Add version attribute
         mock_torch.inference_mode = MagicMock(return_value=MagicMock())
         mock_torch.cuda.amp.autocast = MagicMock(return_value=MagicMock())
 
@@ -177,9 +179,13 @@ class TestMusicGeneratorMissingPaths:
         mock_audiocraft.models.MusicGen.get_pretrained.return_value = mock_model
 
         mock_torch = MagicMock()
+        mock_torch.__version__ = "2.0.0"  # Set version attribute
+        mock_torch.compile = MagicMock()  # Add compile method
         mock_autocast_context = MagicMock()
         mock_autocast_context.__enter__ = MagicMock(return_value=mock_autocast_context)
         mock_autocast_context.__exit__ = MagicMock(return_value=False)
+        mock_torch.cuda = MagicMock()
+        mock_torch.cuda.amp = MagicMock()
         mock_torch.cuda.amp.autocast.return_value = mock_autocast_context
         mock_torch.inference_mode = MagicMock(return_value=MagicMock())
 
