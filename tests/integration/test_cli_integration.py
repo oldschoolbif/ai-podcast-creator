@@ -13,7 +13,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.cli.main import app
 
-
 @pytest.mark.integration
 class TestCLIIntegration:
     """Integration tests for CLI commands - exercise full CLI code paths."""
@@ -22,6 +21,12 @@ class TestCLIIntegration:
         """Test version command exercises full code path."""
         from typer.testing import CliRunner
         runner = CliRunner()
+        
+        # Ensure test_config has required keys
+        if "app" not in test_config:
+            test_config["app"] = {"name": "AI Podcast Creator", "version": "1.0.0"}
+        if "character" not in test_config:
+            test_config["character"] = {"name": "Test Character", "voice_type": "gtts"}
         
         with patch("src.cli.main.load_config", return_value=test_config):
             result = runner.invoke(app, ["version"])
@@ -99,6 +104,9 @@ class TestCLIIntegration:
 
     def test_cleanup_dry_run_integration(self, test_config, tmp_path):
         """Test cleanup --dry-run command."""
+        from typer.testing import CliRunner
+        runner = CliRunner()
+        
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir(parents=True)
         (cache_dir / "test.txt").write_text("test")
@@ -107,8 +115,6 @@ class TestCLIIntegration:
         test_config["storage"]["outputs_dir"] = str(tmp_path / "outputs")
 
         with patch("src.cli.main.load_config", return_value=test_config):
-            from typer.testing import CliRunner
-            runner = CliRunner()
             result = runner.invoke(app, ["cleanup", "--dry-run"])
             assert result.exit_code == 0
             # File should still exist (dry-run doesn't delete)
