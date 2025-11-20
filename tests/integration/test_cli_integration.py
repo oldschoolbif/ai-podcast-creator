@@ -11,6 +11,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from src.cli.main import app
 
 @pytest.mark.integration
 class TestCLIIntegration:
@@ -19,7 +20,6 @@ class TestCLIIntegration:
     def test_version_command_integration(self, test_config, tmp_path):
         """Test version command exercises full code path."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         # Ensure test_config has required keys
@@ -35,7 +35,6 @@ class TestCLIIntegration:
     def test_status_command_integration(self, tmp_path):
         """Test status command exercises full code path."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         fake_gpu = MagicMock()
@@ -56,7 +55,6 @@ class TestCLIIntegration:
     def test_config_show_integration(self, test_config, tmp_path):
         """Test config --show command."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         with patch("src.cli.main.load_config", return_value=test_config):
@@ -66,7 +64,6 @@ class TestCLIIntegration:
     def test_config_edit_integration(self, tmp_path):
         """Test config --edit command."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         result = runner.invoke(app, ["config", "--edit"])
         assert result.exit_code == 0
@@ -74,7 +71,6 @@ class TestCLIIntegration:
     def test_config_reset_integration(self, tmp_path):
         """Test config --reset command."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         result = runner.invoke(app, ["config", "--reset"])
         assert result.exit_code == 0
@@ -82,7 +78,6 @@ class TestCLIIntegration:
     def test_config_no_flags_integration(self, tmp_path):
         """Test config command without flags."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         result = runner.invoke(app, ["config"])
         assert result.exit_code == 0
@@ -91,7 +86,6 @@ class TestCLIIntegration:
     def test_list_command_no_database_integration(self, tmp_path):
         """Test list command when database is not available."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         with patch("src.cli.main.DATABASE_AVAILABLE", False):
@@ -102,7 +96,6 @@ class TestCLIIntegration:
     def test_list_command_with_database_integration(self, tmp_path):
         """Test list command when database is available."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         with patch("src.cli.main.DATABASE_AVAILABLE", True):
@@ -112,7 +105,6 @@ class TestCLIIntegration:
     def test_cleanup_dry_run_integration(self, test_config, tmp_path):
         """Test cleanup --dry-run command."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         cache_dir = tmp_path / "cache"
@@ -131,7 +123,6 @@ class TestCLIIntegration:
     def test_cleanup_cache_only_integration(self, test_config, tmp_path):
         """Test cleanup --cache-only command."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         cache_dir = tmp_path / "cache"
@@ -158,7 +149,6 @@ class TestCLIIntegration:
     def test_cleanup_outputs_only_integration(self, test_config, tmp_path):
         """Test cleanup --outputs-only command."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         cache_dir = tmp_path / "cache"
@@ -185,7 +175,6 @@ class TestCLIIntegration:
     def test_cleanup_nothing_to_clean_integration(self, test_config, tmp_path):
         """Test cleanup when there's nothing to clean."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         cache_dir = tmp_path / "cache"
@@ -202,7 +191,6 @@ class TestCLIIntegration:
         """Test init command creates directories."""
         import os
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         original_cwd = os.getcwd()
@@ -226,7 +214,6 @@ class TestCLIIntegration:
         """Test init command with database available."""
         import os
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         original_cwd = os.getcwd()
@@ -247,7 +234,6 @@ class TestCLIIntegration:
     def test_status_with_gpu_integration(self, tmp_path):
         """Test status command with GPU available."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         fake_gpu = MagicMock()
@@ -282,7 +268,6 @@ class TestCLIIntegration:
     def test_status_ffmpeg_not_found_integration(self, tmp_path):
         """Test status command when FFmpeg is not found."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         fake_gpu = MagicMock()
@@ -299,7 +284,6 @@ class TestCLIIntegration:
     def test_generate_face_integration(self, test_config, tmp_path):
         """Test generate-face command."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         fake_gpu = MagicMock()
@@ -336,7 +320,6 @@ class TestCLIIntegration:
     def test_generate_face_exception_integration(self, test_config, tmp_path):
         """Test generate-face command exception handling."""
         from typer.testing import CliRunner
-        from src.cli.main import app
         runner = CliRunner()
         
         fake_gpu = MagicMock()
