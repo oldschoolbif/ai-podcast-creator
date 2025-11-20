@@ -609,6 +609,7 @@ class TestEdgeTTSEngineGeneration:
 
 
 @pytest.mark.integration
+@pytest.mark.skipif("pyttsx3" not in sys.modules, reason="pyttsx3 not installed")
 class TestPyttsx3TTSEngineGeneration:
     """Test pyttsx3 TTS generation paths."""
 
