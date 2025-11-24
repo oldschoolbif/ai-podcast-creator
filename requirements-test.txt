@@ -9,7 +9,7 @@ pytest-timeout==2.4.0
 pytest-xdist==3.8.0  # Parallel test execution
 
 # Coverage reporting
-coverage[toml]==7.11.3
+coverage[toml]==7.12.0
 
 # Test utilities
 faker==22.0.0  # Generate fake data for testing
