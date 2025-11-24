@@ -25,5 +25,5 @@ pytest-factoryboy==2.8.1
 soundfile==0.12.1  # Audio file verification
 
 # Additional test helpers
-hypothesis==6.96.0  # Property-based testing
+hypothesis==6.148.2  # Property-based testing
 
